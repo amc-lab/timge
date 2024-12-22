@@ -111,12 +111,7 @@ const CanvasPage = () => {
   const angle_padding = 0.01;
   const total_angle_padding = 2 * angle_padding * segments.length;
   const total_available_angle = 2 * Math.PI - total_angle_padding;
-
-  const tick_precision = 10000;
-  const total_ticks = Math.floor(total_length / tick_precision);
-  const tick_angle = total_available_angle / total_ticks;
-
-  console.log(total_length, total_available_angle);
+  const tick_precision = 100000;
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -141,14 +136,6 @@ const CanvasPage = () => {
           .startAngle(startAngle)
           .endAngle(endAngle);
 
-        const arc_grid = d3.arc()
-            .innerRadius(253)
-            .outerRadius(254)
-            .startAngle(startAngle)
-            .endAngle(endAngle);
-
-        last_angle = endAngle + angle_padding;
-
         svg.append("path")
           .attr("d", arc)
           .attr("transform", "translate(400, 300)")
@@ -160,11 +147,38 @@ const CanvasPage = () => {
             d3.select(this).attr("filter", "brightness(1)");
           });
 
+        const arc_grid = d3.arc()
+            .innerRadius(253)
+            .outerRadius(253)
+            .startAngle(startAngle)
+            .endAngle(endAngle);
+        
         svg.append("path")
             .attr("d", arc_grid)
             .attr("transform", "translate(400, 300)")
-            .attr("fill", "black");
+            .attr("stroke", "black")
+            .attr("stroke-width", 1);
+        
+        const numTicks = Math.floor((segment.end - segment.start) / tick_precision);
+        const scale = d3.scaleLinear()
+        .domain([segment.start, segment.end])
+        .range([startAngle, endAngle]);
 
+        const ticks = scale.ticks(numTicks);
+
+        ticks.forEach((tick: any) => {
+            const angle = scale(tick);
+            svg
+                .append("line")
+                .attr("x1", 400 + 252.5 * Math.sin(angle))
+                .attr("y1", 300 - 252.5 * Math.cos(angle))
+                .attr("x2", 400 + 257 * Math.sin(angle))
+                .attr("y2", 300 - 257 * Math.cos(angle))
+                .attr("stroke", "black")
+                .attr("stroke-width", 1);
+        });
+
+        last_angle = endAngle + angle_padding;
       });
     }
   }, []);
