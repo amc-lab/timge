@@ -93,8 +93,6 @@ const CanvasPage = () => {
           .startAngle(startAngle)
           .endAngle(endAngle);
 
-
-
         svg.append("path")
           .attr("d", arc)
           .attr("transform", `translate(${canvasWidth / 2}, ${canvasHeight / 2})`)
@@ -151,14 +149,15 @@ const CanvasPage = () => {
                 const y = (canvasHeight / 2) - (segmentOuterRadius + segmentGridPadding + tickLength + tickTextPadding) * Math.cos(angle);
                 const rotation = ((angle * 180) / Math.PI) - 90;
                 const tick_text = tick == 0 ? "" : tick.toLocaleString();
+                // `${rotation > 90 ? -rotation : rotation}`;
                 svg
                     .append("text")
                     .attr("x", x)
                     .attr("y", y)
-                    .attr("text-anchor", "start")
+                    .attr("text-anchor", `${rotation >= 90 ? "end" : "start"}`)
                     .attr("dominant-baseline", "central")
                     .attr("font-size", axisLabelFontSize)
-                    .attr("transform", `rotate(${rotation}, ${x}, ${y})`)
+                    .attr("transform", `rotate(${rotation >= 90 ? rotation - 180 : rotation}, ${x}, ${y})`)
                     .text(tick_text);
             });
         }
