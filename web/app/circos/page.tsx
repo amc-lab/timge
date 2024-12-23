@@ -93,16 +93,28 @@ const CanvasPage = () => {
           .startAngle(startAngle)
           .endAngle(endAngle);
 
+
+
         svg.append("path")
           .attr("d", arc)
           .attr("transform", `translate(${canvasWidth / 2}, ${canvasHeight / 2})`)
-          .attr("fill", color_palette(0.75 * i/segments.length))
+          .attr("fill", color_palette(0.55 * i/segments.length))
           .on("mouseover", function (this: SVGPathElement) {
             d3.select(this).attr("filter", "brightness(0.9)");
           })
           .on("mouseout", function (this: SVGPathElement) {
             d3.select(this).attr("filter", "brightness(1)");
           });
+        
+          svg.append("text")
+          .attr("x", canvasWidth / 2)
+          .attr("y", canvasHeight / 2)
+          .attr("text-anchor", "middle")
+          .attr("dominant-baseline", "central")
+          .attr("font-size", 12)
+          .attr("transform", `translate(${(segmentInnerRadius + segmentOuterRadius) / 2 * Math.sin((startAngle + endAngle) / 2)}, ${-(segmentInnerRadius + segmentOuterRadius) / 2 * Math.cos((startAngle + endAngle) / 2)})`)
+          .attr("fill", "white")
+          .text(segment.chromosome);
 
         if (showAxis) {
             const arc_grid = d3.arc()
