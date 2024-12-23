@@ -111,7 +111,7 @@ const CanvasPage = () => {
   const angle_padding = 0.01;
   const total_angle_padding = 2 * angle_padding * segments.length;
   const total_available_angle = 2 * Math.PI - total_angle_padding;
-  const tick_precision = 100000;
+  const tick_precision = 200000;
 
   useEffect(() => {
     if (canvasRef.current) {
@@ -168,6 +168,10 @@ const CanvasPage = () => {
 
         ticks.forEach((tick: any) => {
             const angle = scale(tick);
+            const x = 400 + 260 * Math.sin(angle);
+            const y = 300 - 260 * Math.cos(angle);
+            const rotation = ((angle * 180) / Math.PI) - 90;
+            const tick_text = tick == 0 ? "" : tick.toLocaleString();
             svg
                 .append("line")
                 .attr("x1", 400 + 252.5 * Math.sin(angle))
@@ -176,6 +180,16 @@ const CanvasPage = () => {
                 .attr("y2", 300 - 257 * Math.cos(angle))
                 .attr("stroke", "black")
                 .attr("stroke-width", 1);
+        
+            svg
+                .append("text")
+                .attr("x", x)
+                .attr("y", y)
+                .attr("text-anchor", "start")
+                .attr("dominant-baseline", "central")
+                .attr("font-size", 6)
+                .attr("transform", `rotate(${rotation}, ${x}, ${y})`)
+                .text(tick_text);
         });
 
         last_angle = endAngle + angle_padding;
