@@ -1,10 +1,10 @@
 "use client";
-import type { Assembly, Chord, AssemblyConfig } from "../types/genomes";
+import type { Assembly, Chord, AssemblyConfig, ChordConfig } from "../types/genomes";
 import { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
 import FileUpload from "../../components/FileUpload";
 import Segment from "./segment";
-import { AssemblyForm } from "../../components/Form";
+import Form from "../../components/Form";
 
 interface CircosProps {
     data: {
@@ -13,7 +13,7 @@ interface CircosProps {
     };
 }
 
-const defaultConfig = {
+const defaultAssemblyConfig = {
     segmentPadding: 0.02,
     axisLabelFontSize: 10,
     showAxis: true,
@@ -28,10 +28,13 @@ const defaultConfig = {
     useStroke: true,
 };
 
+const defaultChordConfig = {};
+
 const Circos = ({ data }: CircosProps) => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [segments, setSegments] = useState<Assembly[]>([]);
-    const [config, setConfig] = useState(defaultConfig);
+    const [assemblyConfig, setAssemblyConfig] = useState(defaultAssemblyConfig);
+    const [chordConfig, setChordConfig] = useState(defaultChordConfig);
 
     const handleFileUpload = (file: File) => {
         const reader = new FileReader();
@@ -51,16 +54,20 @@ const Circos = ({ data }: CircosProps) => {
         if (canvasRef.current) {
             const svg = d3.select(canvasRef.current)
                 .append("svg")
-                .attr("width", config.canvasWidth)
-                .attr("height", config.canvasHeight);
+                .attr("width", assemblyConfig.canvasWidth)
+                .attr("height", assemblyConfig.canvasHeight);
 
             svg.call(d3.create);
         }
-    }, [data, config.canvasWidth, config.canvasHeight]);
+    }, [data, assemblyConfig.canvasWidth, assemblyConfig.canvasHeight]);
 
-    const handleConfigUpdate = (updatedConfig: Partial<AssemblyConfig>) => {
-        setConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
+    const handleAssemblyConfigUpdate = (updatedConfig: Partial<AssemblyConfig>) => {
+        setAssemblyConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
     };
+
+    const handleChordConfigUpdate = (updatedConfig: Partial<ChordConfig>) => {
+        setChordConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
+    }
 
     return (
         <div>
@@ -68,16 +75,14 @@ const Circos = ({ data }: CircosProps) => {
             <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
                 {/* Left Section */}
                 <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Segment data={{ segments, config }} />
+                    <Segment data={{ segments, config: assemblyConfig }} />
                 </div>
 
                 {/* Right Section (Form) */}
                 <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {segments.length > 0 && (
-                        <AssemblyForm
-                            onUpdate={handleConfigUpdate}
-                            defaultConfig={defaultConfig}
-                        />
+                        <Form handleAssemblyConfigUpdate={handleAssemblyConfigUpdate} defaultAssemblyConfig={assemblyConfig} 
+                            handleChordConfigUpdate={handleChordConfigUpdate} defaultChordConfig={chordConfig} />
                     )}
                 </div>
             </div>

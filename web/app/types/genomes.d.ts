@@ -30,3 +30,6 @@ interface AssemblyConfig {
     precision: number;
     useStroke: boolean;
 }
+
+interface ChordConfig {
+}
