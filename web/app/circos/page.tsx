@@ -4,7 +4,7 @@ import { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
 import FileUpload from "../../components/FileUpload";
 import Segment from "./segment";
-import {AssemblyForm} from "../../components/Form";
+import { AssemblyForm } from "../../components/Form";
 
 interface CircosProps {
     data: {
@@ -63,16 +63,25 @@ const Circos = ({ data }: CircosProps) => {
     };
 
     return (
-        <>
+        <div>
             <FileUpload onFileUpload={handleFileUpload} />
-            <Segment data={{ segments, config }} />
-            {segments.length > 0 && (
-                <AssemblyForm
-                    onUpdate={handleConfigUpdate}
-                    defaultConfig={defaultConfig}
-                />
-            )}
-        </>
+            <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
+                {/* Left Section */}
+                <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Segment data={{ segments, config }} />
+                </div>
+
+                {/* Right Section (Form) */}
+                <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {segments.length > 0 && (
+                        <AssemblyForm
+                            onUpdate={handleConfigUpdate}
+                            defaultConfig={defaultConfig}
+                        />
+                    )}
+                </div>
+            </div>
+        </div>
     );
 };
 
