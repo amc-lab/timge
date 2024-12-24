@@ -12,7 +12,8 @@ export default function AssemblyForm({ onUpdate }: {
         canvasHeight: number,
         tickLength: number,
         tickTextPadding: number,
-        precision: number
+        precision: number,
+        useStroke: boolean
     ) => void 
 }) {
   const [segmentPadding, setSegmentPadding] = useState(0.02);
@@ -26,6 +27,7 @@ export default function AssemblyForm({ onUpdate }: {
   const [tickLength, setTickLength] = useState(3);
   const [tickTextPadding, setTickTextPadding] = useState(3);
   const [precision, setPrecision] = useState(1);
+  const [useStroke, setUseStroke] = useState(true);
 
     const onFormUpdate = () => {
         if (segmentInnerRadius >= segmentOuterRadius) {
@@ -34,7 +36,7 @@ export default function AssemblyForm({ onUpdate }: {
             setSegmentOuterRadius(250);
             return;
         }
-        onUpdate(segmentPadding, axisLabelFontSize, showAxis, segmentInnerRadius, segmentOuterRadius, segmentGridPadding, canvasWidth, canvasHeight, tickLength, tickTextPadding, precision);
+        onUpdate(segmentPadding, axisLabelFontSize, showAxis, segmentInnerRadius, segmentOuterRadius, segmentGridPadding, canvasWidth, canvasHeight, tickLength, tickTextPadding, precision, useStroke);
     };
 
   return (
@@ -86,6 +88,10 @@ export default function AssemblyForm({ onUpdate }: {
                 Precision</label>
                 <input type="range" min="0" max="2" step="1" value={precision} onChange={(e) => setPrecision(parseFloat(e.target.value))} />
             <br />
+            <label>
+                Use Stroke
+                <input type="checkbox" checked={useStroke} onChange={(e) => setUseStroke(e.target.checked)} />
+            </label>
         </form>
       <button onClick={onFormUpdate}>Update</button>
     </div>

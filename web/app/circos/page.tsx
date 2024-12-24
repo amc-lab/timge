@@ -20,6 +20,7 @@ const CanvasPage = () => {
     const [canvasHeight, setCanvasHeight] = useState(600);
     const [segmentAnglePadding, setSegmentAnglePadding] = useState(0.02);
     const [precision, setPrecision] = useState(1);
+    const [useStroke, setUseStroke] = useState(true);
 
     const colorPalette = d3.scaleSequential(d3.interpolateViridis);
 
@@ -82,6 +83,7 @@ const CanvasPage = () => {
                 .append("path")
                 .attr("fill", (d: { index: number; }) => colorPalette(0.3 + 0.6 * d.index / segments.length))
                 .attr("d", arc)
+                .attr("stroke", `${useStroke ? "black" : "none"}`)
                 .on("mouseover", (event: any, d: { index: number; }) => {
                     d3.select(event.currentTarget).attr("filter", "brightness(0.95)");
                     }
@@ -166,7 +168,7 @@ const CanvasPage = () => {
                     );
             }
         }
-    }, [segments, segmentInnerRadius, segmentOuterRadius, segmentGridPadding, showAxis, axisLabelFontSize, tickLength, tickTextPadding, canvasWidth, canvasHeight, segmentAnglePadding, precision]);
+    }, [segments, segmentInnerRadius, segmentOuterRadius, segmentGridPadding, showAxis, axisLabelFontSize, tickLength, tickTextPadding, canvasWidth, canvasHeight, segmentAnglePadding, precision, useStroke]);
 
     return (
         <div>
@@ -188,7 +190,8 @@ const CanvasPage = () => {
                     canvasHeight,
                     tickLength,
                     tickTextPadding,
-                    precision
+                    precision,
+                    useStroke
                 ) => {
                 setSegmentAnglePadding(segmentPadding);
                 setAxisLabelFontSize(axisLabelFontSize);
@@ -201,6 +204,7 @@ const CanvasPage = () => {
                 setTickLength(tickLength);
                 setTickTextPadding(tickTextPadding);
                 setPrecision(precision);
+                setUseStroke(useStroke);
             }} />
         }
         </div>
