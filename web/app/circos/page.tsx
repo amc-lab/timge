@@ -25,6 +25,7 @@ const defaultAssemblyConfig = {
     tickTextPadding: 2,
     precision: 1,
     useStroke: true,
+    metricPrefix: "M"
 };
 
 const defaultChordConfig = {

@@ -27,6 +27,7 @@ interface AssemblyConfig {
     tickTextPadding: number;
     precision: number;
     useStroke: boolean;
+    metricPrefix: string;
 }
 
 interface ChordConfig {

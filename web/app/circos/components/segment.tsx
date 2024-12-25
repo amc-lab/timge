@@ -20,7 +20,7 @@ const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
     const canvasRef = data.divRef;
     const globalConfig = data.globalConfig;
 
-    const colorPalette = d3.scaleSequential(d3.interpolateSinebow);
+    const colorPalette = d3.scaleSequential(d3.interpolateSpectral);
 
     useEffect(() => {
         if (canvasRef.current && segments.length > 0) {
@@ -109,7 +109,7 @@ const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
                 .attr("text-anchor", "middle")
                 .attr("alignment-baseline", "middle")
                 .attr("font-size", `10`)
-                .attr("fill", "white")
+                .attr("fill", "black")
                 .text((d: { index: number; }) => segments[d.index].chromosome);
 
             const precision_vals = [100, 250, 500]
@@ -132,13 +132,24 @@ const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
                     const scale = d3.scaleLinear()
                         .domain([segment.start, segment.end])
                         .range([d.startAngle, d.endAngle]);
-
-                    const majorTicks = d3.range(segment.start, segment.end, tickInterval).map((value: number) => ({
-                        value: value - segment.start == 0 ? null : d3.formatPrefix(",.0", 1e3)(value),
-                        angle: scale(value),
-                        isMajor: true,
-                    }));
-
+                    
+                    const majorTicks = d3.range(segment.start, segment.end, tickInterval).map((value) => {
+                            const prefixScale = config.metricPrefix === "k" ? 1e3
+                                : config.metricPrefix === "M" ? 1e6
+                                : config.metricPrefix === "G" ? 1e9
+                                : 1;
+                        
+                            const formattedValue = value - segment.start === 0 
+                                ? null 
+                                : d3.formatPrefix(".2", prefixScale)(value);
+                        
+                            return {
+                                value: formattedValue,
+                                angle: scale(value),
+                                isMajor: true,
+                            };
+                        });
+                        
                     const minorTicks = d3.range(segment.start, segment.end, minorTickInterval).filter((value: number) => value % tickInterval !== 0).map((value: any) => ({
                         value: null,
                         angle: scale(value),

@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import Checkbox from '@mui/joy/Checkbox';
 import Box from '@mui/joy/Box';
 import Slider from '@mui/joy/Slider';
-import Card from '@mui/joy/Card';
 import { AssemblyConfig } from '@/app/types/genomes';
+import Select from '@mui/joy/Select';
+import Option from '@mui/joy/Option';
 
 interface AssemblyFormProps {
     onUpdate: (newConfig: AssemblyConfig) => void;
@@ -125,6 +126,13 @@ export const AssemblyForm: React.FC<AssemblyFormProps> = ({ onUpdate, defaultCon
                         checked={config.useStroke} 
                         onChange={(e) => handleConfigChange('useStroke', e.target.checked)} 
                     />
+                    <label>Metric Prefix</label>
+                    <Select defaultValue="M" onChange={(e, value) => handleConfigChange('metricPrefix', value)} size="sm">
+                        <Option value="k">k</Option>
+                        <Option value="M">M</Option>
+                        <Option value="G">G</Option>
+                        <Option value="None">None</Option>
+                    </Select>
                 </Box>
             </form>
         </div>
