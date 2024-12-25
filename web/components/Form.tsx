@@ -1,5 +1,5 @@
 import React from "react";
-import { AssemblyConfig, ChordConfig } from "@/app/types/genomes";
+import { AssemblyConfig, ChordConfig, GlobalConfig } from "@/app/types/genomes";
 import Card from '@mui/joy/Card';
 import Tabs from '@mui/joy/Tabs';
 import Tab from '@mui/joy/Tab';
@@ -7,15 +7,18 @@ import TabList from '@mui/joy/TabList';
 import TabPanel from '@mui/joy/TabPanel';
 import { AssemblyForm } from "./AssemblyForm";
 import { ChordForm } from "./ChordForm";
+import { GlobalForm } from "./GlobalForm";
 
 interface FormProps {
     handleAssemblyConfigUpdate: (newConfig: AssemblyConfig) => void;
     defaultAssemblyConfig: AssemblyConfig;
     handleChordConfigUpdate: (newConfig: ChordConfig) => void;
     defaultChordConfig: ChordConfig;
+    handleGlobalConfigUpdate: (newConfig: GlobalConfig) => void;
+    defaultGlobalConfig: GlobalConfig;
 }
 
-const Form: React.FC<FormProps> = ({ handleAssemblyConfigUpdate, defaultAssemblyConfig, handleChordConfigUpdate, defaultChordConfig }) => {
+const Form: React.FC<FormProps> = ({ handleAssemblyConfigUpdate, defaultAssemblyConfig, handleChordConfigUpdate, defaultChordConfig, handleGlobalConfigUpdate, defaultGlobalConfig }) => {
     return (
         <div>
             <Card
@@ -41,6 +44,12 @@ const Form: React.FC<FormProps> = ({ handleAssemblyConfigUpdate, defaultAssembly
                             disableIndicator>
                             Chords
                         </Tab>
+                        <Tab
+                            variant="plain"
+                            color="neutral"
+                            disableIndicator>
+                            Global
+                        </Tab>
                     </TabList>
                     <TabPanel value={0}>
                         <AssemblyForm onUpdate={handleAssemblyConfigUpdate}
@@ -50,6 +59,11 @@ const Form: React.FC<FormProps> = ({ handleAssemblyConfigUpdate, defaultAssembly
                     <TabPanel value={1}>
                         <ChordForm onUpdate={handleChordConfigUpdate}
                             defaultConfig={defaultChordConfig}
+                        />
+                    </TabPanel>
+                    <TabPanel value={2}>
+                        <GlobalForm onUpdate={handleGlobalConfigUpdate}
+                            defaultConfig={defaultGlobalConfig}
                         />
                     </TabPanel>
                 </Tabs>

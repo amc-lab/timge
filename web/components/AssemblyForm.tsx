@@ -89,26 +89,6 @@ export const AssemblyForm: React.FC<AssemblyFormProps> = ({ onUpdate, defaultCon
                         value={config.segmentGridPadding} 
                         onChange={(e, value) => handleConfigChange('segmentGridPadding', value)} 
                     />
-                    <label>Canvas Width</label>
-                    <Slider 
-                        valueLabelDisplay="auto" 
-                        variant="solid" 
-                        min={0} 
-                        max={1000} 
-                        step={10} 
-                        value={config.canvasWidth} 
-                        onChange={(e, value) => handleConfigChange('canvasWidth', value)} 
-                    />
-                    <label>Canvas Height</label>
-                    <Slider 
-                        valueLabelDisplay="auto" 
-                        variant="solid" 
-                        min={0} 
-                        max={1000} 
-                        step={10} 
-                        value={config.canvasHeight} 
-                        onChange={(e, value) => handleConfigChange('canvasHeight', value)} 
-                    />
                     <label>Tick Length</label>
                     <Slider 
                         valueLabelDisplay="auto" 

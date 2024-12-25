@@ -23,8 +23,6 @@ interface AssemblyConfig {
     segmentInnerRadius: number;
     segmentOuterRadius: number;
     segmentGridPadding: number;
-    canvasWidth: number;
-    canvasHeight: number;
     tickLength: number;
     tickTextPadding: number;
     precision: number;
@@ -32,6 +30,9 @@ interface AssemblyConfig {
 }
 
 interface ChordConfig {
+}
+
+interface GlobalConfig {
     canvasWidth: number;
     canvasHeight: number;
 }

@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { Assembly, AssemblyConfig } from "../../types/genomes";
+import { Assembly, AssemblyConfig, GlobalConfig } from "../../types/genomes";
 
 interface SegmentProps {
     data: {
         segments: Array<Assembly>;
         config: AssemblyConfig;
+        globalConfig: GlobalConfig;
         divRef: any;
     };
 }
@@ -16,6 +17,7 @@ const Segment = ({data}: SegmentProps) => {
     const segments = data.segments;
     const config = data.config;
     const canvasRef = data.divRef;
+    const globalConfig = data.globalConfig;
 
     const colorPalette = d3.scaleSequential(d3.interpolateViridis);
 
@@ -27,9 +29,13 @@ const Segment = ({data}: SegmentProps) => {
             if (svg.empty()) {
                 svg = d3.select(canvasRef.current)
                     .append("svg")
-                    .attr("width", config.canvasWidth)
-                    .attr("height", config.canvasHeight);
+                    .attr("width", globalConfig.canvasWidth)
+                    .attr("height", globalConfig.canvasHeight);
             }
+
+            const uniqueGroupClass = `group-1`;
+
+            svg.selectAll(`g.${uniqueGroupClass}`).remove();
 
             const totalLength = segments.reduce(
                 (acc, segment) => acc + (segment.end - segment.start),
@@ -54,26 +60,27 @@ const Segment = ({data}: SegmentProps) => {
 
             const chords = chord(matrix);
 
+            svg.selectAll("g").remove();
+
             const group = svg.append("g")
-                .attr("transform", `translate(${config.canvasWidth / 2}, ${config.canvasHeight / 2})`)
-                .selectAll("g")
-                .data(chords.groups)
-                .join("g");
+            .attr("class", uniqueGroupClass) // Add the unique class
+            .attr("transform", `translate(${globalConfig.canvasWidth / 2}, ${globalConfig.canvasHeight / 2})`)
+            .selectAll("g")
+            .data(chords.groups)
+            .join("g");
 
             group
-                .append("path")
-                .attr("fill", (d: { index: number; }) => colorPalette(0.3 + 0.6 * d.index / segments.length))
-                .attr("d", arc)
-                .attr("stroke", `${config.useStroke ? "black" : "none"}`)
-                .on("mouseover", (event: any, d: { index: number; }) => {
-                    d3.select(event.currentTarget).attr("filter", "brightness(0.95)");
-                    }
-                )
-                .on("mouseout", (event: any, d: { index: number; }) => {
-                    d3.select(event.currentTarget).attr("filter", "brightness(1)");
-                    }
-                )
-                .append("title")
+            .append("path")
+            .attr("fill", (d) => colorPalette(0.3 + 0.6 * d.index / segments.length))
+            .attr("d", arc)
+            .attr("stroke", `${config.useStroke ? "black" : "none"}`)
+            .on("mouseover", (event, d) => {
+                d3.select(event.currentTarget).attr("filter", "brightness(0.95)");
+            })
+            .on("mouseout", (event, d) => {
+                d3.select(event.currentTarget).attr("filter", "brightness(1)");
+            })
+            .append("title");
 
             group
                 .append("text")
@@ -147,7 +154,7 @@ const Segment = ({data}: SegmentProps) => {
                     );
             }
         }
-    }, [segments, config]);
+    }, [segments, config, globalConfig]);
 
     return null;
 };
