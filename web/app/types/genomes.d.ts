@@ -32,4 +32,6 @@ interface AssemblyConfig {
 }
 
 interface ChordConfig {
+    canvasWidth: number;
+    canvasHeight: number;
 }

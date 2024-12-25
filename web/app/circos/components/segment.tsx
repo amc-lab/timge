@@ -2,39 +2,39 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { Assembly, AssemblyConfig } from "../types/genomes";
-import FileUpload from "../../components/FileUpload";
+import { Assembly, AssemblyConfig } from "../../types/genomes";
 
 interface SegmentProps {
     data: {
         segments: Array<Assembly>;
         config: AssemblyConfig;
+        divRef: any;
     };
 }
 
 const Segment = ({data}: SegmentProps) => {
-    const canvasRef = useRef<HTMLDivElement>(null);
     const segments = data.segments;
     const config = data.config;
+    const canvasRef = data.divRef;
 
     const colorPalette = d3.scaleSequential(d3.interpolateViridis);
 
     useEffect(() => {
         if (canvasRef.current && segments.length > 0) {
-            d3.select(canvasRef.current).select("svg").remove();
+    
+            let svg = d3.select(canvasRef.current).select("svg");
+        
+            if (svg.empty()) {
+                svg = d3.select(canvasRef.current)
+                    .append("svg")
+                    .attr("width", config.canvasWidth)
+                    .attr("height", config.canvasHeight);
+            }
 
             const totalLength = segments.reduce(
                 (acc, segment) => acc + (segment.end - segment.start),
                 0
             );
-
-            const svg = d3
-                .select(canvasRef.current)
-                .append("svg")
-                .attr("viewBox", [-config.canvasWidth / 2, -config.canvasHeight / 2, config.canvasWidth, config.canvasHeight])
-                .attr("width", config.canvasWidth)
-                .attr("height", config.canvasHeight)
-                .attr("style", "font: 10px sans-serif;");
 
             const chord = d3.chord()
                 .padAngle(config.segmentPadding)
@@ -54,8 +54,8 @@ const Segment = ({data}: SegmentProps) => {
 
             const chords = chord(matrix);
 
-            const group = svg
-                .append("g")
+            const group = svg.append("g")
+                .attr("transform", `translate(${config.canvasWidth / 2}, ${config.canvasHeight / 2})`)
                 .selectAll("g")
                 .data(chords.groups)
                 .join("g");
@@ -77,8 +77,6 @@ const Segment = ({data}: SegmentProps) => {
 
             group
                 .append("text")
-                .attr("x", 0)
-                .attr("y", 0)
                 .attr("transform", (d: { startAngle: number; endAngle: number; }) => {
                     const angle = (d.startAngle + d.endAngle) / 2;
                     const x = Math.sin(angle) * (config.segmentInnerRadius + (config.segmentOuterRadius - config.segmentInnerRadius) / 2);
@@ -151,13 +149,7 @@ const Segment = ({data}: SegmentProps) => {
         }
     }, [segments, config]);
 
-    return (
-        <div>
-            <div className="svg-container" style={{display: "flex", justifyContent: "center", alignItems: "center"}}>
-                <div ref={canvasRef} style={{ border: "1px solid black" }}></div>
-            </div>
-        </div>
-    );
+    return null;
 };
 
 export default Segment;

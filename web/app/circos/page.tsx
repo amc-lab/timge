@@ -3,8 +3,9 @@ import type { Assembly, Chord, AssemblyConfig, ChordConfig } from "../types/geno
 import { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
 import FileUpload from "../../components/FileUpload";
-import Segment from "./segment";
+import Segment from "./components/segment";
 import Form from "../../components/Form";
+import Chords from "./components/chord";
 
 interface CircosProps {
     data: {
@@ -28,11 +29,15 @@ const defaultAssemblyConfig = {
     useStroke: true,
 };
 
-const defaultChordConfig = {};
+const defaultChordConfig = {
+    canvasWidth: 650,
+    canvasHeight: 650,
+};
 
 const Circos = ({ data }: CircosProps) => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [segments, setSegments] = useState<Assembly[]>([]);
+    const [chords, setChords] = useState<Chord[]>([]);
     const [assemblyConfig, setAssemblyConfig] = useState(defaultAssemblyConfig);
     const [chordConfig, setChordConfig] = useState(defaultChordConfig);
 
@@ -52,12 +57,14 @@ const Circos = ({ data }: CircosProps) => {
 
     useEffect(() => {
         if (canvasRef.current) {
-            const svg = d3.select(canvasRef.current)
-                .append("svg")
-                .attr("width", assemblyConfig.canvasWidth)
-                .attr("height", assemblyConfig.canvasHeight);
+            const svg = d3.select(canvasRef.current).select("svg");
 
-            svg.call(d3.create);
+            if (svg.empty()) {
+                d3.select(canvasRef.current)
+                    .append("svg")
+                    .attr("width", assemblyConfig.canvasWidth)
+                    .attr("height", assemblyConfig.canvasHeight);
+            }
         }
     }, [data, assemblyConfig.canvasWidth, assemblyConfig.canvasHeight]);
 
@@ -73,12 +80,13 @@ const Circos = ({ data }: CircosProps) => {
         <div>
             <FileUpload onFileUpload={handleFileUpload} />
             <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
-                {/* Left Section */}
                 <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Segment data={{ segments, config: assemblyConfig }} />
+                    <div ref={canvasRef} style={{ border: "1px solid black" }}>
+                        <Segment data={{ segments, config: assemblyConfig, divRef: canvasRef }} />
+                        <Chords data={{ chords: chords, config: chordConfig, divRef: canvasRef }} />
+                    </div>
                 </div>
 
-                {/* Right Section (Form) */}
                 <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {segments.length > 0 && (
                         <Form handleAssemblyConfigUpdate={handleAssemblyConfigUpdate} defaultAssemblyConfig={assemblyConfig} 
