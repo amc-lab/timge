@@ -1,214 +1,289 @@
 "use client";
-
-import { useEffect, useRef, useState } from "react";
+import type { Assembly, Chord, AssemblyConfig, ChordConfig, GlobalConfig } from "../types/genomes";
+import { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
-import { Assembly } from "../types/genomes";
 import FileUpload from "../../components/FileUpload";
+import Segment from "./components/segment";
 import Form from "../../components/Form";
+import Chords from "./components/chord";
 
-const CanvasPage = () => {
+interface CircosProps {
+    data: {
+        segments: Array<Assembly>;
+        chords: Array<Chord>;
+    };
+}
+
+const defaultAssemblyConfig = {
+    segmentPadding: 0.02,
+    axisLabelFontSize: 10,
+    showAxis: true,
+    segmentInnerRadius: 200,
+    segmentOuterRadius: 250,
+    segmentGridPadding: 5,
+    tickLength: 5,
+    tickTextPadding: 2,
+    precision: 1,
+    useStroke: true,
+    metricPrefix: "M"
+};
+
+const defaultChordConfig = {
+    chordPadding: 10,
+    opacity: 0.3,
+    color: "blue",
+    useStroke: true,
+    outerRadius: defaultAssemblyConfig.segmentInnerRadius
+};
+
+const defaultGlobalConfig = {
+    canvasWidth: 650,
+    canvasHeight: 650,
+};
+
+const Circos = ({ data }: CircosProps) => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [segments, setSegments] = useState<Assembly[]>([]);
-    const [axisLabelFontSize, setAxisLabelFontSize] = useState(10);
-    const [showAxis, setShowAxis] = useState(true);
-    const [segmentGridPadding, setSegmentGridPadding] = useState(3);
-    const [tickLength, setTickLength] = useState(3);
-    const [tickTextPadding, setTickTextPadding] = useState(3);
-    const [segmentInnerRadius, setSegmentInnerRadius] = useState(200);
-    const [segmentOuterRadius, setSegmentOuterRadius] = useState(250);
-    const [canvasWidth, setCanvasWidth] = useState(600);
-    const [canvasHeight, setCanvasHeight] = useState(600);
-    const [segmentAnglePadding, setSegmentAnglePadding] = useState(0.02);
-    const [precision, setPrecision] = useState(1);
-    const [useStroke, setUseStroke] = useState(true);
-
-    const colorPalette = d3.scaleSequential(d3.interpolateViridis);
+    const [segmentData, setSegmentData] = useState<any[]>([]);
+    const [chords, setChords] = useState<Chord[]>([]);
+    const [assemblyConfig, setAssemblyConfig] = useState(defaultAssemblyConfig);
+    const [chordConfig, setChordConfig] = useState(defaultChordConfig);
+    const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
 
     const handleFileUpload = (file: File) => {
         const reader = new FileReader();
         reader.onload = (event) => {
-        try {
-            const json = JSON.parse(event.target?.result as string);
-            setSegments(json);
-        } catch (error) {
-            console.error("Invalid JSON file:", error);
-            alert("Uploaded file is not valid JSON.");
-        }
+            try {
+                const json = JSON.parse(event.target?.result as string);
+                setSegments(json);
+            } catch (error) {
+                console.error("Invalid JSON file:", error);
+                alert("Uploaded file is not valid JSON.");
+            }
         };
         reader.readAsText(file);
     };
 
+    const chordData = [
+        {
+            "source_chr": "os4",
+            "source_start": 100000,
+            "source_end": 200000,
+            "target_chr": "os5",
+            "target_start": 500000,
+            "target_end": 750000
+        },
+        {
+            "source_chr": "os11",
+            "source_start": 53706,
+            "source_end": 119898,
+            "target_chr": "os12",
+            "target_start": 132510,
+            "target_end": 318392
+        },
+        {
+            "source_chr": "os14",
+            "source_start": 890047,
+            "source_end": 1176200,
+            "target_chr": "os9",
+            "target_start": 709549,
+            "target_end": 839923
+        },
+        {
+            "source_chr": "os3",
+            "source_start": 533225,
+            "source_end": 603174,
+            "target_chr": "os13",
+            "target_start": 589625,
+            "target_end": 824058
+        },
+        {
+            "source_chr": "os8",
+            "source_start": 623161,
+            "source_end": 674225,
+            "target_chr": "os4",
+            "target_start": 237627,
+            "target_end": 344041
+        },
+        {
+            "source_chr": "os1",
+            "source_start": 171532,
+            "source_end": 213241,
+            "target_chr": "os4",
+            "target_start": 557498,
+            "target_end": 632494
+        },
+        {
+            "source_chr": "os7",
+            "source_start": 611199,
+            "source_end": 688226,
+            "target_chr": "os14",
+            "target_start": 1369178,
+            "target_end": 1386275
+        },
+        {
+            "source_chr": "os5",
+            "source_start": 615607,
+            "source_end": 711831,
+            "target_chr": "os3",
+            "target_start": 326396,
+            "target_end": 406051
+        },
+        {
+            "source_chr": "os6",
+            "source_start": 337855,
+            "source_end": 429067,
+            "target_chr": "os8",
+            "target_start": 241697,
+            "target_end": 360185
+        },
+        {
+            "source_chr": "os3",
+            "source_start": 508749,
+            "source_end": 511939,
+            "target_chr": "os5",
+            "target_start": 146236,
+            "target_end": 179771
+        },
+        {
+            "source_chr": "os4",
+            "source_start": 313430,
+            "source_end": 414960,
+            "target_chr": "os14",
+            "target_start": 1275583,
+            "target_end": 1347285
+        },
+        {
+            "source_chr": "os7",
+            "source_start": 518785,
+            "source_end": 636924,
+            "target_chr": "os1",
+            "target_start": 180067,
+            "target_end": 180884
+        },
+        {
+            "source_chr": "os4",
+            "source_start": 56690,
+            "source_end": 83076,
+            "target_chr": "os14",
+            "target_start": 234382,
+            "target_end": 325789
+        },
+        {
+            "source_chr": "os4",
+            "source_start": 515704,
+            "source_end": 593275,
+            "target_chr": "os9",
+            "target_start": 274373,
+            "target_end": 289908
+        },
+        {
+            "source_chr": "os5",
+            "source_start": 337479,
+            "source_end": 413516,
+            "target_chr": "os8",
+            "target_start": 456526,
+            "target_end": 459280
+        },
+        {
+            "source_chr": "os9",
+            "source_start": 68195,
+            "source_end": 140991,
+            "target_chr": "os4",
+            "target_start": 394943,
+            "target_end": 412270
+        },
+        {
+            "source_chr": "os14",
+            "source_start": 184401,
+            "source_end": 411744,
+            "target_chr": "os9",
+            "target_start": 483605,
+            "target_end": 588244
+        },
+        {
+            "source_chr": "os8",
+            "source_start": 679191,
+            "source_end": 686885,
+            "target_chr": "os13",
+            "target_start": 744636,
+            "target_end": 1016986
+        },
+        {
+            "source_chr": "os12",
+            "source_start": 539417,
+            "source_end": 728038,
+            "target_chr": "os5",
+            "target_start": 659441,
+            "target_end": 782888
+        },
+        {
+            "source_chr": "os5",
+            "source_start": 217047,
+            "source_end": 227875,
+            "target_chr": "os8",
+            "target_start": 187312,
+            "target_end": 297956
+        }
+    ]
+    const finalChords = (chordData.map((chord) => ({
+            source_chromosome: chord.source_chr,
+            source_start: chord.source_start,
+            source_end: chord.source_end,
+            target_chromosome: chord.target_chr,
+            target_start: chord.target_start,
+            target_end: chord.target_end,
+    })));
+    
+
     useEffect(() => {
-        if (canvasRef.current && segments.length > 0) {
-            d3.select(canvasRef.current).select("svg").remove();
+        if (canvasRef.current) {
+            const svg = d3.select(canvasRef.current).select("svg");
 
-            const totalLength = segments.reduce(
-                (acc, segment) => acc + (segment.end - segment.start),
-                0
-            );
-
-            const svg = d3
-                .select(canvasRef.current)
-                .append("svg")
-                .attr("viewBox", [-canvasWidth / 2, -canvasHeight / 2, canvasWidth, canvasHeight])
-                .attr("width", canvasWidth)
-                .attr("height", canvasHeight)
-                .attr("style", "font: 10px sans-serif;");
-
-            const chord = d3.chord()
-                .padAngle(segmentAnglePadding)
-                .sortSubgroups(d3.descending);
-
-            const arc = d3.arc()
-                .innerRadius(segmentInnerRadius)
-                .outerRadius(segmentOuterRadius);
-
-            const axisGridlineArc = d3.arc()
-                .innerRadius(segmentOuterRadius + segmentGridPadding)
-                .outerRadius(segmentOuterRadius + segmentGridPadding);
-
-            const matrix = segments.map((segment, i) =>
-                segments.map((_, j) => (i === j ? segment.end - segment.start : 0))
-            );
-
-            const chords = chord(matrix);
-
-            const group = svg
-                .append("g")
-                .selectAll("g")
-                .data(chords.groups)
-                .join("g");
-
-            group
-                .append("path")
-                .attr("fill", (d: { index: number; }) => colorPalette(0.3 + 0.6 * d.index / segments.length))
-                .attr("d", arc)
-                .attr("stroke", `${useStroke ? "black" : "none"}`)
-                .on("mouseover", (event: any, d: { index: number; }) => {
-                    d3.select(event.currentTarget).attr("filter", "brightness(0.95)");
-                    }
-                )
-                .on("mouseout", (event: any, d: { index: number; }) => {
-                    d3.select(event.currentTarget).attr("filter", "brightness(1)");
-                    }
-                )
-                .append("title")
-
-            group
-                .append("text")
-                .attr("x", 0)
-                .attr("y", 0)
-                .attr("transform", (d: { startAngle: number; endAngle: number; }) => {
-                    const angle = (d.startAngle + d.endAngle) / 2;
-                    const x = Math.sin(angle) * (segmentInnerRadius + (segmentOuterRadius - segmentInnerRadius) / 2);
-                    const y = -Math.cos(angle) * (segmentInnerRadius + (segmentOuterRadius - segmentInnerRadius) / 2);
-                    return `translate(${x}, ${y})`;
-                })
-                .attr("text-anchor", "middle")
-                .attr("alignment-baseline", "middle")
-                .attr("font-size", `10`)
-                .attr("fill", "white")
-                .text((d: { index: number; }) => segments[d.index].chromosome);
-
-            const precision_vals = [100, 250, 500]
-            const standardIntervalSizes = [500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000]
-            const expectedTickPrecision = totalLength / precision_vals[precision];
-            const minorTickInterval = d3.bisect(standardIntervalSizes, expectedTickPrecision) === 0 ? standardIntervalSizes[0] : standardIntervalSizes[d3.bisect(standardIntervalSizes, expectedTickPrecision) - 1];
-            const tickInterval = minorTickInterval * 5;
-
-            if (showAxis) {
-                group
-                    .append("path")
-                    .attr("d", axisGridlineArc)
-                    .attr("stroke", "black")
-
-                group
-                    .append("g")
-                    .selectAll("g")
-                    .data((d: { index: string | number; startAngle: any; endAngle: any; }) => {
-                    const segment = segments[d.index];
-                    const scale = d3.scaleLinear()
-                        .domain([segment.start, segment.end])
-                        .range([d.startAngle, d.endAngle]);
-
-                    const majorTicks = d3.range(segment.start, segment.end, tickInterval).map((value: number) => ({
-                        value: value - segment.start == 0 ? null : d3.formatPrefix(",.0", 1e3)(value),
-                        angle: scale(value),
-                        isMajor: true,
-                    }));
-
-                    const minorTicks = d3.range(segment.start, segment.end, minorTickInterval).filter((value: number) => value % tickInterval !== 0).map((value: any) => ({
-                        value: null,
-                        angle: scale(value),
-                        isMajor: false,
-                    }));
-
-                    return [...majorTicks, ...minorTicks];
-                    })
-                    .join("g")
-                    .attr("transform", (d: { angle: number; }) => `rotate(${(d.angle * 180) / Math.PI - 90}) translate(${segmentOuterRadius + segmentGridPadding}, 0)`)
-                    .call((g) =>
-                    g
-                        .append("line")
-                        .attr("stroke", "currentColor")
-                        .attr("x2", (d: { isMajor: any; }) => (d.isMajor ? tickLength * 2 : tickLength))
-                    )
-                    .call((g) =>
-                    g
-                        .filter((d: { isMajor: any; }) => d.isMajor)
-                        .append("text")
-                        .attr("x", 2 * tickLength + tickTextPadding)
-                        .attr("dy", "0.35em")
-                        .attr("font-size", `${axisLabelFontSize}`)
-                        .attr("transform", (d: { angle: number; }) =>
-                        d.angle > Math.PI ? `rotate(180) translate(-${4 * tickLength + 2 * tickTextPadding})` : null
-                        )
-                        .attr("text-anchor", (d: { angle: number; }) => (d.angle > Math.PI ? "end" : null))
-                        .text((d: { value: { toLocaleString: () => any; }; }) => d.value?.toLocaleString())
-                    );
+            if (svg.empty()) {
+                d3.select(canvasRef.current)
+                    .append("svg")
+                    .attr("width", globalConfig.canvasWidth)
+                    .attr("height", globalConfig.canvasHeight)
             }
         }
-    }, [segments, segmentInnerRadius, segmentOuterRadius, segmentGridPadding, showAxis, axisLabelFontSize, tickLength, tickTextPadding, canvasWidth, canvasHeight, segmentAnglePadding, precision, useStroke]);
+    }, [data, globalConfig]);
+
+    const handleAssemblyConfigUpdate = (updatedConfig: Partial<AssemblyConfig>) => {
+        setAssemblyConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
+        setChordConfig((prevConfig) => ({ ...prevConfig, outerRadius: updatedConfig.segmentInnerRadius ?? prevConfig.outerRadius }));
+    };
+
+    const handleChordConfigUpdate = (updatedConfig: Partial<ChordConfig>) => {
+        setChordConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
+    }
+
+    const handleGlobalConfigUpdate = (updatedConfig: Partial<GlobalConfig>) => {
+        setGlobalConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
+    }
 
     return (
         <div>
-        <h1>D3 Chord Diagram</h1>
-        <FileUpload onFileUpload={handleFileUpload} />
-        <div className="svg-container" style={{display: "flex", justifyContent: "center", alignItems: "center"}}>
-        <div ref={canvasRef} style={{ border: "1px solid black" }}></div>
-        </div>
-        {segments.length > 0 && 
-            <Form onUpdate={
-                (
-                    segmentPadding, 
-                    axisLabelFontSize, 
-                    showAxis, 
-                    segmentInnerRadius, 
-                    segmentOuterRadius, 
-                    segmentGridPadding, 
-                    canvasWidth,
-                    canvasHeight,
-                    tickLength,
-                    tickTextPadding,
-                    precision,
-                    useStroke
-                ) => {
-                setSegmentAnglePadding(segmentPadding);
-                setAxisLabelFontSize(axisLabelFontSize);
-                setShowAxis(showAxis);
-                setSegmentInnerRadius(segmentInnerRadius);
-                setSegmentOuterRadius(segmentOuterRadius);
-                setSegmentGridPadding(segmentGridPadding);
-                setCanvasWidth(canvasWidth);
-                setCanvasHeight(canvasHeight);
-                setTickLength(tickLength);
-                setTickTextPadding(tickTextPadding);
-                setPrecision(precision);
-                setUseStroke(useStroke);
-            }} />
-        }
+            <FileUpload onFileUpload={handleFileUpload} />
+            <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
+                <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div ref={canvasRef} style={{ border: "1px solid black" }}>
+                        <Segment data={{ segments, config: assemblyConfig, globalConfig: globalConfig, divRef: canvasRef }} onSegmentsCreated={(segData) => setSegmentData(segData)} />
+                        <Chords data={{ chords: finalChords, config: chordConfig, globalConfig: globalConfig, divRef: canvasRef, segments: segmentData }} />
+                    </div>
+                </div>
+
+                <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    {segments.length > 0 && (
+                        <Form handleAssemblyConfigUpdate={handleAssemblyConfigUpdate} defaultAssemblyConfig={assemblyConfig} 
+                            handleChordConfigUpdate={handleChordConfigUpdate} defaultChordConfig={chordConfig}
+                            handleGlobalConfigUpdate={handleGlobalConfigUpdate} defaultGlobalConfig={globalConfig}
+                        />
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
 
-export default CanvasPage;
+export default Circos;
