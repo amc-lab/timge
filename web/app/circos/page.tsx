@@ -32,6 +32,7 @@ const defaultChordConfig = {
     opacity: 0.3,
     color: "blue",
     useStroke: true,
+    outerRadius: defaultAssemblyConfig.segmentInnerRadius
 };
 
 const defaultGlobalConfig = {
@@ -249,6 +250,7 @@ const Circos = ({ data }: CircosProps) => {
 
     const handleAssemblyConfigUpdate = (updatedConfig: Partial<AssemblyConfig>) => {
         setAssemblyConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
+        setChordConfig((prevConfig) => ({ ...prevConfig, outerRadius: updatedConfig.segmentInnerRadius ?? prevConfig.outerRadius }));
     };
 
     const handleChordConfigUpdate = (updatedConfig: Partial<ChordConfig>) => {

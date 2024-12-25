@@ -20,7 +20,7 @@ const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
     const canvasRef = data.divRef;
     const globalConfig = data.globalConfig;
 
-    const colorPalette = d3.scaleSequential(d3.interpolateSpectral);
+    const colorPalette = d3.scaleSequential(d3.interpolateSinebow);
 
     useEffect(() => {
         if (canvasRef.current && segments.length > 0) {

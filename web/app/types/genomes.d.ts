@@ -34,6 +34,7 @@ interface ChordConfig {
     opacity: number;
     colour?: string;
     useStroke: boolean;
+    outerRadius: number;
 }
 
 interface GlobalConfig {

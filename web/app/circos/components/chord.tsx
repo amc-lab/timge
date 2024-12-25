@@ -40,7 +40,7 @@ const Chords = ({ data }: ChordProps) => {
             .attr("class", uniqueGroupClass)
             .attr("transform", `translate(${globalConfig.canvasWidth / 2}, ${globalConfig.canvasHeight / 2})`);
 
-        const radius = 200;
+        const radius = config.outerRadius;
         const chord_padding = config.chordPadding;
         const chord_radius = radius - chord_padding;
 
@@ -69,7 +69,15 @@ const Chords = ({ data }: ChordProps) => {
                 return sourceSegment?.colour || "gray";
             })
             .attr("opacity", config.opacity)
-            .attr("stroke", `${config.useStroke ? "black" : "none"}`);
+            .attr("stroke", `${config.useStroke ? "black" : "none"}`)
+            .on("mouseover", function () {
+                const currentOpacity = parseFloat(d3.select(this).attr("opacity"));
+                d3.select(this).attr("opacity", Math.min(currentOpacity + 0.3, 1)); // Increase opacity but cap at 1
+            })
+            .on("mouseout", function () {
+                const currentOpacity = parseFloat(d3.select(this).attr("opacity"));
+                d3.select(this).attr("opacity", Math.max(currentOpacity - 0.3, 0)); // Decrease opacity but ensure it doesn't go below 0
+            });
 
         console.log(chords);
     }, [canvasRef, chords, config, globalConfig]);
