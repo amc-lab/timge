@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { Chord, ChordConfig, GlobalConfig } from '@/app/types/genomes';
-import { useRef } from 'react';
 import * as d3 from 'd3';
 
 interface ChordProps {
@@ -9,6 +8,7 @@ interface ChordProps {
         config: ChordConfig;
         globalConfig: GlobalConfig;
         divRef: any;
+        segments: Array<any>;
     };
 }
 
@@ -17,10 +17,12 @@ const Chords = ({ data }: ChordProps) => {
     const chords = data.chords;
     const config = data.config;
     const globalConfig = data.globalConfig;
+    const segments = data.segments;
 
     useEffect(() => {
         if (!canvasRef.current) return;
-
+        console.log("TEST");
+        console.log(segments);
         let svg = d3.select(canvasRef.current).select("svg");
 
         if (svg.empty()) {
@@ -30,22 +32,44 @@ const Chords = ({ data }: ChordProps) => {
                 .attr("height", globalConfig.canvasHeight);
         }
 
+        const uniqueGroupClass = `group-2`;
+
+        svg.selectAll(`g.${uniqueGroupClass}`).remove();
+
         const group = svg.append("g")
+            .attr("class", uniqueGroupClass)
             .attr("transform", `translate(${globalConfig.canvasWidth / 2}, ${globalConfig.canvasHeight / 2})`);
 
         const radius = 200;
+        const chord_padding = config.chordPadding;
+        const chord_radius = radius - chord_padding;
 
         group.selectAll("path")
             .data(chords)
             .join("path")
             .attr("d", d3.ribbon()
-                .radius(radius)
-                .source(d => ({ startAngle: (d.source_start / radius) * 2 * Math.PI, endAngle: (d.source_end / radius) * 2 * Math.PI }))
-                .target(d => ({ startAngle: (d.target_start / radius) * 2 * Math.PI, endAngle: (d.target_end / radius) * 2 * Math.PI }))
+                .radius(chord_radius)
+                .source(d => (
+                    { 
+                        startAngle: segments.find(segment => segment.chromosome === d.source_chromosome)?.startAngle
+                        + (d.source_start / (segments.find(segment => segment.chromosome === d.source_chromosome)?.length)) * (segments.find(segment => segment.chromosome === d.source_chromosome)?.endAngle - segments.find(segment => segment.chromosome === d.source_chromosome)?.startAngle), 
+                        endAngle: segments.find(segment => segment.chromosome === d.source_chromosome)?.startAngle
+                        + (d.source_end / (segments.find(segment => segment.chromosome === d.source_chromosome)?.length)) * (segments.find(segment => segment.chromosome === d.source_chromosome)?.endAngle - segments.find(segment => segment.chromosome === d.source_chromosome)?.startAngle),
+                    }
+                ))
+                .target(d => ({ 
+                        startAngle: segments.find(segment => segment.chromosome === d.target_chromosome)?.startAngle
+                        + (d.target_start / (segments.find(segment => segment.chromosome === d.target_chromosome)?.length)) * (segments.find(segment => segment.chromosome === d.target_chromosome)?.endAngle - segments.find(segment => segment.chromosome === d.target_chromosome)?.startAngle), 
+                        endAngle: segments.find(segment => segment.chromosome === d.target_chromosome)?.startAngle
+                        + (d.target_end / (segments.find(segment => segment.chromosome === d.target_chromosome)?.length)) * (segments.find(segment => segment.chromosome === d.target_chromosome)?.endAngle - segments.find(segment => segment.chromosome === d.target_chromosome)?.startAngle), 
+                 }))
             )
-            .attr("fill", "none")
-            .attr("stroke", "#000")
-            .attr("stroke-width", 1);
+            .attr("fill", d => {
+                const sourceSegment = segments.find(segment => segment.chromosome === d.source_chromosome);
+                return sourceSegment?.colour || "gray";
+            })
+            .attr("opacity", config.opacity)
+            .attr("stroke", `${config.useStroke ? "black" : "none"}`);
 
         console.log(chords);
     }, [canvasRef, chords, config, globalConfig]);

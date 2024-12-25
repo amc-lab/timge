@@ -30,9 +30,21 @@ interface AssemblyConfig {
 }
 
 interface ChordConfig {
+    chordPadding: number;
+    opacity: number;
+    colour?: string;
+    useStroke: boolean;
 }
 
 interface GlobalConfig {
     canvasWidth: number;
     canvasHeight: number;
+}
+
+interface SegmentDetails {
+    chromosome: string;
+    start: number;
+    end: number;
+    length: number;
+    innerRadius: number;
 }

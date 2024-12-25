@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import * as d3 from "d3";
 import { Assembly, AssemblyConfig, GlobalConfig } from "../../types/genomes";
 
@@ -11,15 +11,16 @@ interface SegmentProps {
         globalConfig: GlobalConfig;
         divRef: any;
     };
+    onSegmentsCreated?: (segmentsData: any[]) => void; // Callback to pass segment information to the parent
 }
 
-const Segment = ({data}: SegmentProps) => {
+const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
     const segments = data.segments;
     const config = data.config;
     const canvasRef = data.divRef;
     const globalConfig = data.globalConfig;
 
-    const colorPalette = d3.scaleSequential(d3.interpolateViridis);
+    const colorPalette = d3.scaleSequential(d3.interpolateSpectral);
 
     useEffect(() => {
         if (canvasRef.current && segments.length > 0) {
@@ -71,7 +72,7 @@ const Segment = ({data}: SegmentProps) => {
 
             group
             .append("path")
-            .attr("fill", (d) => colorPalette(0.3 + 0.6 * d.index / segments.length))
+            .attr("fill", (d) => colorPalette(d.index / segments.length))
             .attr("d", arc)
             .attr("stroke", `${config.useStroke ? "black" : "none"}`)
             .on("mouseover", (event, d) => {
@@ -81,6 +82,21 @@ const Segment = ({data}: SegmentProps) => {
                 d3.select(event.currentTarget).attr("filter", "brightness(1)");
             })
             .append("title");
+
+            const segmentData = chords.groups.map((d) => ({
+                startAngle: d.startAngle,
+                endAngle: d.endAngle,
+                index: d.index,
+                segment: segments[d.index],
+                chromosome: segments[d.index].chromosome,
+                length: segments[d.index].end - segments[d.index].start,
+                colour: d3.color(colorPalette(d.index / segments.length)).formatHex(),
+            }));
+
+            if (onSegmentsCreated) {
+                console.log(segmentData);
+                onSegmentsCreated(segmentData);
+            }
 
             group
                 .append("text")

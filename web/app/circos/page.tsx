@@ -1,5 +1,5 @@
 "use client";
-import type { Assembly, Chord, AssemblyConfig, ChordConfig } from "../types/genomes";
+import type { Assembly, Chord, AssemblyConfig, ChordConfig, GlobalConfig } from "../types/genomes";
 import { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
 import FileUpload from "../../components/FileUpload";
@@ -28,6 +28,10 @@ const defaultAssemblyConfig = {
 };
 
 const defaultChordConfig = {
+    chordPadding: 10,
+    opacity: 0.3,
+    color: "blue",
+    useStroke: true,
 };
 
 const defaultGlobalConfig = {
@@ -38,6 +42,7 @@ const defaultGlobalConfig = {
 const Circos = ({ data }: CircosProps) => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [segments, setSegments] = useState<Assembly[]>([]);
+    const [segmentData, setSegmentData] = useState<any[]>([]);
     const [chords, setChords] = useState<Chord[]>([]);
     const [assemblyConfig, setAssemblyConfig] = useState(defaultAssemblyConfig);
     const [chordConfig, setChordConfig] = useState(defaultChordConfig);
@@ -59,12 +64,12 @@ const Circos = ({ data }: CircosProps) => {
 
     const chordData = [
         {
-            "source_chr": "os10",
-            "source_start": 727761,
-            "source_end": 862195,
-            "target_chr": "os13",
-            "target_start": 503711,
-            "target_end": 727521
+            "source_chr": "os4",
+            "source_start": 100000,
+            "source_end": 200000,
+            "target_chr": "os5",
+            "target_start": 500000,
+            "target_end": 750000
         },
         {
             "source_chr": "os11",
@@ -250,7 +255,7 @@ const Circos = ({ data }: CircosProps) => {
         setChordConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
     }
 
-    const handleGlobalConfigUpdate = (updatedConfig: Partial<ChordConfig>) => {
+    const handleGlobalConfigUpdate = (updatedConfig: Partial<GlobalConfig>) => {
         setGlobalConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
     }
 
@@ -260,8 +265,8 @@ const Circos = ({ data }: CircosProps) => {
             <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
                 <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <div ref={canvasRef} style={{ border: "1px solid black" }}>
-                        <Segment data={{ segments, config: assemblyConfig, globalConfig: globalConfig, divRef: canvasRef }} />
-                        <Chords data={{ chords: finalChords, config: chordConfig, globalConfig: globalConfig, divRef: canvasRef }} />
+                        <Segment data={{ segments, config: assemblyConfig, globalConfig: globalConfig, divRef: canvasRef }} onSegmentsCreated={(segData) => setSegmentData(segData)} />
+                        <Chords data={{ chords: finalChords, config: chordConfig, globalConfig: globalConfig, divRef: canvasRef, segments: segmentData }} />
                     </div>
                 </div>
 

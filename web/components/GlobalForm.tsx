@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
-import Checkbox from '@mui/joy/Checkbox';
 import Box from '@mui/joy/Box';
 import Slider from '@mui/joy/Slider';
-import Card from '@mui/joy/Card';
-import { AssemblyConfig, GlobalConfig } from '@/app/types/genomes';
+import { GlobalConfig } from '@/app/types/genomes';
 
 interface GlobalConfigProps {
     onUpdate: (newConfig: GlobalConfig) => void;
