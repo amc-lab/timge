@@ -7,16 +7,15 @@ import { Assembly, AssemblyConfig, GlobalConfig } from "../../types/genomes";
 interface SegmentProps {
     data: {
         segments: Array<Assembly>;
-        config: AssemblyConfig;
         globalConfig: GlobalConfig;
         divRef: any;
     };
     onSegmentsCreated?: (segmentsData: any[]) => void; // Callback to pass segment information to the parent
+    config: AssemblyConfig;
 }
 
-const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
+const Segment = ({data, onSegmentsCreated, config}: SegmentProps) => {
     const segments = data.segments;
-    const config = data.config;
     const canvasRef = data.divRef;
     const globalConfig = data.globalConfig;
 

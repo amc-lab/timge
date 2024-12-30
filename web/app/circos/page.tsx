@@ -268,8 +268,8 @@ const Circos = ({ data }: CircosProps) => {
             <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
                 <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <div ref={canvasRef} style={{ border: "1px solid black" }}>
-                        <Segment data={{ segments, config: assemblyConfig, globalConfig: globalConfig, divRef: canvasRef }} onSegmentsCreated={(segData) => setSegmentData(segData)} />
-                        <Chords data={{ chords: finalChords, config: chordConfig, globalConfig: globalConfig, divRef: canvasRef, segments: segmentData }} />
+                        <Segment data={{ segments, globalConfig: globalConfig, divRef: canvasRef }} config={assemblyConfig} onSegmentsCreated={(segData) => setSegmentData(segData)} />
+                        <Chords data={{ chords: finalChords, globalConfig: globalConfig, divRef: canvasRef, segments: segmentData }} config={chordConfig} />
                     </div>
                 </div>
 

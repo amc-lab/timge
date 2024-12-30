@@ -5,17 +5,16 @@ import * as d3 from 'd3';
 interface ChordProps {
     data: {
         chords: Array<Chord>;
-        config: ChordConfig;
         globalConfig: GlobalConfig;
         divRef: any;
         segments: Array<any>;
     };
+    config: ChordConfig;
 }
 
-const Chords = ({ data }: ChordProps) => {
+const Chords = ({ data, config }: ChordProps) => {
     const canvasRef = data.divRef;
     const chords = data.chords;
-    const config = data.config;
     const globalConfig = data.globalConfig;
     const segments = data.segments;
 

@@ -6,6 +6,17 @@ export interface Assembly {
     color?: string;
 }
 
+enum TrackType {
+    karotype = "karotype",
+    chord = "chord",
+}
+
+export interface Track {
+    trackType: TrackType;
+    data: Any;
+    config: Any;
+}
+
 export interface Chord {
     source_chromosome: string;
     source_start: number;
