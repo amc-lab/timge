@@ -1,6 +1,6 @@
 export enum TrackType {
-    karotype = "karotype",
-    chord = "chord",
+    Karyotype = "Karyotype",
+    Chord = "Chord",
 }
 
 export interface Track {

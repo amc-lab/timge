@@ -10,7 +10,7 @@ interface SegmentProps {
         globalConfig: GlobalConfig;
         divRef: any;
     };
-    onSegmentsCreated?: (segmentsData: any[]) => void; // Callback to pass segment information to the parent
+    onSegmentsCreated?: (segmentsData: any[]) => void;
     config: AssemblyConfig;
 }
 
@@ -63,7 +63,7 @@ const Segment = ({data, onSegmentsCreated, config}: SegmentProps) => {
             svg.selectAll("g").remove();
 
             const group = svg.append("g")
-            .attr("class", uniqueGroupClass) // Add the unique class
+            .attr("class", uniqueGroupClass)
             .attr("transform", `translate(${globalConfig.canvasWidth / 2}, ${globalConfig.canvasHeight / 2})`)
             .selectAll("g")
             .data(chords.groups)
@@ -93,7 +93,6 @@ const Segment = ({data, onSegmentsCreated, config}: SegmentProps) => {
             }));
 
             if (onSegmentsCreated) {
-                console.log("SEGMENT CREATED");
                 onSegmentsCreated(segmentData);
             }
 

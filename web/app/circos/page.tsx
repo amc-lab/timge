@@ -3,11 +3,9 @@ import { type Assembly, type Chord, type AssemblyConfig, type ChordConfig, type 
 import { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
 import FileUpload from "../../components/FileUpload";
-import Segment from "./components/segment";
 import Form from "../../components/Form";
-import Chords from "./components/chord";
 import Tracks from "./tracks";
-import { TrackType } from "./config/track";
+import { Track, TrackType } from "./config/track";
 
 interface CircosProps {
     data: {
@@ -46,11 +44,11 @@ const defaultGlobalConfig = {
 const Circos = ({ data }: CircosProps) => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [segments, setSegments] = useState<Assembly[]>([]);
-    const [segmentData, setSegmentData] = useState<any[]>([]);
     const [chords, setChords] = useState<Chord[]>([]);
     const [assemblyConfig, setAssemblyConfig] = useState(defaultAssemblyConfig);
     const [chordConfig, setChordConfig] = useState(defaultChordConfig);
     const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
+    const [tracks, setTracks] = useState<Track[]>([]);
 
     const handleFileUpload = (file: File) => {
         const reader = new FileReader();
@@ -264,18 +262,25 @@ const Circos = ({ data }: CircosProps) => {
         setGlobalConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
     }
 
-    const tracks = [
-        {
-            trackType: TrackType.karotype,
-            data: { segments, globalConfig, divRef: canvasRef },
-            config: assemblyConfig
-        },
-        {
-            trackType: TrackType.chord,
-            data: { chords: finalChords, globalConfig, divRef: canvasRef, segments: segments },
-            config: chordConfig
-        }
-    ];
+    useEffect(() => {
+        setTracks([
+            {
+                trackType: TrackType.Karyotype,
+                data: { segments, globalConfig, divRef: canvasRef },
+                config: assemblyConfig,
+            },
+            {
+                trackType: TrackType.Chord,
+                data: { chords: finalChords, globalConfig, divRef: canvasRef },
+                config: chordConfig,
+            },
+        ]);
+    }, [segments, chords, assemblyConfig, chordConfig, globalConfig]);
+
+    useEffect(() => {
+        console.log("Tracks:", tracks);
+    }
+    , [tracks]);
 
     return (
         <div>
@@ -283,17 +288,15 @@ const Circos = ({ data }: CircosProps) => {
             <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
                 <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <div ref={canvasRef} style={{ border: "1px solid black" }}>
-                        {/* <Segment data={{ segments, globalConfig: globalConfig, divRef: canvasRef }} config={assemblyConfig} onSegmentsCreated={(segData) => setSegmentData(segData)} />
-                        <Chords data={{ chords: finalChords, globalConfig: globalConfig, divRef: canvasRef, segments: segmentData }} config={chordConfig} /> */}
-                        {
-                            segments.length > 0 && <Tracks tracks={tracks} />
-                        }
+                        <Tracks tracks={tracks} />
                     </div>
                 </div>
 
                 <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     {segments.length > 0 && (
-                        <Form handleAssemblyConfigUpdate={handleAssemblyConfigUpdate} defaultAssemblyConfig={assemblyConfig} 
+                        <Form 
+                            tracks = {tracks}
+                            handleAssemblyConfigUpdate={handleAssemblyConfigUpdate} defaultAssemblyConfig={assemblyConfig} 
                             handleChordConfigUpdate={handleChordConfigUpdate} defaultChordConfig={chordConfig}
                             handleGlobalConfigUpdate={handleGlobalConfigUpdate} defaultGlobalConfig={globalConfig}
                         />

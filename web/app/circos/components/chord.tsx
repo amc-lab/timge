@@ -19,8 +19,6 @@ const Chords = ({ data, config, segments }: ChordProps) => {
 
     useEffect(() => {
         if (!canvasRef.current) return;
-        console.log("TEST");
-        console.log(segments);
         let svg = d3.select(canvasRef.current).select("svg");
 
         if (svg.empty()) {
@@ -77,7 +75,6 @@ const Chords = ({ data, config, segments }: ChordProps) => {
                 d3.select(this).attr("opacity", Math.max(currentOpacity - 0.3, 0)); // Decrease opacity but ensure it doesn't go below 0
             });
 
-        console.log(chords);
     }, [canvasRef, chords, config, globalConfig]);
 
     return null;

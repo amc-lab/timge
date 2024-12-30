@@ -8,17 +8,18 @@ interface TracksProps {
 }
 
 const Tracks = (trackData: TracksProps) => {
-    const [tracks, setTracks] = useState<Track[]>(trackData.tracks);
     const [segmentData, setSegmentData] = useState<any[]>([]);
 
-    console.log(tracks);
+    const onSegmentsCreated = (segData: any[]) => {
+        setSegmentData(segData);
+    }
 
     return (
-        tracks.map((track, index) => {
-            if (track.trackType === TrackType.karotype) {
-                return <Segment key={index} data={track.data} config={track.config} onSegmentsCreated={(segData) => setSegmentData(segData)} />;
+        trackData.tracks.map((track, index) => {
+            if (track.trackType === TrackType.Karyotype) {
+                return <Segment key={index} data={track.data} config={track.config} onSegmentsCreated={onSegmentsCreated} />;
             }
-            else if (track.trackType === TrackType.chord && segmentData.length > 0) {
+            else if (track.trackType === TrackType.Chord && segmentData.length > 0) {
                 return <Chords key={index} data={track.data} config={track.config} segments={segmentData} />
             }
         })
