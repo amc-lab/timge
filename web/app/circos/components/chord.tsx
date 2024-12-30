@@ -7,16 +7,15 @@ interface ChordProps {
         chords: Array<Chord>;
         globalConfig: GlobalConfig;
         divRef: any;
-        segments: Array<any>;
     };
     config: ChordConfig;
+    segments: Array<any>;
 }
 
-const Chords = ({ data, config }: ChordProps) => {
+const Chords = ({ data, config, segments }: ChordProps) => {
     const canvasRef = data.divRef;
     const chords = data.chords;
     const globalConfig = data.globalConfig;
-    const segments = data.segments;
 
     useEffect(() => {
         if (!canvasRef.current) return;

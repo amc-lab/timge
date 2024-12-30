@@ -93,7 +93,7 @@ const Segment = ({data, onSegmentsCreated, config}: SegmentProps) => {
             }));
 
             if (onSegmentsCreated) {
-                console.log(segmentData);
+                console.log("SEGMENT CREATED");
                 onSegmentsCreated(segmentData);
             }
 

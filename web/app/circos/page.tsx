@@ -1,11 +1,13 @@
 "use client";
-import type { Assembly, Chord, AssemblyConfig, ChordConfig, GlobalConfig } from "../types/genomes";
+import { type Assembly, type Chord, type AssemblyConfig, type ChordConfig, type GlobalConfig } from "../types/genomes";
 import { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
 import FileUpload from "../../components/FileUpload";
 import Segment from "./components/segment";
 import Form from "../../components/Form";
 import Chords from "./components/chord";
+import Tracks from "./tracks";
+import { TrackType } from "./config/track";
 
 interface CircosProps {
     data: {
@@ -262,14 +264,30 @@ const Circos = ({ data }: CircosProps) => {
         setGlobalConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
     }
 
+    const tracks = [
+        {
+            trackType: TrackType.karotype,
+            data: { segments, globalConfig, divRef: canvasRef },
+            config: assemblyConfig
+        },
+        {
+            trackType: TrackType.chord,
+            data: { chords: finalChords, globalConfig, divRef: canvasRef, segments: segments },
+            config: chordConfig
+        }
+    ];
+
     return (
         <div>
             <FileUpload onFileUpload={handleFileUpload} />
             <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
                 <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <div ref={canvasRef} style={{ border: "1px solid black" }}>
-                        <Segment data={{ segments, globalConfig: globalConfig, divRef: canvasRef }} config={assemblyConfig} onSegmentsCreated={(segData) => setSegmentData(segData)} />
-                        <Chords data={{ chords: finalChords, globalConfig: globalConfig, divRef: canvasRef, segments: segmentData }} config={chordConfig} />
+                        {/* <Segment data={{ segments, globalConfig: globalConfig, divRef: canvasRef }} config={assemblyConfig} onSegmentsCreated={(segData) => setSegmentData(segData)} />
+                        <Chords data={{ chords: finalChords, globalConfig: globalConfig, divRef: canvasRef, segments: segmentData }} config={chordConfig} /> */}
+                        {
+                            segments.length > 0 && <Tracks tracks={tracks} />
+                        }
                     </div>
                 </div>
 
