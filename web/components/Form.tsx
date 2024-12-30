@@ -9,18 +9,16 @@ import { AssemblyForm } from "./AssemblyForm";
 import { ChordForm } from "./ChordForm";
 import { GlobalForm } from "./GlobalForm";
 import { Track, TrackType } from "@/app/circos/config/track";
+import { defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig } from "@/app/circos/config/defaultConfigs";
 
 interface FormProps {
     tracks: Array<Track>;
     handleAssemblyConfigUpdate: (newConfig: AssemblyConfig) => void;
-    defaultAssemblyConfig: AssemblyConfig;
-    handleChordConfigUpdate: (newConfig: ChordConfig) => void;
-    defaultChordConfig: ChordConfig;
     handleGlobalConfigUpdate: (newConfig: GlobalConfig) => void;
-    defaultGlobalConfig: GlobalConfig;
+    handleTrackConfigUpdate: (index: number, updatedConfig: any) => void;
 }
 
-const Form: React.FC<FormProps> = ({ tracks, handleAssemblyConfigUpdate, defaultAssemblyConfig, handleChordConfigUpdate, defaultChordConfig, handleGlobalConfigUpdate, defaultGlobalConfig }) => {
+const Form: React.FC<FormProps> = ({ tracks, handleTrackConfigUpdate, handleAssemblyConfigUpdate, handleGlobalConfigUpdate }) => {
     return (
         <div>
             <Card
@@ -47,31 +45,20 @@ const Form: React.FC<FormProps> = ({ tracks, handleAssemblyConfigUpdate, default
                                 )
                             })
                         }
-                        {/* <Tab
-                            variant="plain"
-                            color="neutral"
-                            disableIndicator>
-                            Assembly
-                        </Tab>
-                        <Tab
-                            variant="plain"
-                            color="neutral"
-                            disableIndicator>
-                            Chords
-                        </Tab>
                         <Tab
                             variant="plain"
                             color="neutral"
                             disableIndicator>
                             Global
-                        </Tab> */}
+                        </Tab>
                     </TabList>
                     {
                         tracks.map((track, index) => {
                             if (track.trackType === TrackType.Karyotype) {
                                 return (
                                     <TabPanel key={index} value={index}>
-                                        <AssemblyForm onUpdate={handleAssemblyConfigUpdate}
+                                        <AssemblyForm 
+                                            onUpdate={handleAssemblyConfigUpdate}
                                             defaultConfig={defaultAssemblyConfig}
                                         />
                                     </TabPanel>
@@ -80,7 +67,8 @@ const Form: React.FC<FormProps> = ({ tracks, handleAssemblyConfigUpdate, default
                             else if (track.trackType === TrackType.Chord) {
                                 return (
                                     <TabPanel key={index} value={index}>
-                                        <ChordForm onUpdate={handleChordConfigUpdate}
+                                        <ChordForm 
+                                            onUpdate={(newConfig: ChordConfig) => handleTrackConfigUpdate(index, newConfig)}
                                             defaultConfig={defaultChordConfig}
                                         />
                                     </TabPanel>
@@ -88,21 +76,11 @@ const Form: React.FC<FormProps> = ({ tracks, handleAssemblyConfigUpdate, default
                             }
                         })
                     }
-                    {/* <TabPanel value={0}>
-                        <AssemblyForm onUpdate={handleAssemblyConfigUpdate}
-                            defaultConfig={defaultAssemblyConfig}
-                        />
-                    </TabPanel>
-                    <TabPanel value={1}>
-                        <ChordForm onUpdate={handleChordConfigUpdate}
-                            defaultConfig={defaultChordConfig}
-                        />
-                    </TabPanel>
                     <TabPanel value={2}>
                         <GlobalForm onUpdate={handleGlobalConfigUpdate}
                             defaultConfig={defaultGlobalConfig}
                         />
-                    </TabPanel> */}
+                    </TabPanel>
                 </Tabs>
             </Card>
         </div>
