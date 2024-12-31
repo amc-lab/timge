@@ -60,25 +60,15 @@ export const AssemblyForm: React.FC<AssemblyFormProps> = ({ onUpdate, defaultCon
                         checked={config.showAxis} 
                         onChange={(e) => handleConfigChange('showAxis', e.target.checked)} 
                     />
-                    <label>Inner Radius</label>
+                    <label>Track Width</label>
                     <Slider 
                         valueLabelDisplay="auto" 
                         variant="solid" 
-                        min={0} 
-                        max={500} 
-                        step={10} 
-                        value={config.segmentInnerRadius} 
-                        onChange={(e, value) => handleConfigChange('segmentInnerRadius', value)} 
-                    />
-                    <label>Outer Radius</label>
-                    <Slider 
-                        valueLabelDisplay="auto" 
-                        variant="solid" 
-                        min={0} 
-                        max={500} 
-                        step={10} 
-                        value={config.segmentOuterRadius} 
-                        onChange={(e, value) => handleConfigChange('segmentOuterRadius', value)} 
+                        min={30} 
+                        max={50} 
+                        step={2} 
+                        value={config.segmentTrackWidth} 
+                        onChange={(e, value) => handleConfigChange('segmentTrackWidth', value)} 
                     />
                     <label>Grid Padding</label>
                     <Slider 

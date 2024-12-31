@@ -48,11 +48,11 @@ const Segment = ({data, onSegmentsCreated, config}: SegmentProps) => {
 
             const arc = d3.arc()
                 .innerRadius(config.segmentInnerRadius)
-                .outerRadius(config.segmentOuterRadius);
+                .outerRadius(config.segmentInnerRadius + config.segmentTrackWidth);
 
             const axisGridlineArc = d3.arc()
-                .innerRadius(config.segmentOuterRadius + config.segmentGridPadding)
-                .outerRadius(config.segmentOuterRadius + config.segmentGridPadding);
+                .innerRadius(config.segmentInnerRadius + config.segmentTrackWidth + config.segmentGridPadding)
+                .outerRadius(config.segmentInnerRadius + config.segmentTrackWidth + config.segmentGridPadding);
 
             const matrix = segments.map((segment, i) =>
                 segments.map((_, j) => (i === j ? segment.end - segment.start : 0))
@@ -100,8 +100,8 @@ const Segment = ({data, onSegmentsCreated, config}: SegmentProps) => {
                 .append("text")
                 .attr("transform", (d: { startAngle: number; endAngle: number; }) => {
                     const angle = (d.startAngle + d.endAngle) / 2;
-                    const x = Math.sin(angle) * (config.segmentInnerRadius + (config.segmentOuterRadius - config.segmentInnerRadius) / 2);
-                    const y = -Math.cos(angle) * (config.segmentInnerRadius + (config.segmentOuterRadius - config.segmentInnerRadius) / 2);
+                    const x = Math.sin(angle) * (config.segmentInnerRadius + (config.segmentTrackWidth) / 2);
+                    const y = -Math.cos(angle) * (config.segmentInnerRadius + (config.segmentTrackWidth) / 2);
                     return `translate(${x}, ${y})`;
                 })
                 .attr("text-anchor", "middle")
@@ -157,7 +157,7 @@ const Segment = ({data, onSegmentsCreated, config}: SegmentProps) => {
                     return [...majorTicks, ...minorTicks];
                     })
                     .join("g")
-                    .attr("transform", (d: { angle: number; }) => `rotate(${(d.angle * 180) / Math.PI - 90}) translate(${config.segmentOuterRadius + config.segmentGridPadding}, 0)`)
+                    .attr("transform", (d: { angle: number; }) => `rotate(${(d.angle * 180) / Math.PI - 90}) translate(${config.segmentInnerRadius + config.segmentTrackWidth + config.segmentGridPadding}, 0)`)
                     .call((g) =>
                     g
                         .append("line")

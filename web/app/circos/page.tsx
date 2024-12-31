@@ -19,7 +19,6 @@ interface CircosProps {
 const Circos = ({ data }: CircosProps) => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [segments, setSegments] = useState<Assembly[]>([]);
-    const [chords, setChords] = useState<Chord[]>(sampleChords);
     const [assemblyConfig, setAssemblyConfig] = useState(defaultAssemblyConfig);
     const [chordConfig, setChordConfig] = useState(defaultChordConfig);
     const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
@@ -78,11 +77,11 @@ const Circos = ({ data }: CircosProps) => {
             },
             {
                 trackType: TrackType.Chord,
-                data: { chords, globalConfig, divRef: canvasRef },
+                data: { chords: sampleChords, globalConfig, divRef: canvasRef },
                 config: chordConfig,
             },
         ]);
-    }, [segments, chords, assemblyConfig, chordConfig, globalConfig]);
+    }, [segments, assemblyConfig, chordConfig, globalConfig]);
 
     return (
         <div>
@@ -99,9 +98,8 @@ const Circos = ({ data }: CircosProps) => {
                         <Form 
                             tracks = {tracks}
                             handleTrackConfigUpdate={handleTrackConfigUpdate}
-                            handleAssemblyConfigUpdate={handleAssemblyConfigUpdate} defaultAssemblyConfig={assemblyConfig} 
-                            defaultChordConfig={chordConfig}
-                            handleGlobalConfigUpdate={handleGlobalConfigUpdate} defaultGlobalConfig={globalConfig}
+                            handleAssemblyConfigUpdate={handleAssemblyConfigUpdate}
+                            handleGlobalConfigUpdate={handleGlobalConfigUpdate}
                         />
                     )}
                 </div>

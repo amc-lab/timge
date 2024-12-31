@@ -3,7 +3,7 @@ export const defaultAssemblyConfig = {
     axisLabelFontSize: 10,
     showAxis: true,
     segmentInnerRadius: 200,
-    segmentOuterRadius: 250,
+    segmentTrackWidth: 50,
     segmentGridPadding: 5,
     tickLength: 5,
     tickTextPadding: 2,

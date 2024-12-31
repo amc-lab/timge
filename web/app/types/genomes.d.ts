@@ -21,7 +21,7 @@ interface AssemblyConfig {
     axisLabelFontSize: number;
     showAxis: boolean;
     segmentInnerRadius: number;
-    segmentOuterRadius: number;
+    segmentTrackWidth: number;
     segmentGridPadding: number;
     tickLength: number;
     tickTextPadding: number;
