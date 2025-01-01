@@ -19,10 +19,19 @@ interface CircosProps {
 const Circos = ({ data }: CircosProps) => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [segments, setSegments] = useState<Assembly[]>([]);
-    const [assemblyConfig, setAssemblyConfig] = useState(defaultAssemblyConfig);
-    const [chordConfig, setChordConfig] = useState(defaultChordConfig);
     const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
-    const [tracks, setTracks] = useState<Track[]>([]);
+    const [tracks, setTracks] = useState<Track[]>([
+        {
+            trackType: TrackType.Karyotype,
+            data: { segments, globalConfig, divRef: canvasRef },
+            config: defaultAssemblyConfig,
+        },
+        {
+            trackType: TrackType.Chord,
+            data: { chords: sampleChords, globalConfig, divRef: canvasRef },
+            config: defaultChordConfig,
+        },
+    ]);
 
     const handleFileUpload = (file: File) => {
         const reader = new FileReader();
@@ -51,11 +60,6 @@ const Circos = ({ data }: CircosProps) => {
         }
     }, [data, globalConfig]);
 
-    const handleAssemblyConfigUpdate = (updatedConfig: Partial<AssemblyConfig>) => {
-        setAssemblyConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
-        setChordConfig((prevConfig) => ({ ...prevConfig, outerRadius: updatedConfig.segmentInnerRadius ?? prevConfig.outerRadius }));
-    };
-
     const handleGlobalConfigUpdate = (updatedConfig: Partial<GlobalConfig>) => {
         setGlobalConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
     }
@@ -69,19 +73,15 @@ const Circos = ({ data }: CircosProps) => {
     }
 
     useEffect(() => {
-        setTracks([
-            {
-                trackType: TrackType.Karyotype,
-                data: { segments, globalConfig, divRef: canvasRef },
-                config: assemblyConfig,
-            },
-            {
-                trackType: TrackType.Chord,
-                data: { chords: sampleChords, globalConfig, divRef: canvasRef },
-                config: chordConfig,
-            },
-        ]);
-    }, [segments, assemblyConfig, chordConfig, globalConfig]);
+        setTracks((prevTracks) => {
+            const newTracks = [...prevTracks];
+            newTracks[0] = {
+            ...newTracks[0],
+            data: { ...newTracks[0].data, segments }
+            };
+            return newTracks;
+        });
+    }, [segments]);
 
     return (
         <div>
@@ -98,7 +98,6 @@ const Circos = ({ data }: CircosProps) => {
                         <Form 
                             tracks = {tracks}
                             handleTrackConfigUpdate={handleTrackConfigUpdate}
-                            handleAssemblyConfigUpdate={handleAssemblyConfigUpdate}
                             handleGlobalConfigUpdate={handleGlobalConfigUpdate}
                         />
                     )}

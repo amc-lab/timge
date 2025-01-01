@@ -20,6 +20,7 @@ const Chords = ({ data, config, segments }: ChordProps) => {
     useEffect(() => {
         if (!canvasRef.current) return;
         let svg = d3.select(canvasRef.current).select("svg");
+        console.log(segments);
 
         if (svg.empty()) {
             svg = d3.select(canvasRef.current)
@@ -67,15 +68,13 @@ const Chords = ({ data, config, segments }: ChordProps) => {
             .attr("opacity", config.opacity)
             .attr("stroke", `${config.useStroke ? "black" : "none"}`)
             .on("mouseover", function () {
-                const currentOpacity = parseFloat(d3.select(this).attr("opacity"));
-                d3.select(this).attr("opacity", Math.min(currentOpacity + 0.3, 1)); // Increase opacity but cap at 1
+                d3.select(this).attr("opacity", 1);
             })
             .on("mouseout", function () {
-                const currentOpacity = parseFloat(d3.select(this).attr("opacity"));
-                d3.select(this).attr("opacity", Math.max(currentOpacity - 0.3, 0)); // Decrease opacity but ensure it doesn't go below 0
+                d3.select(this).attr("opacity", config.opacity);
             });
 
-    }, [canvasRef, chords, config, globalConfig]);
+    }, [canvasRef, chords, segments, config, globalConfig]);
 
     return null;
 };

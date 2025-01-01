@@ -86,7 +86,7 @@ const Segment = ({data, onSegmentsCreated, config}: SegmentProps) => {
                 startAngle: d.startAngle,
                 endAngle: d.endAngle,
                 index: d.index,
-                segment: segments[d.index],
+                // segment: segments[d.index],
                 chromosome: segments[d.index].chromosome,
                 length: segments[d.index].end - segments[d.index].start,
                 colour: d3.color(colorPalette(d.index / segments.length)).formatHex(),

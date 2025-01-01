@@ -9,16 +9,15 @@ import { AssemblyForm } from "./AssemblyForm";
 import { ChordForm } from "./ChordForm";
 import { GlobalForm } from "./GlobalForm";
 import { Track, TrackType } from "@/app/circos/config/track";
-import { defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig } from "@/app/circos/config/defaultConfigs";
+import { defaultGlobalConfig } from "@/app/circos/config/defaultConfigs";
 
 interface FormProps {
     tracks: Array<Track>;
-    handleAssemblyConfigUpdate: (newConfig: AssemblyConfig) => void;
     handleGlobalConfigUpdate: (newConfig: GlobalConfig) => void;
     handleTrackConfigUpdate: (index: number, updatedConfig: any) => void;
 }
 
-const Form: React.FC<FormProps> = ({ tracks, handleTrackConfigUpdate, handleAssemblyConfigUpdate, handleGlobalConfigUpdate }) => {
+const Form: React.FC<FormProps> = ({ tracks, handleTrackConfigUpdate, handleGlobalConfigUpdate }) => {
     return (
         <div>
             <Card
@@ -58,8 +57,8 @@ const Form: React.FC<FormProps> = ({ tracks, handleTrackConfigUpdate, handleAsse
                                 return (
                                     <TabPanel key={index} value={index}>
                                         <AssemblyForm 
-                                            onUpdate={handleAssemblyConfigUpdate}
-                                            defaultConfig={defaultAssemblyConfig}
+                                            onUpdate={(newConfig: AssemblyConfig) => handleTrackConfigUpdate(index, newConfig)}
+                                            defaultConfig={track.config}
                                         />
                                     </TabPanel>
                                 )
@@ -69,7 +68,7 @@ const Form: React.FC<FormProps> = ({ tracks, handleTrackConfigUpdate, handleAsse
                                     <TabPanel key={index} value={index}>
                                         <ChordForm 
                                             onUpdate={(newConfig: ChordConfig) => handleTrackConfigUpdate(index, newConfig)}
-                                            defaultConfig={defaultChordConfig}
+                                            defaultConfig={track.config}
                                         />
                                     </TabPanel>
                                 )
