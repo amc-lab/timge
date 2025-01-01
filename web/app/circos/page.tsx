@@ -7,7 +7,8 @@ import Form from "../../components/Form";
 import Tracks from "./tracks";
 import { Track, TrackType } from "./config/track";
 import { sampleChords } from "./config/sampleChords";
-import { defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig } from "./config/defaultConfigs";
+import { defaultAssemblyConfig, defaultBarConfig, defaultChordConfig, defaultGlobalConfig } from "./config/defaultConfigs";
+import { sampleBars } from "./config/sampleBars";
 
 interface CircosProps {
     data: {
@@ -25,6 +26,11 @@ const Circos = ({ data }: CircosProps) => {
             trackType: TrackType.Karyotype,
             data: { segments, globalConfig, divRef: canvasRef },
             config: defaultAssemblyConfig,
+        },
+        {
+            trackType: TrackType.Bar,
+            data: { bars: sampleBars, globalConfig, divRef: canvasRef },
+            config: defaultBarConfig,
         },
         {
             trackType: TrackType.Chord,

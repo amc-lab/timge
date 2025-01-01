@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Segment from './components/segment';
 import Chords from './components/chord';
+import Bar from './components/bar';
 import { Track, TrackType } from './config/track';
 
 interface TracksProps {
@@ -27,8 +28,8 @@ const Tracks = ({ tracks }: TracksProps) => {
             .map((track) => {
                 if (track.trackType === TrackType.Karyotype) {
                     const segmentInnerRadius = minAvailableRadius;
-                    const trackWidth = track.config.width || 50;
-                    minAvailableRadius = segmentInnerRadius + trackWidth + (track.config.segmentGridPadding || 0);
+                    const trackWidth = track.config.width;
+                    minAvailableRadius = segmentInnerRadius + trackWidth + track.config.segmentGridPadding;
                     return {
                         ...track,
                         config: {
@@ -36,8 +37,20 @@ const Tracks = ({ tracks }: TracksProps) => {
                             segmentInnerRadius,
                         },
                     };
-                } else {
-                    minAvailableRadius = track.config.outerRadius || minAvailableRadius;
+                } 
+                else if (track.trackType === TrackType.Bar) {
+                    const barInnerRadius = minAvailableRadius;
+                    minAvailableRadius = barInnerRadius + track.config.trackWidth + track.config.trackPadding;
+                    return {
+                        ...track,
+                        config: {
+                            ...track.config,
+                            innerRadius: barInnerRadius,
+                        },
+                    }
+                } 
+                else if (track.trackType === TrackType.Chord) {
+                    minAvailableRadius = track.config.outerRadius;
                     return track;
                 }
             })
@@ -56,15 +69,28 @@ const Tracks = ({ tracks }: TracksProps) => {
                             data={track.data}
                             config={track.config}
                             onSegmentsCreated={onSegmentsCreated}
+                            idx={index}
                         />
                     );
-                } else if (track.trackType === TrackType.Chord && segmentData.length > 0) {
+                } else if (track.trackType === TrackType.Bar) {
+                    return (
+                        <Bar
+                            key={index}
+                            data={track.data}
+                            config={track.config}
+                            segments={segmentData}
+                            idx={index}
+                        />
+                    )
+                }
+                else if (track.trackType === TrackType.Chord && segmentData.length > 0) {
                     return (
                         <Chords
                             key={index}
                             data={track.data}
                             config={track.config}
                             segments={segmentData}
+                            idx={index}
                         />
                     );
                 }

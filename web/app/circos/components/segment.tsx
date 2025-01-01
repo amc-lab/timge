@@ -12,9 +12,10 @@ interface SegmentProps {
     };
     onSegmentsCreated?: (segmentsData: any[]) => void;
     config: AssemblyConfig;
+    idx: number;
 }
 
-const Segment = ({data, onSegmentsCreated, config}: SegmentProps) => {
+const Segment = ({data, onSegmentsCreated, config, idx}: SegmentProps) => {
     const segments = data.segments;
     const canvasRef = data.divRef;
     const globalConfig = data.globalConfig;
@@ -33,7 +34,7 @@ const Segment = ({data, onSegmentsCreated, config}: SegmentProps) => {
                     .attr("height", globalConfig.canvasHeight);
             }
 
-            const uniqueGroupClass = `group-1`;
+            const uniqueGroupClass = `group-${idx}`;
 
             svg.selectAll(`g.${uniqueGroupClass}`).remove();
 

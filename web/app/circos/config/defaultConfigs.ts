@@ -14,13 +14,19 @@ export const defaultAssemblyConfig = {
 
 export const defaultChordConfig = {
     chordPadding: 10,
-    opacity: 0.3,
+    opacity: 0.6,
     color: "blue",
     useStroke: true,
     outerRadius: defaultAssemblyConfig.segmentInnerRadius
 };
 
+export const defaultBarConfig = {
+    innerRadius: 200,
+    trackPadding: 10,
+    trackWidth: 38,
+};
+
 export const defaultGlobalConfig = {
-    canvasWidth: 650,
-    canvasHeight: 650,
+    canvasWidth: 750,
+    canvasHeight: 750,
 };

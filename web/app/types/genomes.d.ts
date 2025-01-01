@@ -16,6 +16,13 @@ export interface Chord {
     color?: string;
 }
 
+export interface BarData {
+    chromosome: string;
+    start: number;
+    end: number;
+    value: number;
+}
+
 interface AssemblyConfig {
     segmentPadding: number;
     axisLabelFontSize: number;
@@ -36,6 +43,12 @@ interface ChordConfig {
     colour?: string;
     useStroke: boolean;
     outerRadius: number;
+}
+
+interface BarConfig {
+    innerRadius: number;
+    trackWidth: number;
+    trackPadding: number;
 }
 
 interface GlobalConfig {
