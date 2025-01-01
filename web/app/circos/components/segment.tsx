@@ -7,16 +7,15 @@ import { Assembly, AssemblyConfig, GlobalConfig } from "../../types/genomes";
 interface SegmentProps {
     data: {
         segments: Array<Assembly>;
-        config: AssemblyConfig;
         globalConfig: GlobalConfig;
         divRef: any;
     };
-    onSegmentsCreated?: (segmentsData: any[]) => void; // Callback to pass segment information to the parent
+    onSegmentsCreated?: (segmentsData: any[]) => void;
+    config: AssemblyConfig;
 }
 
-const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
+const Segment = ({data, onSegmentsCreated, config}: SegmentProps) => {
     const segments = data.segments;
-    const config = data.config;
     const canvasRef = data.divRef;
     const globalConfig = data.globalConfig;
 
@@ -49,11 +48,11 @@ const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
 
             const arc = d3.arc()
                 .innerRadius(config.segmentInnerRadius)
-                .outerRadius(config.segmentOuterRadius);
+                .outerRadius(config.segmentInnerRadius + config.segmentTrackWidth);
 
             const axisGridlineArc = d3.arc()
-                .innerRadius(config.segmentOuterRadius + config.segmentGridPadding)
-                .outerRadius(config.segmentOuterRadius + config.segmentGridPadding);
+                .innerRadius(config.segmentInnerRadius + config.segmentTrackWidth + config.segmentGridPadding)
+                .outerRadius(config.segmentInnerRadius + config.segmentTrackWidth + config.segmentGridPadding);
 
             const matrix = segments.map((segment, i) =>
                 segments.map((_, j) => (i === j ? segment.end - segment.start : 0))
@@ -64,7 +63,7 @@ const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
             svg.selectAll("g").remove();
 
             const group = svg.append("g")
-            .attr("class", uniqueGroupClass) // Add the unique class
+            .attr("class", uniqueGroupClass)
             .attr("transform", `translate(${globalConfig.canvasWidth / 2}, ${globalConfig.canvasHeight / 2})`)
             .selectAll("g")
             .data(chords.groups)
@@ -87,14 +86,13 @@ const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
                 startAngle: d.startAngle,
                 endAngle: d.endAngle,
                 index: d.index,
-                segment: segments[d.index],
+                // segment: segments[d.index],
                 chromosome: segments[d.index].chromosome,
                 length: segments[d.index].end - segments[d.index].start,
                 colour: d3.color(colorPalette(d.index / segments.length)).formatHex(),
             }));
 
             if (onSegmentsCreated) {
-                console.log(segmentData);
                 onSegmentsCreated(segmentData);
             }
 
@@ -102,8 +100,8 @@ const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
                 .append("text")
                 .attr("transform", (d: { startAngle: number; endAngle: number; }) => {
                     const angle = (d.startAngle + d.endAngle) / 2;
-                    const x = Math.sin(angle) * (config.segmentInnerRadius + (config.segmentOuterRadius - config.segmentInnerRadius) / 2);
-                    const y = -Math.cos(angle) * (config.segmentInnerRadius + (config.segmentOuterRadius - config.segmentInnerRadius) / 2);
+                    const x = Math.sin(angle) * (config.segmentInnerRadius + (config.segmentTrackWidth) / 2);
+                    const y = -Math.cos(angle) * (config.segmentInnerRadius + (config.segmentTrackWidth) / 2);
                     return `translate(${x}, ${y})`;
                 })
                 .attr("text-anchor", "middle")
@@ -159,7 +157,7 @@ const Segment = ({data, onSegmentsCreated}: SegmentProps) => {
                     return [...majorTicks, ...minorTicks];
                     })
                     .join("g")
-                    .attr("transform", (d: { angle: number; }) => `rotate(${(d.angle * 180) / Math.PI - 90}) translate(${config.segmentOuterRadius + config.segmentGridPadding}, 0)`)
+                    .attr("transform", (d: { angle: number; }) => `rotate(${(d.angle * 180) / Math.PI - 90}) translate(${config.segmentInnerRadius + config.segmentTrackWidth + config.segmentGridPadding}, 0)`)
                     .call((g) =>
                     g
                         .append("line")

@@ -5,25 +5,22 @@ import * as d3 from 'd3';
 interface ChordProps {
     data: {
         chords: Array<Chord>;
-        config: ChordConfig;
         globalConfig: GlobalConfig;
         divRef: any;
-        segments: Array<any>;
     };
+    config: ChordConfig;
+    segments: Array<any>;
 }
 
-const Chords = ({ data }: ChordProps) => {
+const Chords = ({ data, config, segments }: ChordProps) => {
     const canvasRef = data.divRef;
     const chords = data.chords;
-    const config = data.config;
     const globalConfig = data.globalConfig;
-    const segments = data.segments;
 
     useEffect(() => {
         if (!canvasRef.current) return;
-        console.log("TEST");
-        console.log(segments);
         let svg = d3.select(canvasRef.current).select("svg");
+        console.log(segments);
 
         if (svg.empty()) {
             svg = d3.select(canvasRef.current)
@@ -71,16 +68,13 @@ const Chords = ({ data }: ChordProps) => {
             .attr("opacity", config.opacity)
             .attr("stroke", `${config.useStroke ? "black" : "none"}`)
             .on("mouseover", function () {
-                const currentOpacity = parseFloat(d3.select(this).attr("opacity"));
-                d3.select(this).attr("opacity", Math.min(currentOpacity + 0.3, 1)); // Increase opacity but cap at 1
+                d3.select(this).attr("opacity", 1);
             })
             .on("mouseout", function () {
-                const currentOpacity = parseFloat(d3.select(this).attr("opacity"));
-                d3.select(this).attr("opacity", Math.max(currentOpacity - 0.3, 0)); // Decrease opacity but ensure it doesn't go below 0
+                d3.select(this).attr("opacity", config.opacity);
             });
 
-        console.log(chords);
-    }, [canvasRef, chords, config, globalConfig]);
+    }, [canvasRef, chords, segments, config, globalConfig]);
 
     return null;
 };
