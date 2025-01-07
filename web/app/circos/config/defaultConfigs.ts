@@ -3,7 +3,7 @@ export const defaultAssemblyConfig = {
     axisLabelFontSize: 10,
     showAxis: true,
     segmentInnerRadius: 200,
-    segmentTrackWidth: 50,
+    segmentTrackWidth: 40,
     segmentGridPadding: 5,
     tickLength: 5,
     tickTextPadding: 2,
@@ -23,7 +23,7 @@ export const defaultChordConfig = {
 export const defaultBarConfig = {
     innerRadius: 200,
     trackPadding: 10,
-    trackWidth: 38,
+    trackWidth: 24,
 };
 
 export const defaultGlobalConfig = {

@@ -1,5 +1,5 @@
 import React from "react";
-import { AssemblyConfig, ChordConfig, GlobalConfig } from "@/app/types/genomes";
+import { AssemblyConfig, BarConfig, ChordConfig, GlobalConfig } from "@/app/types/genomes";
 import Card from '@mui/joy/Card';
 import Tabs from '@mui/joy/Tabs';
 import Tab from '@mui/joy/Tab';
@@ -8,6 +8,7 @@ import TabPanel from '@mui/joy/TabPanel';
 import { AssemblyForm } from "./AssemblyForm";
 import { ChordForm } from "./ChordForm";
 import { GlobalForm } from "./GlobalForm";
+import { BarForm } from "./BarForm";
 import { Track, TrackType } from "@/app/circos/config/track";
 import { defaultGlobalConfig } from "@/app/circos/config/defaultConfigs";
 
@@ -58,6 +59,16 @@ const Form: React.FC<FormProps> = ({ tracks, handleTrackConfigUpdate, handleGlob
                                     <TabPanel key={index} value={index}>
                                         <AssemblyForm 
                                             onUpdate={(newConfig: AssemblyConfig) => handleTrackConfigUpdate(index, newConfig)}
+                                            defaultConfig={track.config}
+                                        />
+                                    </TabPanel>
+                                )
+                            }
+                            else if (track.trackType === TrackType.Bar) {
+                                return (
+                                    <TabPanel key={index} value={index}>
+                                        <BarForm 
+                                            onUpdate={(newConfig: BarConfig) => handleTrackConfigUpdate(index, newConfig)}
                                             defaultConfig={track.config}
                                         />
                                     </TabPanel>
