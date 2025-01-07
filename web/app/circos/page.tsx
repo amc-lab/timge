@@ -2,13 +2,11 @@
 import { type Assembly, type Chord, type AssemblyConfig, type ChordConfig, type GlobalConfig } from "../types/genomes";
 import { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
-import FileUpload from "../../components/FileUpload";
 import Form from "../../components/Form";
 import Tracks from "./tracks";
 import { Track, TrackType } from "./config/track";
-import { sampleChords } from "./config/sampleChords";
 import { defaultAssemblyConfig, defaultBarConfig, defaultChordConfig, defaultGlobalConfig } from "./config/defaultConfigs";
-import { sampleBars } from "./config/sampleBars";
+import FileUploadForm from "@/components/FileUploadForm";
 
 interface CircosProps {
     data: {
@@ -21,37 +19,7 @@ const Circos = ({ data }: CircosProps) => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [segments, setSegments] = useState<Assembly[]>([]);
     const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
-    const [tracks, setTracks] = useState<Track[]>([
-        {
-            trackType: TrackType.Karyotype,
-            data: { segments, globalConfig, divRef: canvasRef },
-            config: defaultAssemblyConfig,
-        },
-        {
-            trackType: TrackType.Bar,
-            data: { bars: sampleBars, globalConfig, divRef: canvasRef },
-            config: defaultBarConfig,
-        },
-        {
-            trackType: TrackType.Chord,
-            data: { chords: sampleChords, globalConfig, divRef: canvasRef },
-            config: defaultChordConfig,
-        },
-    ]);
-
-    const handleFileUpload = (file: File) => {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-            try {
-                const json = JSON.parse(event.target?.result as string);
-                setSegments(json);
-            } catch (error) {
-                console.error("Invalid JSON file:", error);
-                alert("Uploaded file is not valid JSON.");
-            }
-        };
-        reader.readAsText(file);
-    };
+    const [tracks, setTracks] = useState<Track[]>([]);
     
     useEffect(() => {
         if (canvasRef.current) {
@@ -78,20 +46,39 @@ const Circos = ({ data }: CircosProps) => {
         });
     }
 
-    useEffect(() => {
-        setTracks((prevTracks) => {
-            const newTracks = [...prevTracks];
-            newTracks[0] = {
-            ...newTracks[0],
-            data: { ...newTracks[0].data, segments }
-            };
-            return newTracks;
+    const onSubmit = (files) => {
+        const newTracks = files.map((file) => {
+            switch (file.trackType) {
+                case "Karyotype":
+                    setSegments(file.data);
+                    return {
+                        trackType: TrackType.Karyotype,
+                        data: { segments: file.data, globalConfig, divRef: canvasRef },
+                        config: defaultAssemblyConfig,
+                    };
+                case "Bar":
+                    return {
+                        trackType: TrackType.Bar,
+                        data: { bars: file.data, globalConfig, divRef: canvasRef },
+                        config: defaultBarConfig,
+                    };
+                case "Chord":
+                    return {
+                        trackType: TrackType.Chord,
+                        data: { chords: file.data, globalConfig, divRef: canvasRef },
+                        config: defaultChordConfig,
+                    };
+                default:
+                    throw new Error("Invalid track type");
+            }
         });
-    }, [segments]);
+
+        setTracks(newTracks);
+    }
 
     return (
         <div>
-            <FileUpload onFileUpload={handleFileUpload} />
+            <FileUploadForm onSubmit={onSubmit} />
             <div style={{ display: "flex", flexDirection: "row", height: "100vh" }}>
                 <div style={{ flex: 5, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <div ref={canvasRef} style={{ border: "1px solid black" }}>

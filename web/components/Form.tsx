@@ -75,7 +75,7 @@ const Form: React.FC<FormProps> = ({ tracks, handleTrackConfigUpdate, handleGlob
                             }
                         })
                     }
-                    <TabPanel value={2}>
+                    <TabPanel value={tracks.length}>
                         <GlobalForm onUpdate={handleGlobalConfigUpdate}
                             defaultConfig={defaultGlobalConfig}
                         />

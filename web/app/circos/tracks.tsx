@@ -21,6 +21,7 @@ const Tracks = ({ tracks }: TracksProps) => {
     }, [tracks]);
 
     useEffect(() => {
+        console.log(tracks);
         let minAvailableRadius = 160;
 
         const updatedTracks = [...tracks]

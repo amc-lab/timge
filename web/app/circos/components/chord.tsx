@@ -17,6 +17,8 @@ const Chords = ({ data, config, segments, idx }: ChordProps) => {
     const canvasRef = data.divRef;
     const chords = data.chords;
     const globalConfig = data.globalConfig;
+    console.log(segments);
+    console.log(chords);
 
     useEffect(() => {
         if (!canvasRef.current) return;
@@ -74,7 +76,7 @@ const Chords = ({ data, config, segments, idx }: ChordProps) => {
                 d3.select(this).attr("opacity", config.opacity);
             });
 
-    }, [canvasRef, chords, segments, config, globalConfig]);
+    }, [canvasRef, chords, config, globalConfig, segments]);
 
     return null;
 };
