@@ -51,6 +51,18 @@ interface BarConfig {
     trackPadding: number;
 }
 
+interface ScatterData {
+    chromosome: string;
+    position: number;
+    value: number;
+}
+
+interface ScatterConfig {
+    innerRadius: number;
+    trackWidth: number;
+    trackPadding: number;
+}
+
 interface GlobalConfig {
     canvasWidth: number;
     canvasHeight: number;

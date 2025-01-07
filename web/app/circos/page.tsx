@@ -5,7 +5,7 @@ import * as d3 from "d3";
 import Form from "../../components/Form";
 import Tracks from "./tracks";
 import { Track, TrackType } from "./config/track";
-import { defaultAssemblyConfig, defaultBarConfig, defaultChordConfig, defaultGlobalConfig } from "./config/defaultConfigs";
+import { defaultAssemblyConfig, defaultBarConfig, defaultScatterConfig, defaultChordConfig, defaultGlobalConfig } from "./config/defaultConfigs";
 import FileUploadForm from "@/components/FileUploadForm";
 
 interface CircosProps {
@@ -67,6 +67,12 @@ const Circos = ({ data }: CircosProps) => {
                         trackType: TrackType.Chord,
                         data: { chords: file.data, globalConfig, divRef: canvasRef },
                         config: defaultChordConfig,
+                    };
+                case "Scatter":
+                    return {
+                        trackType: TrackType.Scatter,
+                        data: { points: file.data, globalConfig, divRef: canvasRef },
+                        config: defaultScatterConfig,
                     };
                 default:
                     throw new Error("Invalid track type");

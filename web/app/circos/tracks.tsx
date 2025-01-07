@@ -3,6 +3,7 @@ import Segment from './components/segment';
 import Chords from './components/chord';
 import Bar from './components/bar';
 import { Track, TrackType } from './config/track';
+import Scatter from './components/scatter';
 
 interface TracksProps {
     tracks: Array<Track>;
@@ -54,6 +55,17 @@ const Tracks = ({ tracks }: TracksProps) => {
                     minAvailableRadius = track.config.outerRadius;
                     return track;
                 }
+                else if (track.trackType === TrackType.Scatter) {
+                    const scatterInnerRadius = minAvailableRadius;
+                    minAvailableRadius = scatterInnerRadius + track.config.trackWidth + track.config.trackPadding;
+                    return {
+                        ...track,
+                        config: {
+                            ...track.config,
+                            innerRadius: scatterInnerRadius,
+                        },
+                    }
+                }
             })
             .reverse();
 
@@ -87,6 +99,17 @@ const Tracks = ({ tracks }: TracksProps) => {
                 else if (track.trackType === TrackType.Chord && segmentData.length > 0) {
                     return (
                         <Chords
+                            key={index}
+                            data={track.data}
+                            config={track.config}
+                            segments={segmentData}
+                            idx={index}
+                        />
+                    );
+                }
+                else if (track.trackType === TrackType.Scatter) {
+                    return (
+                        <Scatter
                             key={index}
                             data={track.data}
                             config={track.config}

@@ -16,8 +16,7 @@ interface FileUploadFormProps {
 
 const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
   const [files, setFiles] = useState<FileEntry[]>([]);
-
-  const trackTypes = ["Karyotype", "Bar", "Chord"];
+  const trackTypes = ["Karyotype", "Bar", "Chord", "Scatter"];
 
   const handleFileUpload = (file: File) => {
     const reader = new FileReader();

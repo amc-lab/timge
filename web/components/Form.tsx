@@ -1,5 +1,5 @@
 import React from "react";
-import { AssemblyConfig, BarConfig, ChordConfig, GlobalConfig } from "@/app/types/genomes";
+import { AssemblyConfig, BarConfig, ChordConfig, GlobalConfig, ScatterConfig } from "@/app/types/genomes";
 import Card from '@mui/joy/Card';
 import Tabs from '@mui/joy/Tabs';
 import Tab from '@mui/joy/Tab';
@@ -11,6 +11,7 @@ import { GlobalForm } from "./GlobalForm";
 import { BarForm } from "./BarForm";
 import { Track, TrackType } from "@/app/circos/config/track";
 import { defaultGlobalConfig } from "@/app/circos/config/defaultConfigs";
+import { ScatterForm } from "./ScatterForm";
 
 interface FormProps {
     tracks: Array<Track>;
@@ -79,6 +80,16 @@ const Form: React.FC<FormProps> = ({ tracks, handleTrackConfigUpdate, handleGlob
                                     <TabPanel key={index} value={index}>
                                         <ChordForm 
                                             onUpdate={(newConfig: ChordConfig) => handleTrackConfigUpdate(index, newConfig)}
+                                            defaultConfig={track.config}
+                                        />
+                                    </TabPanel>
+                                )
+                            }
+                            else if (track.trackType === TrackType.Scatter) {
+                                return (
+                                    <TabPanel key={index} value={index}>
+                                        <ScatterForm
+                                            onUpdate={(newConfig: ScatterConfig) => handleTrackConfigUpdate(index, newConfig)}
                                             defaultConfig={track.config}
                                         />
                                     </TabPanel>

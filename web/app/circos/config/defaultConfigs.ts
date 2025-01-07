@@ -12,6 +12,12 @@ export const defaultAssemblyConfig = {
     metricPrefix: "M"
 };
 
+export const defaultScatterConfig = {
+    innerRadius: 200,
+    trackPadding: 10,
+    trackWidth: 24,
+};
+
 export const defaultChordConfig = {
     chordPadding: 10,
     opacity: 0.6,
@@ -27,6 +33,6 @@ export const defaultBarConfig = {
 };
 
 export const defaultGlobalConfig = {
-    canvasWidth: 750,
-    canvasHeight: 750,
+    canvasWidth: 800,
+    canvasHeight: 800,
 };
