@@ -10,17 +10,19 @@ interface ChordProps {
     };
     config: ChordConfig;
     segments: Array<any>;
+    idx: number;
 }
 
-const Chords = ({ data, config, segments }: ChordProps) => {
+const Chords = ({ data, config, segments, idx }: ChordProps) => {
     const canvasRef = data.divRef;
     const chords = data.chords;
     const globalConfig = data.globalConfig;
+    console.log(segments);
+    console.log(chords);
 
     useEffect(() => {
         if (!canvasRef.current) return;
         let svg = d3.select(canvasRef.current).select("svg");
-        console.log(segments);
 
         if (svg.empty()) {
             svg = d3.select(canvasRef.current)
@@ -29,7 +31,7 @@ const Chords = ({ data, config, segments }: ChordProps) => {
                 .attr("height", globalConfig.canvasHeight);
         }
 
-        const uniqueGroupClass = `group-2`;
+        const uniqueGroupClass = `group-${idx}`;
 
         svg.selectAll(`g.${uniqueGroupClass}`).remove();
 
@@ -74,7 +76,7 @@ const Chords = ({ data, config, segments }: ChordProps) => {
                 d3.select(this).attr("opacity", config.opacity);
             });
 
-    }, [canvasRef, chords, segments, config, globalConfig]);
+    }, [canvasRef, chords, config, globalConfig, segments]);
 
     return null;
 };
