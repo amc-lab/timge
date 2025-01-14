@@ -33,8 +33,8 @@ def run_multilift(genomes, sequences, aligner, output_format):
     with (
         tarfile.open(fileobj=multilift_download, mode="w:gz")
         if output_format == ".tar.gz"
-        else zipfile.ZipFile(multilift_download, "w") as Arc
-    ):
+        else zipfile.ZipFile(multilift_download, "w")
+    ) as Arc:
         # Perform alignment for each genome
         for genome in genomes:
             group_sequences = [

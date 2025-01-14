@@ -20,7 +20,6 @@ def generate_alignment(request):
 
         aligner = json.loads(request.POST.get("aligner"))
         output_format = json.loads(request.POST.get("output_format"))
-
         res = run_multilift(genomes, multilift_sequences, aligner, output_format)
         response = FileResponse(res, as_attachment=True, filename="multilift.zip")
         return response
