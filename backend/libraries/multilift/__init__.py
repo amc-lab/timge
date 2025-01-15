@@ -9,6 +9,6 @@ __prog_string__ = f"{__prog__} v{__version__} ({__status__})"
 
 __license__ = "MIT license"
 
-from .main import run_multilift, perform_liftover, parse_sequence
+from .main import get_multilift_sequences, generate_multilift_sequences, multilift
 
-__all__ = ["run_multilift", "perform_liftover", "parse_sequence"]
+__all__ = ["get_multilift_sequences", "generate_multilift_sequences", "multilift"]

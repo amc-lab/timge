@@ -3,5 +3,6 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("generate_alignment/", views.generate_alignment),
+    path("multilift_sequences/", views.multilift_sequences),
+    path("temp/", views.run_multilift),
 ]
