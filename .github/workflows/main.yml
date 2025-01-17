@@ -45,10 +45,10 @@ jobs:
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
         script: |
-          sudo docker pull ${{ secrets.DOCKER_IMAGE }}:latest
-          sudo docker stop timge-web || true
-          sudo docker rm timge-web || true
-          sudo docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE }}:latest
+          docker pull ${{ secrets.DOCKER_IMAGE }}:latest
+          docker stop timge-web || true
+          docker rm timge-web || true
+          docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE }}:latest
   
     - name: Kill VPN Connection
       if: always()
