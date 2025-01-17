@@ -18,7 +18,9 @@ jobs:
       run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
     - name: Build Docker image
-      run: docker build -t ${{ secrets.DOCKER_IMAGE }}:latest ./web
+      run: |
+        echo "Current working directory: $(pwd)"
+        docker build -t ${{ secrets.DOCKER_IMAGE }}:latest ./web/Dockerfile
 
     - name: Push Docker image to DockerHub
       run: docker push ${{ secrets.DOCKER_IMAGE }}:latest
