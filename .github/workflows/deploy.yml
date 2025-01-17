@@ -3,6 +3,7 @@ name: Build and Deploy Timge
 on:
   push:
     branches:
+      - main
       - feature/21-setup-cicd/pipeline
 
 jobs:
