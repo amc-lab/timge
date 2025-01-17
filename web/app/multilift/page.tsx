@@ -19,13 +19,6 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
-// Define types for sequences and genomes
-interface Sequence {
-  genome: string;
-  fileName: string;
-  seqId: string;
-}
-
 const Multilift: React.FC = () => {
   const [genomes, setGenomes] = useState({});
   const [genomeInput, setGenomeInput] = useState<string>("");

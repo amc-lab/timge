@@ -1,0 +1,35 @@
+name: Build and Deploy Timge
+
+on:
+  push:
+    branches:
+      - feature/21-setup-cicd/pipeline
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Log in to DockerHub
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+    - name: Build Docker image
+      run: docker build -t ${{ secrets.DOCKER_IMAGE }}:latest .
+
+    - name: Push Docker image to DockerHub
+      run: docker push ${{ secrets.DOCKER_IMAGE }}:latest
+
+    - name: Deploy to Cloud VM
+      uses: appleboy/ssh-action@v0.1.6
+      with:
+        host: ${{ secrets.VM_IP }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.VM_SSH_KEY }}
+        script: |
+          docker pull ${{ secrets.DOCKER_IMAGE }}:latest
+          docker stop timge-web || true
+          docker rm timge-web || true
+          docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE }}:latest
