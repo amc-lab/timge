@@ -12,13 +12,11 @@ from libraries.multilift.msa import align, generate_consensus
 from libraries.multilift.utils import (
     add_to_archive,
     sniff_filetype,
-    basename,
-    create_igv_session,
 )
 
 
 def get_multilift_sequences(multilift_sequences, genome_file, genome):
-    ftype, application = sniff_filetype(genome_file.name)
+    ftype, _ = sniff_filetype(genome_file.name)
     try:
         with StringIO(genome_file.read().decode("utf-8")) as F:
             multilift_sequences.update(

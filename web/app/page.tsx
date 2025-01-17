@@ -17,7 +17,7 @@ export default function Page() {
 
   return (
     <>
-      <JBrowseLinearGenomeView viewState={viewState} />
+      {/* <JBrowseLinearGenomeView viewState={viewState} /> */}
     </>
   )
 }
