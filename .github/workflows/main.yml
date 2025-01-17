@@ -38,17 +38,43 @@ jobs:
     - name: Push Docker image to DockerHub
       run: docker push ${{ secrets.DOCKER_IMAGE }}:latest
 
+    - name: Copy Nginx Configuration
+      uses: appleboy/scp-action@v0.1.0
+      with:
+        host: ${{ secrets.VM_IP }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.VM_SSH_KEY }}
+        source: .github/nginx/timge.conf
+        target: /tmp/nginx-config/timge.conf
+
+
     - name: Deploy to Cloud VM
-      uses: appleboy/ssh-action@v0.1.6
+      uses: appleboy/ssh-action@v0.1.10
       with:
         host: ${{ secrets.VM_IP }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
         script: |
           docker pull ${{ secrets.DOCKER_IMAGE }}:latest
+
           docker stop timge-web || true
           docker rm timge-web || true
+
           docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE }}:latest
+
+          sudo apt-get update
+          sudo apt-get install -y nginx certbot python3-certbot-nginx
+
+          sudo mv /tmp/nginx-config/timge.conf /etc/nginx/sites-available/timge
+          sudo ln -sf /etc/nginx/sites-available/timge /etc/nginx/sites-enabled/
+
+          sudo nginx -t
+          sudo systemctl reload nginx
+
+          sudo certbot --nginx -n --agree-tos --email ${{ secrets.ADMIN_EMAIL }} -d ${{ secrets.DOMAIN_NAME }}
+
+          echo "Deployment complete with HTTPS on port 443"
+  
   
     - name: Kill VPN Connection
       if: always()
