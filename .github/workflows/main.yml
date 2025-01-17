@@ -62,16 +62,16 @@ jobs:
 
           docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE }}:latest
 
-          sudo apt-get update
-          sudo apt-get install -y nginx certbot python3-certbot-nginx
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y nginx certbot python3-certbot-nginx
 
-          sudo mv /tmp/nginx-config/timge.conf /etc/nginx/sites-available/timge
-          sudo ln -sf /etc/nginx/sites-available/timge /etc/nginx/sites-enabled/
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mv /tmp/nginx-config/timge.conf /etc/nginx/sites-available/timge
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S ln -sf /etc/nginx/sites-available/timge /etc/nginx/sites-enabled/
 
-          sudo nginx -t
-          sudo systemctl reload nginx
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S nginx -t
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl reload nginx
 
-          sudo certbot --nginx -n --agree-tos --email ${{ secrets.ADMIN_EMAIL }} -d ${{ secrets.DOMAIN_NAME }}
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S certbot --nginx -n --agree-tos --email ${{ secrets.ADMIN_EMAIL }} -d ${{ secrets.DOMAIN_NAME }}
 
           echo "Deployment complete with HTTPS on port 443"
   
