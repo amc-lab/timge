@@ -14,6 +14,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Connect VPN
+      uses: aduriseti/ovpn3-connect-action@v1
+      with:
+        ovpn-config:  ${{ secrets.VPN_CONFIG }}
+        vpn-user:     ${{ secrets.VPN_USER }}
+        vpn-pass:     ${{ secrets.VPN_PASS }}
+
     - name: Log in to DockerHub
       run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
@@ -36,3 +43,8 @@ jobs:
           docker stop timge-web || true
           docker rm timge-web || true
           docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE }}:latest
+  
+    - name: Kill VPN Connection
+      if: always()
+      run: |
+        sudo pkill openvpn  
