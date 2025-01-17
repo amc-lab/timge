@@ -14,13 +14,19 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Connect VPN
-      uses: aduriseti/ovpn3-connect-action@v1
-      with:
-        ovpn-config:  ${{ secrets.VPN_CONFIG }}
-        vpn-user:     ${{ secrets.VPN_USER }}
-        vpn-pass:     ${{ secrets.VPN_PASS }}
+    - name: Install OpenVPN
+      run: sudo apt-get update && sudo apt-get install -y openvpn
 
+    - name: Configure VPN Authentication
+      run: |
+        echo -e "${{ secrets.VPN_USER }}\n${{ secrets.VPN_PASS }}" > vpn-auth.txt
+
+    - name: Start OpenVPN
+      run: |
+        sudo openvpn --config .github/vpn/config.ovpn --auth-user-pass vpn-auth.txt &
+        sleep 10
+        ping -c 3 ${{ secrets.VM_IP }}
+    
     - name: Log in to DockerHub
       run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
