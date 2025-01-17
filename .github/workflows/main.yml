@@ -20,7 +20,7 @@ jobs:
     - name: Build Docker image
       run: |
         echo "Current working directory: $(pwd)"
-        docker build -t ${{ secrets.DOCKER_IMAGE }}:latest ./web/Dockerfile
+        docker build -t ${{ secrets.DOCKER_IMAGE }}:latest ./web
 
     - name: Push Docker image to DockerHub
       run: docker push ${{ secrets.DOCKER_IMAGE }}:latest
