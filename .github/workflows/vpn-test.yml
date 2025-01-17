@@ -21,9 +21,15 @@ jobs:
 
     - name: Connect to VPN
       run: |
-        sudo openvpn --config vpn-config.ovpn --daemon
+        sudo openvpn --config vpn-config.ovpn --daemon &
         echo "Waiting for VPN connection..."
         sleep 15
 
     - name: Verify VPN connection
       run: ping -c 3 ${{ secrets.VM_IP }}
+
+    - name: Terminate VPN connection
+      if: always()
+      run: |
+        echo "Terminating VPN connection..."
+        sudo pkill openvpn
