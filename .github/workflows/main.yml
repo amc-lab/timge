@@ -45,9 +45,8 @@ jobs:
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
         source: .github/nginx/timge.conf
-        target: /tmp/nginx-config/timge.conf
-
-
+        target: /tmp/nginx-config
+    
     - name: Deploy to Cloud VM
       uses: appleboy/ssh-action@v0.1.10
       with:
@@ -62,8 +61,8 @@ jobs:
 
           docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE }}:latest
 
-          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
-          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y nginx certbot python3-certbot-nginx
+          # echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
+          # echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y nginx certbot python3-certbot-nginx
 
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mv /tmp/nginx-config/timge.conf /etc/nginx/sites-available/timge.conf
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S ln -sf /etc/nginx/sites-available/timge.conf /etc/nginx/sites-enabled/timge.conf
@@ -71,7 +70,7 @@ jobs:
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S nginx -t || exit 1
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S systemctl reload nginx
 
-          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S certbot --nginx -n --agree-tos --email "${{ secrets.ADMIN_EMAIL }}" -d "${{ secrets.DOMAIN_NAME }}"
+          # echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S certbot --nginx -n --agree-tos --email "${{ secrets.ADMIN_EMAIL }}" -d "${{ secrets.DOMAIN_NAME }}"
 
           echo "Deployment complete with HTTPS on port 443"
 
