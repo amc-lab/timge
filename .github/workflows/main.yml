@@ -39,13 +39,9 @@ jobs:
       run: docker push ${{ secrets.DOCKER_IMAGE }}:latest
 
     - name: Copy Nginx Configuration
-      uses: appleboy/scp-action@v0.1.0
-      with:
-        host: ${{ secrets.VM_IP }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.VM_SSH_KEY }}
-        source: .github/nginx/timge.conf
-        target: /tmp/nginx-config/
+      run: |
+        ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} "mkdir -p /tmp/nginx-config"
+        scp .github/nginx/timge.conf ${{ secrets.VM_USER }}@${{ secrets.VM_IP }}:/tmp/nginx-config/
     
     - name: Deploy to Cloud VM
       uses: appleboy/ssh-action@v0.1.10
