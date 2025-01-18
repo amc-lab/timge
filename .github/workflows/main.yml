@@ -40,8 +40,10 @@ jobs:
 
     - name: Copy Nginx Configuration
       run: |
-        ssh ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} "mkdir -p /tmp/nginx-config"
-        scp .github/nginx/timge.conf ${{ secrets.VM_USER }}@${{ secrets.VM_IP }}:/tmp/nginx-config/
+        mkdir -p ~/.ssh
+        echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        scp -i ~/.ssh/id_rsa .github/nginx/timge.conf ${{ secrets.VM_USER }}@${{ secrets.VM_IP }}:/tmp/nginx-config/
     
     - name: Deploy to Cloud VM
       uses: appleboy/ssh-action@v0.1.10
