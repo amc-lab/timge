@@ -45,7 +45,7 @@ jobs:
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
         source: .github/nginx/timge.conf
-        target: /tmp/nginx-config
+        target: /tmp/nginx-config/
     
     - name: Deploy to Cloud VM
       uses: appleboy/ssh-action@v0.1.10
