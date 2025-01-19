@@ -49,9 +49,9 @@ MIDDLEWARE = [
 ]
 
 
-CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
+CSRF_TRUSTED_ORIGINS = ["http://timge-web:3000"]
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
-CORS_ORIGIN_WHITELIST = ["http://localhost:3000"]
+CORS_ORIGIN_WHITELIST = ["http://timge-web:3000"]
 
 
 ROOT_URLCONF = "config.urls"
