@@ -68,8 +68,8 @@ jobs:
 
           cd /srv/timge
 
-          export DOCKER_IMAGE_WEB="${{ secrets.DOCKER_IMAGE_WEB }}"
-          export DOCKER_IMAGE_BACKEND="${{ secrets.DOCKER_IMAGE_BACKEND }}"
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env'
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env'
 
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down || true
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose up -d
