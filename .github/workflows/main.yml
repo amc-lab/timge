@@ -30,13 +30,21 @@ jobs:
     - name: Log in to DockerHub
       run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    - name: Build Docker image
+    - name: Build Frontend Docker image
       run: |
-        echo "Current working directory: $(pwd)"
-        docker build -t ${{ secrets.DOCKER_IMAGE }}:latest ./web
+        echo "Building frontend Docker image"
+        docker build -t ${{ secrets.DOCKER_IMAGE_WEB }}:latest ./web
 
-    - name: Push Docker image to DockerHub
-      run: docker push ${{ secrets.DOCKER_IMAGE }}:latest
+    - name: Push Frontend Docker image to DockerHub
+      run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}:latest
+
+    - name: Build Backend Docker image
+      run: |
+        echo "Building backend Docker image"
+        docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }}:latest ./backend
+
+    - name: Push Backend Docker image to DockerHub
+      run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}:latest
 
     - name: Copy Nginx Configuration
       run: |
@@ -52,12 +60,19 @@ jobs:
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
         script: |
-          docker pull ${{ secrets.DOCKER_IMAGE }}:latest
+          docker pull ${{ secrets.DOCKER_IMAGE_WEB }}:latest
+
+          docker pull ${{ secrets.DOCKER_IMAGE_BACKEND }}:latest
 
           docker stop timge-web || true
           docker rm timge-web || true
 
-          docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE }}:latest
+          docker stop timge-backend || true
+          docker rm timge-backend || true
+
+          docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE_WEB }}:latest
+
+          docker run -d --name timge-backend -p 8000:8000 ${{ secrets.DOCKER_IMAGE_BACKEND }}:latest
 
           # echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
           # echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y nginx certbot python3-certbot-nginx
