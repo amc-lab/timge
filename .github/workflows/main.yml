@@ -33,18 +33,18 @@ jobs:
     - name: Build Frontend Docker image
       run: |
         echo "Building frontend Docker image"
-        docker build -t ${{ secrets.DOCKER_IMAGE_WEB }}:latest ./web
+        docker build -t ${{ secrets.DOCKER_IMAGE_WEB }} ./web
 
     - name: Push Frontend Docker image to DockerHub
-      run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}:latest
+      run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}
 
     - name: Build Backend Docker image
       run: |
         echo "Building backend Docker image"
-        docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }}:latest ./backend
+        docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }} ./backend
 
     - name: Push Backend Docker image to DockerHub
-      run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}:latest
+      run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
 
     - name: Copy Nginx Configuration
       run: |
@@ -60,9 +60,9 @@ jobs:
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
         script: |
-          docker pull ${{ secrets.DOCKER_IMAGE_WEB }}:latest
+          docker pull ${{ secrets.DOCKER_IMAGE_WEB }}
 
-          docker pull ${{ secrets.DOCKER_IMAGE_BACKEND }}:latest
+          docker pull ${{ secrets.DOCKER_IMAGE_BACKEND }}
 
           docker stop timge-web || true
           docker rm timge-web || true
@@ -70,9 +70,9 @@ jobs:
           docker stop timge-backend || true
           docker rm timge-backend || true
 
-          docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE_WEB }}:latest
+          docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE_WEB }}
 
-          docker run -d --name timge-backend -p 8000:8000 ${{ secrets.DOCKER_IMAGE_BACKEND }}:latest
+          docker run -d --name timge-backend -p 8000:8000 ${{ secrets.DOCKER_IMAGE_BACKEND }}
 
           # echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
           # echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y nginx certbot python3-certbot-nginx
