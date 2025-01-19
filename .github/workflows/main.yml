@@ -47,23 +47,24 @@ jobs:
       run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
 
     - name: Copy Nginx Configuration
-      uses: appleboy/scp-action@v0.1.0
+      uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ secrets.VM_IP }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
-        source: .github/nginx/timge.conf
+        source: ".github/nginx/timge.conf"
         target: /tmp/nginx-config/
     
     - name: Deploy to Cloud VM
-      uses: appleboy/ssh-action@v0.1.10
+      uses: appleboy/ssh-action@v1.2.0
       with:
         host: ${{ secrets.VM_IP }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
         script: |
-          docker pull ${{ secrets.DOCKER_IMAGE_WEB }}
+          docker network inspect timge-network >/dev/null 2>&1 || docker network create timge-network
 
+          docker pull ${{ secrets.DOCKER_IMAGE_WEB }}
           docker pull ${{ secrets.DOCKER_IMAGE_BACKEND }}
 
           docker stop timge-web || true
@@ -72,9 +73,8 @@ jobs:
           docker stop timge-backend || true
           docker rm timge-backend || true
 
-          docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE_WEB }}
-
-          docker run -d --name timge-backend -p 8000:8000 ${{ secrets.DOCKER_IMAGE_BACKEND }}
+          docker run -d --name timge-web --network timge-network -p 3000:3000 ${{ secrets.DOCKER_IMAGE_WEB }}
+          docker run -d --name timge-backend --network timge-network -p 8000:8000 ${{ secrets.DOCKER_IMAGE_BACKEND }}
 
           # echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
           # echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y nginx certbot python3-certbot-nginx
