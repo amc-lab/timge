@@ -27,31 +27,24 @@ jobs:
         sleep 10
         ping -c 3 ${{ secrets.VM_IP }}
     
-    - name: Log in to DockerHub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+    # - name: Log in to DockerHub
+    #   run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    - name: Build Frontend Docker image
-      run: |
-        echo "Building frontend Docker image"
-        docker build -t ${{ secrets.DOCKER_IMAGE_WEB }} ./web
+    # - name: Build Frontend Docker image
+    #   run: |
+    #     echo "Building frontend Docker image"
+    #     docker build -t ${{ secrets.DOCKER_IMAGE_WEB }} ./web
 
-    - name: Push Frontend Docker image to DockerHub
-      run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}
+    # - name: Push Frontend Docker image to DockerHub
+    #   run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}
 
-    - name: Build Backend Docker image
-      run: |
-        echo "Building backend Docker image"
-        docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }} ./backend
+    # - name: Build Backend Docker image
+    #   run: |
+    #     echo "Building backend Docker image"
+    #     docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }} ./backend
 
-    - name: Push Backend Docker image to DockerHub
-      run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
-
-    - name: Generate Self-Signed SSL Certificates
-      run: |
-        mkdir -p ssl
-        openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-          -keyout ssl/selfsigned.key -out ssl/selfsigned.crt \
-          -subj "/C=US/ST=State/L=City/O=Organization/OU=OrgUnit/CN=${{ secrets.DOMAIN_NAME }}"
+    # - name: Push Backend Docker image to DockerHub
+    #   run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
 
     - name: Copy Project Files to Server
       uses: appleboy/scp-action@v0.1.7
@@ -72,9 +65,6 @@ jobs:
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mkdir -p /srv/timge
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/docker-compose.yml /srv/timge/docker-compose.yml
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/timge.conf /srv/timge/timge.conf
-          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mkdir -p /srv/timge/ssl
-          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/selfsigned.crt /srv/timge/ssl/selfsigned.crt
-          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/selfsigned.key /srv/timge/ssl/selfsigned.key
 
           cd /srv/timge
 
@@ -83,6 +73,15 @@ jobs:
 
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down || true
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose up -d
+
+          # Install Certbot and Obtain SSL Certificates
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y certbot python3-certbot-nginx
+
+          # Use Certbot to Obtain and Configure SSL
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S certbot --nginx -n --redirect \
+            --agree-tos --email ${{ secrets.ADMIN_EMAIL }} \
+            -d ${{ secrets.DOMAIN_NAME }}
 
           echo "Deployment complete with HTTPS on port 443"
 
