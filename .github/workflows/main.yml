@@ -52,7 +52,7 @@ jobs:
         host: ${{ secrets.VM_IP }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
-        source: "./docker-compose.yml,./.github/nginx/timge.conf,./ssl/selfsigned.crt,./ssl/selfsigned.key"
+        source: "docker-compose.yml,.github/nginx/timge.conf,ssl/selfsigned.crt,ssl/selfsigned.key"
         target: /tmp/timge-deployment/
 
     - name: Deploy with Docker Compose
@@ -68,8 +68,8 @@ jobs:
 
           cd /srv/timge
 
-          echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env
-          echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env
 
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down || true
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose up -d
