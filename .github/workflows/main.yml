@@ -47,11 +47,13 @@ jobs:
       run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
 
     - name: Copy Nginx Configuration
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        scp -i ~/.ssh/id_rsa .github/nginx/timge.conf ${{ secrets.VM_USER }}@${{ secrets.VM_IP }}:/tmp/nginx-config/
+      uses: appleboy/scp-action@v0.1.0
+      with:
+        host: ${{ secrets.VM_IP }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.VM_SSH_KEY }}
+        source: .github/nginx/timge.conf
+        target: /tmp/nginx-config/
     
     - name: Deploy to Cloud VM
       uses: appleboy/ssh-action@v0.1.10
