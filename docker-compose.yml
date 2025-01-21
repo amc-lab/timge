@@ -13,11 +13,13 @@ services:
 
   timge-web:
     image: ${DOCKER_IMAGE_WEB}
+    container_name: timge-web
     networks:
       - timge-network
 
   timge-backend:
     image: ${DOCKER_IMAGE_BACKEND}
+    container_name: timge-backend
     networks:
       - timge-network
 
