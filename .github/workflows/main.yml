@@ -27,24 +27,24 @@ jobs:
         sleep 10
         ping -c 3 ${{ secrets.VM_IP }}
     
-    # - name: Log in to DockerHub
-    #   run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+    - name: Log in to DockerHub
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    # - name: Build Frontend Docker image
-    #   run: |
-    #     echo "Building frontend Docker image"
-    #     docker build -t ${{ secrets.DOCKER_IMAGE_WEB }} ./web
+    - name: Build Frontend Docker image
+      run: |
+        echo "Building frontend Docker image"
+        docker build -t ${{ secrets.DOCKER_IMAGE_WEB }} ./web
 
-    # - name: Push Frontend Docker image to DockerHub
-    #   run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}
+    - name: Push Frontend Docker image to DockerHub
+      run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}
 
-    # - name: Build Backend Docker image
-    #   run: |
-    #     echo "Building backend Docker image"
-    #     docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }} ./backend
+    - name: Build Backend Docker image
+      run: |
+        echo "Building backend Docker image"
+        docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }} ./backend
 
-    # - name: Push Backend Docker image to DockerHub
-    #   run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
+    - name: Push Backend Docker image to DockerHub
+      run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
 
     - name: Copy Project Files to Server
       uses: appleboy/scp-action@v0.1.7
