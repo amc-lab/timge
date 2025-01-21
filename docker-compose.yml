@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx
+    container_name: nginx
+    ports:
+      - "443:443"
+    volumes:
+      - ./timge.conf:/etc/nginx/conf.d/default.conf
+      - /etc/ssl/certs:/etc/ssl/certs
+      - /etc/ssl/private:/etc/ssl/private
+    networks:
+      - timge-network
+
+  timge-web:
+    image: ${DOCKER_IMAGE_WEB}
+    container_name: timge-web
+    networks:
+      - timge-network
+
+  timge-backend:
+    image: ${DOCKER_IMAGE_BACKEND}
+    container_name: timge-backend
+    networks:
+      - timge-network
+
+networks:
+  timge-network:
+    name: timge-network
+    driver: bridge

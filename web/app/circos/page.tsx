@@ -6,22 +6,27 @@ import Form from "../../components/Form";
 import Tracks from "./tracks";
 import { Track, TrackType } from "./config/track";
 import { defaultAssemblyConfig, defaultBarConfig, defaultChordConfig, defaultGlobalConfig } from "./config/defaultConfigs";
-import FileUploadForm from "@/components/FileUploadForm";
+import FileUploadForm from "../../components/FileUploadForm"
 
 interface CircosProps {
-    data: {
+    params: Promise<{
         segments: Array<Assembly>;
         chords: Array<Chord>;
-    };
+    }>;
 }
 
-const Circos = ({ data }: CircosProps) => {
+export default function Circos({ params }: CircosProps) {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [segments, setSegments] = useState<Assembly[]>([]);
     const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
     const [tracks, setTracks] = useState<Track[]>([]);
-    
+
     useEffect(() => {
+        params.then(({ segments, chords }) => {
+            setSegments(segments);
+            // Handle chords if needed
+        });
+
         if (canvasRef.current) {
             const svg = d3.select(canvasRef.current).select("svg");
 
@@ -32,7 +37,7 @@ const Circos = ({ data }: CircosProps) => {
                     .attr("height", globalConfig.canvasHeight)
             }
         }
-    }, [data, globalConfig]);
+    }, [params, globalConfig]);
 
     const handleGlobalConfigUpdate = (updatedConfig: Partial<GlobalConfig>) => {
         setGlobalConfig((prevConfig) => ({ ...prevConfig, ...updatedConfig }));
@@ -99,5 +104,3 @@ const Circos = ({ data }: CircosProps) => {
         </div>
     );
 };
-
-export default Circos;

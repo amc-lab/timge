@@ -49,10 +49,25 @@ MIDDLEWARE = [
 ]
 
 
-CSRF_TRUSTED_ORIGINS = ["http://localhost:3000"]
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
-CORS_ORIGIN_WHITELIST = ["http://localhost:3000"]
-
+CSRF_TRUSTED_ORIGINS = [
+    "http://timge-web:3000",
+    "http://cloud-vm-42-27.doc.ic.ac.uk",
+    "https://cloud-vm-42-27.doc.ic.ac.uk",
+    "http://timge.doc.ic.ac.uk",
+    "https://timge.doc.ic.ac.uk",
+]
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "cloud-vm-42-27.doc.ic.ac.uk",
+    "timge.doc.ic.ac.uk",
+]
+CORS_ORIGIN_WHITELIST = [
+    "http://cloud-vm-42-27.doc.ic.ac.uk",
+    "https://cloud-vm-42-27.doc.ic.ac.uk",
+    "http://timge.doc.ic.ac.uk",
+    "https://timge.doc.ic.ac.uk",
+]
 
 ROOT_URLCONF = "config.urls"
 

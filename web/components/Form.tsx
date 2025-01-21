@@ -9,8 +9,8 @@ import { AssemblyForm } from "./AssemblyForm";
 import { ChordForm } from "./ChordForm";
 import { GlobalForm } from "./GlobalForm";
 import { BarForm } from "./BarForm";
-import { Track, TrackType } from "@/app/circos/config/track";
-import { defaultGlobalConfig } from "@/app/circos/config/defaultConfigs";
+import { Track, TrackType } from "../app/circos/config/track"
+import { defaultGlobalConfig } from "../app/circos/config/defaultConfigs";
 
 interface FormProps {
     tracks: Array<Track>;

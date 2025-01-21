@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/21-setup-cicd/pipeline
 
 jobs:
   build-and-deploy:
@@ -14,25 +13,78 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
+    - name: Install OpenVPN
+      run: sudo apt-get update && sudo apt-get install -y openvpn
+
+    - name: Configure VPN Authentication
+      run: |
+        echo -e "${{ secrets.VPN_USER }}\n${{ secrets.VPN_PASS }}" > vpn-auth.txt
+
+    - name: Start OpenVPN
+      run: |
+        sudo openvpn --config .github/vpn/config.ovpn --auth-user-pass vpn-auth.txt &
+        sleep 10
+        ping -c 3 ${{ secrets.VM_IP }}
+    
     - name: Log in to DockerHub
       run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    - name: Build Docker image
+    - name: Build Frontend Docker image
       run: |
-        echo "Current working directory: $(pwd)"
-        docker build -t ${{ secrets.DOCKER_IMAGE }}:latest ./web
+        echo "Building frontend Docker image"
+        docker build -t ${{ secrets.DOCKER_IMAGE_WEB }} ./web
 
-    - name: Push Docker image to DockerHub
-      run: docker push ${{ secrets.DOCKER_IMAGE }}:latest
+    - name: Push Frontend Docker image to DockerHub
+      run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}
 
-    - name: Deploy to Cloud VM
-      uses: appleboy/ssh-action@v0.1.6
+    - name: Build Backend Docker image
+      run: |
+        echo "Building backend Docker image"
+        docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }} ./backend
+
+    - name: Push Backend Docker image to DockerHub
+      run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
+
+    - name: Copy Project Files to Server
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.VM_IP }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.VM_SSH_KEY }}
+        source: "./docker-compose.yml,./timge.conf"
+        target: /tmp/timge-deployment
+
+    - name: Deploy with Docker Compose
+      uses: appleboy/ssh-action@v1.2.0
       with:
         host: ${{ secrets.VM_IP }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
         script: |
-          docker pull ${{ secrets.DOCKER_IMAGE }}:latest
-          docker stop timge-web || true
-          docker rm timge-web || true
-          docker run -d --name timge-web -p 3000:3000 ${{ secrets.DOCKER_IMAGE }}:latest
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mkdir -p /srv/timge
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/docker-compose.yml /srv/timge/docker-compose.yml
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/timge.conf /srv/timge/timge.conf
+
+          cd /srv/timge
+
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env'
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env'
+
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down || true
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose up -d
+
+          # Install Certbot and Obtain SSL Certificates
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y certbot python3-certbot-nginx
+
+          # Use Certbot to Obtain and Configure SSL
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S certbot --nginx -n --redirect \
+            --agree-tos --email ${{ secrets.ADMIN_EMAIL }} \
+            -d ${{ secrets.DOMAIN_NAME }}
+
+          echo "Deployment complete with HTTPS on port 443"
+
+    - name: Kill VPN Connection
+      if: always()
+      run: |
+        sudo pkill openvpn
