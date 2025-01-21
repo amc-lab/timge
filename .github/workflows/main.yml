@@ -52,8 +52,8 @@ jobs:
         host: ${{ secrets.VM_IP }}
         username: ${{ secrets.VM_USER }}
         key: ${{ secrets.VM_SSH_KEY }}
-        source: "docker-compose.yml,timge.conf,ssl/selfsigned.crt,ssl/selfsigned.key"
-        target: /tmp/timge-deployment/
+        source: "./docker-compose.yml,./timge.conf"
+        target: /tmp/timge-deployment
 
     - name: Deploy with Docker Compose
       uses: appleboy/ssh-action@v1.2.0
