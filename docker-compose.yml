@@ -2,29 +2,21 @@ version: '3.8'
 
 services:
   nginx:
-    image: nginx:latest
-    container_name: nginx
-    depends_on:
-      - timge-web
-      - timge-backend
+    image: nginx
     ports:
-      - "80:80"
       - "443:443"
     volumes:
-      - ./timge.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./ssl:/etc/ssl
+      - ./timge.conf:/etc/nginx/conf.d/default.conf
     networks:
       - timge-network
 
   timge-web:
-    image: ${DOCKER_IMAGE_WEB}
-    container_name: timge-web
+    image: timge-web
     networks:
       - timge-network
 
   timge-backend:
-    image: ${DOCKER_IMAGE_BACKEND}
-    container_name: timge-backend
+    image: timge-backend
     networks:
       - timge-network
 
