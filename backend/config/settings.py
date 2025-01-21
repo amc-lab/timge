@@ -50,7 +50,12 @@ MIDDLEWARE = [
 
 
 CSRF_TRUSTED_ORIGINS = ["http://timge-web:3000"]
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "cloud-vm-42-27.doc.ic.ac.uk",
+    "timge.doc.ic.ac.uk",
+]
 CORS_ORIGIN_WHITELIST = ["http://timge-web:3000"]
 
 
