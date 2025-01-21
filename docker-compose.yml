@@ -23,4 +23,5 @@ services:
 
 networks:
   timge-network:
+    name: timge-network
     driver: bridge
