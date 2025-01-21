@@ -6,8 +6,13 @@ ENV PYTHONUNBUFFERED 1
 RUN apt-get update && apt-get install -y \
     curl \
     build-essential \
-    libpq-dev && \
+    libpq-dev \
+    wget && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN wget https://mafft.cbrc.jp/alignment/software/mafft_7.526-1_amd64.deb && \
+    dpkg -i mafft_7.526-1_amd64.deb && \
+    rm mafft_7.526-1_amd64.deb
 
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
