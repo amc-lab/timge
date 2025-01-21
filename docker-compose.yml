@@ -3,6 +3,7 @@ version: '3.8'
 services:
   nginx:
     image: nginx
+    container_name: nginx
     ports:
       - "443:443"
     volumes:
@@ -11,12 +12,12 @@ services:
       - timge-network
 
   timge-web:
-    image: timge-web
+    image: ${DOCKER_IMAGE_WEB}
     networks:
       - timge-network
 
   timge-backend:
-    image: timge-backend
+    image: ${DOCKER_IMAGE_BACKEND}
     networks:
       - timge-network
 
