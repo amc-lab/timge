@@ -42,7 +42,7 @@ const Multilift: React.FC = () => {
     const formData = new FormData();
     formData.append("genome", genome);
     formData.append("genome_file", file);
-    fetch("http://timge-backend:8000/api/multilift/multilift_sequences/", {
+    fetch("/api/multilift/multilift_sequences/", {
       method: "POST",
       body: formData,
     })
@@ -107,7 +107,7 @@ const Multilift: React.FC = () => {
     const liftoverGenomes = liftoverTracks.map(({ genome }) => genome);
     formData.append("multilift_genomes", JSON.stringify(liftoverGenomes));
 
-    fetch("http://timge-backend:8000/api/multilift/temp/", {
+    fetch("/api/multilift/temp/", {
       method: "POST",
       body: formData,
     })
