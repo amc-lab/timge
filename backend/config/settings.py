@@ -67,6 +67,7 @@ CORS_ORIGIN_WHITELIST = [
     "https://cloud-vm-42-27.doc.ic.ac.uk",
     "http://timge.doc.ic.ac.uk",
     "https://timge.doc.ic.ac.uk",
+    "http://localhost:3000",
 ]
 
 ROOT_URLCONF = "config.urls"

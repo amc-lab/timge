@@ -218,10 +218,7 @@ def multilift(
         del maf_alignments
 
         # Liftover data files, create annotations
-
         for i, genome in enumerate(multilift_genomes):
-            if len(multilift_genomes) != len(uploaded_files):
-                continue
             file = uploaded_files[i]
             ftype, application = sniff_filetype(file.name)
             if "data" in application:

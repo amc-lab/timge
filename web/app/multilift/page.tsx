@@ -42,22 +42,24 @@ const Multilift: React.FC = () => {
     const formData = new FormData();
     formData.append("genome", genome);
     formData.append("genome_file", file);
-    fetch("/api/multilift/multilift_sequences/", {
+    // const host = process.env.NEXT_DJANGO_PUBLIC_HOST;
+    const host = "";
+    fetch(`${host}/api/multilift/multilift_sequences/`, {
       method: "POST",
       body: formData,
     })
       .then((response) => response.json())
       .then((data) => {
-        console.log(data);
-        for (let i = 0; i < data.length; i++) {
-          const seq = data[i];
-          const key = [seq[0], seq[1], seq[2]].join(",");
+      console.log(data);
+      for (let i = 0; i < data.length; i++) {
+        const seq = data[i];
+        const key = [seq[0], seq[1], seq[2]].join(",");
 
-          setSequences((prevSequences) => ({
-            ...prevSequences,
-            [key]: seq[3],
-          }));
-        }
+        setSequences((prevSequences) => ({
+        ...prevSequences,
+        [key]: seq[3],
+        }));
+      }
       });
   };
 
@@ -107,7 +109,9 @@ const Multilift: React.FC = () => {
     const liftoverGenomes = liftoverTracks.map(({ genome }) => genome);
     formData.append("multilift_genomes", JSON.stringify(liftoverGenomes));
 
-    fetch("/api/multilift/temp/", {
+    // const host = process.env.NEXT_DJANGO_PUBLIC_HOST;
+    const host = "";
+    fetch(`${host}/api/multilift/temp/`, {
       method: "POST",
       body: formData,
     })
