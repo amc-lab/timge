@@ -71,8 +71,9 @@ jobs:
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env'
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env'
 
-          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down || true
-          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose up -d
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down --remove-orphans || true
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose pull
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose up -d --force-recreate
 
           # Install Certbot and Obtain SSL Certificates
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
