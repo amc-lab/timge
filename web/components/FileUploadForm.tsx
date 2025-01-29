@@ -73,12 +73,7 @@ const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
     <Card>
       <h2>Upload and Configure Files</h2>
 
-      <input
-        type="file"
-        multiple
-        onChange={handleFileChange}
-        accept=".json"
-      />
+      <input type="file" multiple onChange={handleFileChange} accept=".json" />
 
       <div style={{ marginTop: "20px" }}>
         {files.map((fileEntry, index) => (
@@ -135,11 +130,7 @@ const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
         ))}
       </div>
 
-      {files.length > 0 && (
-        <Button onClick={handleSubmit}>
-          Submit
-        </Button>
-      )}
+      {files.length > 0 && <Button onClick={handleSubmit}>Submit</Button>}
     </Card>
   );
 };

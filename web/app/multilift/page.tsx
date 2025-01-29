@@ -3,32 +3,41 @@ import React, { useEffect, useState } from "react";
 import {
   Container,
   Box,
-  TextField,
-  MenuItem,
-  InputLabel,
   FormControl,
-  Checkbox,
-  ListItemText,
-  OutlinedInput,
   Typography,
-
+  Snackbar,
+  Alert,
+  LinearProgress,
 } from "@mui/material";
 import Button from "@mui/joy/Button";
 import Card from "@mui/joy/Card";
-import TextArea from "@mui/joy/Textarea";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import {   Accordion, AccordionSummary, AccordionDetails, AccordionGroup, Option, Select } from "@mui/joy";
+import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  AccordionGroup,
+  Option,
+  Select,
+} from "@mui/joy";
 import FormLabel from "@mui/joy/FormLabel";
-import FormHelperText from "@mui/joy/FormHelperText";
 import Input from "@mui/joy/Input";
 import Chip from "@mui/joy/Chip";
 
 const Multilift: React.FC = () => {
+  const [alertOpen, setAlertOpen] = useState(false);
+  const [alertMessage, setAlertMessage] = useState("Upload successful");
+  const [alertSeverity, setAlertSeverity] = useState<
+    "error" | "warning" | "info" | "success"
+  >("success");
+  const [showLoadingBar, setShowLoadingBar] = useState(false);
+
   const [genomes, setGenomes] = useState({});
   const [genomeInput, setGenomeInput] = useState<string>("");
   const [sequences, setSequences] = useState({});
   const [groups, setGroups] = useState<string[]>(["Group1"]);
-  const [liftoverTracks, setLiftoverTracks] = useState<{ file: File; genome: string }[]>([]);
+  const [liftoverTracks, setLiftoverTracks] = useState<
+    { file: File; genome: string }[]
+  >([]);
 
   const addGenome = () => {
     setGenomes({
@@ -43,26 +52,43 @@ const Multilift: React.FC = () => {
       ...genomes,
       [genome]: file,
     });
+
     const formData = new FormData();
     formData.append("genome", genome);
     formData.append("genome_file", file);
+
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+
     fetch(`${host}/api/multilift/multilift_sequences/`, {
       method: "POST",
       body: formData,
     })
-      .then((response) => response.json())
-      .then((data) => {
-      console.log(data);
-      for (let i = 0; i < data.length; i++) {
-        const seq = data[i];
-        const key = [seq[0], seq[1], seq[2]].join(",");
+      .then(async (response) => {
+        setShowLoadingBar(true);
+        const data = await response.json();
+        setShowLoadingBar(false);
 
-        setSequences((prevSequences) => ({
-        ...prevSequences,
-        [key]: seq[3],
-        }));
-      }
+        if (data.message) {
+        }
+        console.log("Response Message:", data.message);
+
+        if (!Array.isArray(data)) {
+          console.error("Unexpected response format:", data);
+          return;
+        }
+
+        for (let i = 0; i < data.length; i++) {
+          const seq = data[i];
+          const key = [seq[0], seq[1], seq[2]].join(",");
+
+          setSequences((prevSequences) => ({
+            ...prevSequences,
+            [key]: seq[3],
+          }));
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching sequences:", error);
       });
   };
 
@@ -82,7 +108,10 @@ const Multilift: React.FC = () => {
     }));
   };
 
-  const handleLiftoverTrackUpload = (files: FileList | null, genome: string) => {
+  const handleLiftoverTrackUpload = (
+    files: FileList | null,
+    genome: string,
+  ) => {
     if (files) {
       const newTracks = Array.from(files).map((file) => ({ file, genome }));
       setLiftoverTracks((prevTracks) => [...prevTracks, ...newTracks]);
@@ -90,6 +119,7 @@ const Multilift: React.FC = () => {
   };
 
   const generateAlignment = () => {
+    setShowLoadingBar(true);
     const formData = new FormData();
 
     formData.append("genomes", JSON.stringify(Object.keys(genomes)));
@@ -118,7 +148,11 @@ const Multilift: React.FC = () => {
       body: formData,
     })
       .then((response) => {
+        setShowLoadingBar(false);
         if (!response.ok) {
+          // setAlertMessage(response.)
+          setAlertSeverity("error");
+          setAlertOpen(true);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         return response.blob();
@@ -139,232 +173,277 @@ const Multilift: React.FC = () => {
   };
 
   return (
-    <Container
-      sx={{
-        marginTop: "3em",
-      }}
-    >
-      <Typography variant="h4" gutterBottom>
-        Multilift
-      </Typography>
-
-      <Box
+    <Box>
+      <LinearProgress
         sx={{
-          marginBottom: "3em",
+          display: showLoadingBar ? "block" : "none",
+          height: "0.5em",
+        }}
+      />
+
+      <Container
+        sx={{
+          marginTop: "3em",
         }}
       >
-      <AccordionGroup>
-      <Accordion defaultExpanded>
-        <AccordionSummary
+        <Typography variant="h4" gutterBottom>
+          Multilift
+        </Typography>
+
+        <Box
           sx={{
-            height: "3em",
+            marginBottom: "3em",
           }}
         >
-          <Typography><b>Define Genomes</b></Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Box
-            display="flex" 
-            alignItems="center" 
-            gap={2}
-          >
-            <Box
-              display="block"
-              sx={{
-                width: "85%",
-                paddingBottom: "1em",
-              }}
-            >
-              <FormLabel>Genome</FormLabel>
-              <Input 
-              placeholder="Enter here..."
-              value={genomeInput}
-              onChange={(e) => setGenomeInput(e.target.value)}
-              sx={{
-                height: "3em",
-              }}
-              />
-            </Box>
-            
-            <Button
-              variant="solid"
-              onClick={addGenome}
-              sx={{
-                width: "15%",
-                height: "3.25em",
-              }}
-            >
-              Add Genome
-            </Button>
-          </Box>
-
-          <Typography>Genomes Added:</Typography>
-            <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
-              {Object.keys(genomes).map((genome, index) => (
-              <Chip key={index} variant="soft" color="primary">
-                {genome}
-              </Chip>
-              ))}
-            </Box>
-        </AccordionDetails>
-      </Accordion>
-
-      {Object.keys(genomes).length > 0 && (
-        <Accordion defaultExpanded>
-          <AccordionSummary>
-            <Typography><b>Upload Genome</b></Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            {Object.keys(genomes).map((genome) => (
-              <Card
-                key={genome}
+          <AccordionGroup>
+            <Accordion defaultExpanded>
+              <AccordionSummary
                 sx={{
-                  padding: "1em",
-                  marginBottom: "0.5em",
+                  height: "3em",
                 }}
               >
-                <Typography>{`Upload files for genome: ${genome}`}</Typography>
-                <input
-                  type="file"
-                  onChange={(e) => {
-                    if (e.target.files) {
-                      addGenomeFile(genome, e.target.files[0]);
-                    }
-                  }}
-                />
-              </Card>
-            ))}
-          </AccordionDetails>
-        </Accordion>
-      )}
+                <Typography>
+                  <b>Define Genomes</b>
+                </Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Box
+                    display="block"
+                    sx={{
+                      width: "85%",
+                      paddingBottom: "1em",
+                    }}
+                  >
+                    <FormLabel>Genome</FormLabel>
+                    <Input
+                      placeholder="Enter here..."
+                      value={genomeInput}
+                      onChange={(e) => setGenomeInput(e.target.value)}
+                      sx={{
+                        height: "3em",
+                      }}
+                    />
+                  </Box>
 
-      <Accordion defaultExpanded>
-        <AccordionSummary>
-          <Typography><b>Upload Data Tracks</b></Typography>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Box>
-            {Object.keys(genomes).map((genome) => (
-              <Card
-              key={genome}
-              sx={{
-                padding: "1em",
-                marginBottom: "0.5em",
-              }}
-              >
-                <Typography>{`Upload data tracks for genome: ${genome}`}</Typography>
-                <input
-                  type="file"
-                  multiple
-                  onChange={(e) => handleLiftoverTrackUpload(e.target.files, genome)}
-                />
-              </Card>
-            ))}
-            {liftoverTracks.length > 0 && (
-              <Box mt={2}>
-                <Typography>Uploaded Liftover Tracks:</Typography>
-                <ul>
-                  {liftoverTracks.map(({ file, genome }, index) => (
-                    <li key={index}>{`${file.name} (Genome: ${genome})`}</li>
+                  <Button
+                    variant="solid"
+                    onClick={addGenome}
+                    sx={{
+                      width: "15%",
+                      height: "3.25em",
+                    }}
+                  >
+                    Add Genome
+                  </Button>
+                </Box>
+
+                <Typography>Genomes Added:</Typography>
+                <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
+                  {Object.keys(genomes).map((genome, index) => (
+                    <Chip key={index} variant="soft" color="primary">
+                      {genome}
+                    </Chip>
                   ))}
-                </ul>
-              </Box>
-            )}
-          </Box>
-        </AccordionDetails>
-      </Accordion>
+                </Box>
+              </AccordionDetails>
+            </Accordion>
 
-      {Object.keys(sequences).length > 0 && (
-        <Box>
-          <Accordion defaultExpanded>
-            <AccordionSummary>
-              <Typography><b>Assign Sequences</b></Typography>
-            </AccordionSummary>
-            <AccordionDetails>
-              {groups.map((group, index) => (
-                <Box key={index} mt={2}>
-                  <Typography>{group}</Typography>
-                  <FormControl fullWidth>
-                    {/* <InputLabel>Select Sequences</InputLabel> */}
-                    <Select
-                      multiple
-                      value={Object.keys(sequences).filter(
-                        (key) => sequences[key] === group
-                      )}
-                      renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', gap: '0.25rem' }}>
-                          {selected.map((selectedOption, index) => (
-                            <Chip variant="soft" color="primary" key={index}>
-                              {selectedOption.label}
-                            </Chip>
-                          ))}
-                        </Box>
-                      )}
-
-                      onChange={(e, newValue) => {
-                        const selectedKeys = newValue as string[];
-                        setSequences((prevSequences) => {
-                          const updatedSequences = { ...prevSequences };
-                          Object.keys(updatedSequences).forEach((key) => {
-                            if (Array.isArray(selectedKeys) && selectedKeys.includes(key)) {
-                              updatedSequences[key] = group;
-                            } else if (updatedSequences[key] === group) {
-                              updatedSequences[key] = null;
-                            }
-                          });
-                          return updatedSequences;
-                        });
+            {Object.keys(genomes).length > 0 && (
+              <Accordion defaultExpanded>
+                <AccordionSummary>
+                  <Typography>
+                    <b>Upload Genome</b>
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  {Object.keys(genomes).map((genome) => (
+                    <Card
+                      key={genome}
+                      sx={{
+                        padding: "1em",
+                        marginBottom: "0.5em",
                       }}
                     >
-                      {Object.keys(sequences).map((key) => (
-                        <Option key={key} value={key}>{key}</Option>
+                      <Typography>{`Upload files for genome: ${genome}`}</Typography>
+                      <input
+                        type="file"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            addGenomeFile(genome, e.target.files[0]);
+                          }
+                        }}
+                      />
+                    </Card>
+                  ))}
+                </AccordionDetails>
+              </Accordion>
+            )}
+            {Object.keys(sequences).length > 0 && (
+              <Box>
+                <Accordion defaultExpanded>
+                  <AccordionSummary>
+                    <Typography>
+                      <b>Upload Data Tracks</b>
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Box>
+                      {Object.keys(genomes).map((genome) => (
+                        <Card
+                          key={genome}
+                          sx={{
+                            padding: "1em",
+                            marginBottom: "0.5em",
+                          }}
+                        >
+                          <Typography>{`Upload data tracks for genome: ${genome}`}</Typography>
+                          <input
+                            type="file"
+                            multiple
+                            onChange={(e) =>
+                              handleLiftoverTrackUpload(e.target.files, genome)
+                            }
+                          />
+                        </Card>
                       ))}
-                    </Select>
-                  </FormControl>
-                </Box>
-              ))}
-
-              <Box mt={2} display="flex" justifyContent="space-between">
-                <Button variant="solid" onClick={addGroup}>
-                  Add Group
-                </Button>
-                <Button
-                  variant="outlined"
-                  onClick={() => {
-                  if (groups.length > 1) {
-                    const groupToRemove = groups[groups.length - 1];
-                    setGroups(groups.slice(0, -1));
-                    setSequences((prevSequences) => {
-                    const updatedSequences = { ...prevSequences };
-                    Object.keys(updatedSequences).forEach((key) => {
-                      if (updatedSequences[key] === groupToRemove) {
-                      updatedSequences[key] = null;
-                      }
-                    });
-                    return updatedSequences;
-                    });
-                  }
-                  }}
-                  disabled={groups.length <= 1}
-                  sx={{ color: 'red', borderColor: 'red' }}
-                >
-                  Remove Group
-                </Button>
+                      {liftoverTracks.length > 0 && (
+                        <Box mt={2}>
+                          <Typography>Uploaded Liftover Tracks:</Typography>
+                          <ul>
+                            {liftoverTracks.map(({ file, genome }, index) => (
+                              <li
+                                key={index}
+                              >{`${file.name} (Genome: ${genome})`}</li>
+                            ))}
+                          </ul>
+                        </Box>
+                      )}
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
               </Box>
-            </AccordionDetails>
-          </Accordion>
-          <Box>
-            <Button variant="solid"
-            onClick={generateAlignment}
-            sx={{width: "100%", height: "3em"}}
-            >
-              Generate Alignment</Button>
-          </Box>
+            )}
+
+            {Object.keys(sequences).length > 0 && (
+              <Box>
+                <Accordion defaultExpanded>
+                  <AccordionSummary>
+                    <Typography>
+                      <b>Assign Sequences</b>
+                    </Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    {groups.map((group, index) => (
+                      <Box key={index} mt={2}>
+                        <Typography>{group}</Typography>
+                        <FormControl fullWidth>
+                          {/* <InputLabel>Select Sequences</InputLabel> */}
+                          <Select
+                            multiple
+                            value={Object.keys(sequences).filter(
+                              (key) => sequences[key] === group,
+                            )}
+                            renderValue={(selected) => (
+                              <Box sx={{ display: "flex", gap: "0.25rem" }}>
+                                {selected.map((selectedOption, index) => (
+                                  <Chip
+                                    variant="soft"
+                                    color="primary"
+                                    key={index}
+                                  >
+                                    {selectedOption.label}
+                                  </Chip>
+                                ))}
+                              </Box>
+                            )}
+                            onChange={(e, newValue) => {
+                              const selectedKeys = newValue as string[];
+                              setSequences((prevSequences) => {
+                                const updatedSequences = { ...prevSequences };
+                                Object.keys(updatedSequences).forEach((key) => {
+                                  if (
+                                    Array.isArray(selectedKeys) &&
+                                    selectedKeys.includes(key)
+                                  ) {
+                                    updatedSequences[key] = group;
+                                  } else if (updatedSequences[key] === group) {
+                                    updatedSequences[key] = null;
+                                  }
+                                });
+                                return updatedSequences;
+                              });
+                            }}
+                          >
+                            {Object.keys(sequences).map((key) => (
+                              <Option key={key} value={key}>
+                                {key}
+                              </Option>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </Box>
+                    ))}
+
+                    <Box mt={2} display="flex" justifyContent="space-between">
+                      <Button variant="solid" onClick={addGroup}>
+                        Add Group
+                      </Button>
+                      <Button
+                        variant="outlined"
+                        onClick={() => {
+                          if (groups.length > 1) {
+                            const groupToRemove = groups[groups.length - 1];
+                            setGroups(groups.slice(0, -1));
+                            setSequences((prevSequences) => {
+                              const updatedSequences = { ...prevSequences };
+                              Object.keys(updatedSequences).forEach((key) => {
+                                if (updatedSequences[key] === groupToRemove) {
+                                  updatedSequences[key] = null;
+                                }
+                              });
+                              return updatedSequences;
+                            });
+                          }
+                        }}
+                        disabled={groups.length <= 1}
+                        sx={{ color: "red", borderColor: "red" }}
+                      >
+                        Remove Group
+                      </Button>
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
+                <Box>
+                  <Button
+                    variant="solid"
+                    onClick={generateAlignment}
+                    sx={{ width: "100%", height: "3em" }}
+                  >
+                    Generate Alignment
+                  </Button>
+                </Box>
+              </Box>
+            )}
+          </AccordionGroup>
         </Box>
-      )}
-      </AccordionGroup>
-      </Box>
-    </Container>
+        <Snackbar
+          key={"right"}
+          open={alertOpen}
+          anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+        >
+          <Alert
+            severity={alertSeverity}
+            sx={{
+              width: "100%",
+              fontSize: "1em",
+            }}
+          >
+            {alertMessage}
+          </Alert>
+        </Snackbar>
+      </Container>
+    </Box>
   );
 };
 
