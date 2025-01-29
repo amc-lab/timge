@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - feature/26-handle-ignoring-missing-multilift-sequences
 
 jobs:
   build-and-deploy:

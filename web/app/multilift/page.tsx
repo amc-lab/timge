@@ -154,6 +154,10 @@ const Multilift: React.FC = () => {
           setAlertSeverity("error");
           setAlertOpen(true);
           throw new Error(`HTTP error! status: ${response.status}`);
+        } else {
+          setAlertMessage("Alignment generated successfully");
+          setAlertSeverity("success");
+          setAlertOpen(true);
         }
         return response.blob();
       })
@@ -431,6 +435,7 @@ const Multilift: React.FC = () => {
           key={"right"}
           open={alertOpen}
           anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+          autoHideDuration={6000}
         >
           <Alert
             severity={alertSeverity}
