@@ -70,6 +70,7 @@ jobs:
 
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env'
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env'
+          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "NEXT_PUBLIC_DJANGO_HOST=${{ secrets.NEXT_PUBLIC_DJANGO_HOST }}" >> .env'
 
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down --remove-orphans || true
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose pull

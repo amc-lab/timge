@@ -10,6 +10,9 @@ RUN npm install --production
 # Copy the application code
 COPY . .
 
+ARG NEXT_PUBLIC_API_URI
+ENV NEXT_PUBLIC_API_URI=${NEXT_PUBLIC_API_URI}
+
 # Build the Next.js application
 RUN npm run build
 

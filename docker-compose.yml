@@ -18,6 +18,10 @@ services:
     container_name: timge-web
     networks:
       - timge-network
+    build:
+      context: ./web
+      args:
+        - NEXT_PUBLIC_DJANGO_HOST=${NEXT_PUBLIC_DJANGO_HOST}
 
   timge-backend:
     image: ${DOCKER_IMAGE_BACKEND}
