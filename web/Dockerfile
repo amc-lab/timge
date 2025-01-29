@@ -10,6 +10,9 @@ RUN npm install --production
 # Copy the application code
 COPY . .
 
+ARG NEXT_PUBLIC_DJANGO_HOST
+ENV NEXT_PUBLIC_DJANGO_HOST=${NEXT_PUBLIC_DJANGO_HOST}
+
 # Build the Next.js application
 RUN npm run build
 

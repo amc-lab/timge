@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  env: {
+    // NEXT_DJANGO_PUBLIC_HOST: process.env.NEXT_DJANGO_PUBLIC_HOST,
+  },
 };
 
 export default nextConfig;

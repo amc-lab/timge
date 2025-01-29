@@ -47,6 +47,7 @@ class Lifter:
 
     def __call__(self, genome: str, seqid: str, pos: int) -> (str, int):
         """Liftover `seqid:pos` into reference-space for a given `genome`"""
+        print(self.liftovers)
         if seqid not in self.liftovers[genome]:
             if (
                 matches := get_close_matches(seqid, self.liftovers[genome].keys(), 1)

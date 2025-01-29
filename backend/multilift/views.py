@@ -50,7 +50,7 @@ def run_multilift(request):
     groups = json.loads(request.POST.get("groups"))
     genome_files = request.FILES.getlist("genome_files")
     uploaded_files = request.FILES.getlist("uploaded_files")
-    multilift_genomes = request.POST.get("multilift_genomes")
+    multilift_genomes = json.loads(request.POST.get("multilift_genomes"))
     sequences = json.loads(request.POST.get("sequences"))
     aligner = request.POST.get("aligner")
 
