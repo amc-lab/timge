@@ -4,8 +4,6 @@ import {
   Container,
   Box,
   TextField,
-  Button,
-  Select,
   MenuItem,
   InputLabel,
   FormControl,
@@ -13,11 +11,17 @@ import {
   ListItemText,
   OutlinedInput,
   Typography,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
+
 } from "@mui/material";
+import Button from "@mui/joy/Button";
+import Card from "@mui/joy/Card";
+import TextArea from "@mui/joy/Textarea";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import {   Accordion, AccordionSummary, AccordionDetails, AccordionGroup, Option, Select } from "@mui/joy";
+import FormLabel from "@mui/joy/FormLabel";
+import FormHelperText from "@mui/joy/FormHelperText";
+import Input from "@mui/joy/Input";
+import Chip from "@mui/joy/Chip";
 
 const Multilift: React.FC = () => {
   const [genomes, setGenomes] = useState({});
@@ -42,8 +46,7 @@ const Multilift: React.FC = () => {
     const formData = new FormData();
     formData.append("genome", genome);
     formData.append("genome_file", file);
-    // const host = process.env.NEXT_DJANGO_PUBLIC_HOST;
-    const host = "";
+    const host = process.env.NEXT_DJANGO_PUBLIC_HOST;
     fetch(`${host}/api/multilift/multilift_sequences/`, {
       method: "POST",
       body: formData,
@@ -109,8 +112,7 @@ const Multilift: React.FC = () => {
     const liftoverGenomes = liftoverTracks.map(({ genome }) => genome);
     formData.append("multilift_genomes", JSON.stringify(liftoverGenomes));
 
-    // const host = process.env.NEXT_DJANGO_PUBLIC_HOST;
-    const host = "";
+    const host = process.env.NEXT_DJANGO_PUBLIC_HOST;
     fetch(`${host}/api/multilift/temp/`, {
       method: "POST",
       body: formData,
@@ -137,54 +139,90 @@ const Multilift: React.FC = () => {
   };
 
   return (
-    <Container>
+    <Container
+      sx={{
+        marginTop: "3em",
+      }}
+    >
       <Typography variant="h4" gutterBottom>
         Multilift
       </Typography>
 
+      <Box
+        sx={{
+          marginBottom: "3em",
+        }}
+      >
+      <AccordionGroup>
       <Accordion defaultExpanded>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>Define Genomes</Typography>
+        <AccordionSummary
+          sx={{
+            height: "3em",
+          }}
+        >
+          <Typography><b>Define Genomes</b></Typography>
         </AccordionSummary>
         <AccordionDetails>
-          <Box display="flex" alignItems="center" gap={2}>
-            <TextField
-              label="Enter genome name"
+          <Box
+            display="flex" 
+            alignItems="center" 
+            gap={2}
+          >
+            <Box
+              display="block"
+              sx={{
+                width: "85%",
+                paddingBottom: "1em",
+              }}
+            >
+              <FormLabel>Genome</FormLabel>
+              <Input 
+              placeholder="Enter here..."
               value={genomeInput}
               onChange={(e) => setGenomeInput(e.target.value)}
-              fullWidth
-            />
-            <Button variant="contained" onClick={addGenome}>
+              sx={{
+                height: "3em",
+              }}
+              />
+            </Box>
+            
+            <Button
+              variant="solid"
+              onClick={addGenome}
+              sx={{
+                width: "15%",
+                height: "3.25em",
+              }}
+            >
               Add Genome
             </Button>
           </Box>
 
-          {Object.keys(genomes).length > 0 && (
-            <Box mt={2}>
-              {Object.keys(genomes).map((genome) => (
-                <Box
-                  key={genome}
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  mt={1}
-                >
-                  <Typography>{genome}</Typography>
-                </Box>
+          <Typography>Genomes Added:</Typography>
+            <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
+              {Object.keys(genomes).map((genome, index) => (
+              <Chip key={index} variant="soft" color="primary">
+                {genome}
+              </Chip>
               ))}
             </Box>
-          )}
         </AccordionDetails>
       </Accordion>
 
       {Object.keys(genomes).length > 0 && (
         <Accordion defaultExpanded>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Typography>Add / Replace Files</Typography>
+          <AccordionSummary>
+            <Typography><b>Upload Genome</b></Typography>
           </AccordionSummary>
           <AccordionDetails>
             {Object.keys(genomes).map((genome) => (
-              <Box key={genome} mt={2}>
+              <Card
+                key={genome}
+                sx={{
+                  padding: "1em",
+                  marginBottom: "0.5em",
+                }}
+              >
                 <Typography>{`Upload files for genome: ${genome}`}</Typography>
                 <input
                   type="file"
@@ -194,27 +232,33 @@ const Multilift: React.FC = () => {
                     }
                   }}
                 />
-              </Box>
+              </Card>
             ))}
           </AccordionDetails>
         </Accordion>
       )}
 
       <Accordion defaultExpanded>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography>Upload Liftover Tracks</Typography>
+        <AccordionSummary>
+          <Typography><b>Upload Data Tracks</b></Typography>
         </AccordionSummary>
         <AccordionDetails>
-          <Box mt={2}>
+          <Box>
             {Object.keys(genomes).map((genome) => (
-              <Box key={genome} mt={2}>
-                <Typography>{`Upload liftover tracks for genome: ${genome}`}</Typography>
+              <Card
+              key={genome}
+              sx={{
+                padding: "1em",
+                marginBottom: "0.5em",
+              }}
+              >
+                <Typography>{`Upload data tracks for genome: ${genome}`}</Typography>
                 <input
                   type="file"
                   multiple
                   onChange={(e) => handleLiftoverTrackUpload(e.target.files, genome)}
                 />
-              </Box>
+              </Card>
             ))}
             {liftoverTracks.length > 0 && (
               <Box mt={2}>
@@ -233,26 +277,36 @@ const Multilift: React.FC = () => {
       {Object.keys(sequences).length > 0 && (
         <Box>
           <Accordion defaultExpanded>
-            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-              <Typography>Assign Sequences</Typography>
+            <AccordionSummary>
+              <Typography><b>Assign Sequences</b></Typography>
             </AccordionSummary>
             <AccordionDetails>
               {groups.map((group, index) => (
                 <Box key={index} mt={2}>
                   <Typography>{group}</Typography>
                   <FormControl fullWidth>
-                    <InputLabel>Select Sequences</InputLabel>
+                    {/* <InputLabel>Select Sequences</InputLabel> */}
                     <Select
                       multiple
                       value={Object.keys(sequences).filter(
                         (key) => sequences[key] === group
                       )}
-                      onChange={(e) => {
-                        const selectedKeys = e.target.value as string[];
+                      renderValue={(selected) => (
+                        <Box sx={{ display: 'flex', gap: '0.25rem' }}>
+                          {selected.map((selectedOption, index) => (
+                            <Chip variant="soft" color="primary" key={index}>
+                              {selectedOption.label}
+                            </Chip>
+                          ))}
+                        </Box>
+                      )}
+
+                      onChange={(e, newValue) => {
+                        const selectedKeys = newValue as string[];
                         setSequences((prevSequences) => {
                           const updatedSequences = { ...prevSequences };
                           Object.keys(updatedSequences).forEach((key) => {
-                            if (selectedKeys.includes(key)) {
+                            if (Array.isArray(selectedKeys) && selectedKeys.includes(key)) {
                               updatedSequences[key] = group;
                             } else if (updatedSequences[key] === group) {
                               updatedSequences[key] = null;
@@ -261,18 +315,9 @@ const Multilift: React.FC = () => {
                           return updatedSequences;
                         });
                       }}
-                      input={<OutlinedInput label="Select Sequences" />}
-                      renderValue={(selected) =>
-                        (selected as string[])
-                          .map((key) => key.split(",")[2])
-                          .join(", ")
-                      }
                     >
                       {Object.keys(sequences).map((key) => (
-                        <MenuItem key={key} value={key}>
-                          <Checkbox checked={sequences[key] === group} />
-                          <ListItemText primary={`Seq: ${key.split(",")[2]} | Genome: ${key.split(",")[0]}`} />
-                        </MenuItem>
+                        <Option key={key} value={key}>{key}</Option>
                       ))}
                     </Select>
                   </FormControl>
@@ -280,28 +325,28 @@ const Multilift: React.FC = () => {
               ))}
 
               <Box mt={2} display="flex" justifyContent="space-between">
-                <Button variant="contained" onClick={addGroup}>
+                <Button variant="solid" onClick={addGroup}>
                   Add Group
                 </Button>
                 <Button
                   variant="outlined"
-                  color="error"
                   onClick={() => {
-                    if (groups.length > 1) {
-                      const groupToRemove = groups[groups.length - 1];
-                      setGroups(groups.slice(0, -1));
-                      setSequences((prevSequences) => {
-                        const updatedSequences = { ...prevSequences };
-                        Object.keys(updatedSequences).forEach((key) => {
-                          if (updatedSequences[key] === groupToRemove) {
-                            updatedSequences[key] = null;
-                          }
-                        });
-                        return updatedSequences;
-                      });
-                    }
+                  if (groups.length > 1) {
+                    const groupToRemove = groups[groups.length - 1];
+                    setGroups(groups.slice(0, -1));
+                    setSequences((prevSequences) => {
+                    const updatedSequences = { ...prevSequences };
+                    Object.keys(updatedSequences).forEach((key) => {
+                      if (updatedSequences[key] === groupToRemove) {
+                      updatedSequences[key] = null;
+                      }
+                    });
+                    return updatedSequences;
+                    });
+                  }
                   }}
                   disabled={groups.length <= 1}
+                  sx={{ color: 'red', borderColor: 'red' }}
                 >
                   Remove Group
                 </Button>
@@ -309,10 +354,16 @@ const Multilift: React.FC = () => {
             </AccordionDetails>
           </Accordion>
           <Box>
-            <Button onClick={generateAlignment}>Generate Alignment</Button>
+            <Button variant="solid"
+            onClick={generateAlignment}
+            sx={{width: "100%", height: "3em"}}
+            >
+              Generate Alignment</Button>
           </Box>
         </Box>
       )}
+      </AccordionGroup>
+      </Box>
     </Container>
   );
 };
