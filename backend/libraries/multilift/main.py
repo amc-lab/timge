@@ -82,6 +82,12 @@ def generate_multilift_sequences(genomes, genome_files, sequences):
     return multilift_sequences
 
 
+def write_warning(warnings, message):
+    if message:
+        num_warnings = len(warnings)
+        warnings.append(f"WARN {num_warnings + 1}: {message}\n")
+
+
 def multilift(
     uiobj_download_format,
     uiobj_uploader_alignment,
@@ -95,6 +101,8 @@ def multilift(
     maf_alignments = []
     igv_resources = []
     igv_genomes = []
+    warnings = []
+
     L = Lifter()
 
     with (
@@ -223,9 +231,11 @@ def multilift(
             ftype, application = sniff_filetype(file.name)
             if "data" in application:
                 try:
-                    new_ext, lift_file = liftover(
+                    warning, new_ext, lift_file = liftover(
                         StringIO(file.read().decode("utf-8")), ftype, L, genome
                     )
+                    print(warning)
+                    write_warning(warnings, warning)
                 except Exception as e:
                     raise ValueError(
                         f"Error lifting over {file.name} for {genome}: {e}"
@@ -255,6 +265,15 @@ def multilift(
                 uiobj_download_format,
             )
             igv_resources.append(f"liftover/{genome}/{file.name}{new_ext}")
+
+            if warnings:
+                warning_messages = "\n".join(warnings)
+                add_to_archive(
+                    Arc,
+                    BytesIO(bytes(warning_messages, "utf-8")),
+                    "warnings.txt",
+                    uiobj_download_format,
+                )
 
     multilift_download.seek(0)
     return multilift_download

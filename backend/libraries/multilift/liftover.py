@@ -47,7 +47,6 @@ class Lifter:
 
     def __call__(self, genome: str, seqid: str, pos: int) -> (str, int):
         """Liftover `seqid:pos` into reference-space for a given `genome`"""
-        print(self.liftovers)
         if seqid not in self.liftovers[genome]:
             if (
                 matches := get_close_matches(seqid, self.liftovers[genome].keys(), 1)
@@ -98,6 +97,9 @@ def _liftover_bed(infile: StringIO, lifter: Lifter, genome: str) -> [str, String
     !!! BED-based files are 0-based half-open ... [0, x)
     """
     outfile = StringIO()
+    ignoring = set()
+    warning = ""
+
     for line in infile:
         if not (line := line.strip("\r\n")) or any(
             line.startswith(s) for s in ("#", "browser")
@@ -107,6 +109,10 @@ def _liftover_bed(infile: StringIO, lifter: Lifter, genome: str) -> [str, String
             print(line, file=outfile)
         else:
             line = line.split("\t")
+            if line[0] not in lifter.liftovers[genome]:
+                ignoring.add(line[0])
+                continue
+
             line[0], line[1] = lifter(genome, seqid := line[0], int(line[1]))
             _, line[2] = lifter(genome, seqid, int(line[2]))
             if len(line) > 6:
@@ -114,7 +120,11 @@ def _liftover_bed(infile: StringIO, lifter: Lifter, genome: str) -> [str, String
                 _, line[7] = lifter(genome, seqid, int(line[7]))
             # TODO: Also need to do line[11] and line[12] adjustment!
             print("\t".join(str(x) for x in line), file=outfile)
-    return "", outfile
+
+    if ignoring:
+        warning = f"Genome {genome} does not contain the following sequences: {', '.join(ignoring)}. Defaulting to ignore these sequences."
+
+    return warning, "", outfile
 
 
 def _liftover_bedgraph(
@@ -128,6 +138,9 @@ def _liftover_bedgraph(
     !!! BED-based files are 0-based half-open ... [0, x)
     """
     outfile = StringIO()
+    ignoring = set()
+    warning = ""
+
     for line in infile:
         if not (line := line.strip("\r\n")) or any(
             line.startswith(s) for s in ("#", "browser")
@@ -137,10 +150,17 @@ def _liftover_bedgraph(
             print(line, file=outfile)
         else:
             line = line.split("\t")
+            if line[0] not in lifter.liftovers[genome]:
+                ignoring.add(line[0])
+                continue
             line[0], line[1] = lifter(genome, seqid := line[0], int(line[1]))
             _, line[2] = lifter(genome, seqid, int(line[2]))
             print("\t".join(str(x) for x in line), file=outfile)
-    return "", outfile
+
+    if ignoring:
+        warning = f"Genome {genome} does not contain the following sequences: {', '.join(ignoring)}. Defaulting to ignore these sequences."
+
+    return warning, "", outfile
 
 
 def _liftover_interact(
