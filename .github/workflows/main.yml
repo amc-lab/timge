@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - fix/25-resolve-liftover-bug
 
 jobs:
   build-and-deploy:
@@ -74,8 +73,8 @@ jobs:
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env'
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env'
 
-          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down --remove-orphans || true
+          echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose pull
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose up -d --force-recreate
 
