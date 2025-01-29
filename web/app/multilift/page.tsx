@@ -7,6 +7,7 @@ import {
   Typography,
   Snackbar,
   Alert,
+  Button as MuiButton,
   LinearProgress,
 } from "@mui/material";
 import Button from "@mui/joy/Button";
@@ -151,13 +152,13 @@ const Multilift: React.FC = () => {
         setShowLoadingBar(false);
         if (!response.ok) {
           // setAlertMessage(response.)
-          setAlertSeverity("error");
-          setAlertOpen(true);
+          // setAlertSeverity("error");
+          // setAlertOpen(true);
           throw new Error(`HTTP error! status: ${response.status}`);
         } else {
-          setAlertMessage("Alignment generated successfully");
-          setAlertSeverity("success");
-          setAlertOpen(true);
+          // setAlertMessage("Alignment generated successfully");
+          // setAlertSeverity("success");
+          // setAlertOpen(true);
         }
         return response.blob();
       })
@@ -203,14 +204,15 @@ const Multilift: React.FC = () => {
             <Accordion defaultExpanded>
               <AccordionSummary
                 sx={{
-                  height: "3em",
+                  height: "4em",
                 }}
               >
                 <Typography>
                   <b>Define Genomes</b>
                 </Typography>
               </AccordionSummary>
-              <AccordionDetails>
+              <AccordionDetails
+              >
                 <Box display="flex" alignItems="center" gap={2}>
                   <Box
                     display="block"
@@ -243,7 +245,11 @@ const Multilift: React.FC = () => {
                 </Box>
 
                 <Typography>Genomes Added:</Typography>
-                <Box display="flex" flexWrap="wrap" gap={1} mt={1}>
+                <Box display="flex" flexWrap="wrap" gap={1} mt={1}
+                  sx={{
+                    paddingBottom: "1em",
+                  }}
+                >
                   {Object.keys(genomes).map((genome, index) => (
                     <Chip key={index} variant="soft" color="primary">
                       {genome}
@@ -255,7 +261,11 @@ const Multilift: React.FC = () => {
 
             {Object.keys(genomes).length > 0 && (
               <Accordion defaultExpanded>
-                <AccordionSummary>
+                <AccordionSummary
+                  sx={{
+                    height: "4em",
+                  }}
+                >
                   <Typography>
                     <b>Upload Genome</b>
                   </Typography>
@@ -286,7 +296,11 @@ const Multilift: React.FC = () => {
             {Object.keys(sequences).length > 0 && (
               <Box>
                 <Accordion defaultExpanded>
-                  <AccordionSummary>
+                  <AccordionSummary
+                    sx={{
+                      height: "4em",
+                    }}
+                  >
                     <Typography>
                       <b>Upload Data Tracks</b>
                     </Typography>
@@ -332,12 +346,20 @@ const Multilift: React.FC = () => {
             {Object.keys(sequences).length > 0 && (
               <Box>
                 <Accordion defaultExpanded>
-                  <AccordionSummary>
+                  <AccordionSummary
+                    sx={{
+                      height: "4em",
+                    }}
+                  >
                     <Typography>
                       <b>Assign Sequences</b>
                     </Typography>
                   </AccordionSummary>
-                  <AccordionDetails>
+                  <AccordionDetails
+                    sx={{
+                      paddingBottom: "1em",
+                    }}
+                  >
                     {groups.map((group, index) => (
                       <Box key={index} mt={2}>
                         <Typography>{group}</Typography>
