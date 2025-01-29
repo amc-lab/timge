@@ -55,7 +55,6 @@ def run_multilift(request):
     aligner = request.POST.get("aligner")
 
     multilift_sequences = generate_multilift_sequences(genomes, genome_files, sequences)
-    print(multilift_sequences)
     res = multilift(
         download_format,
         False,
