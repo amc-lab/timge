@@ -33,7 +33,10 @@ jobs:
     - name: Build Frontend Docker image
       run: |
         echo "Building frontend Docker image"
-        docker build -t ${{ secrets.DOCKER_IMAGE_WEB }} ./web
+        docker build \
+          --build-arg NEXT_PUBLIC_DJANGO_HOST=${{ secrets.NEXT_PUBLIC_DJANGO_HOST }} \
+          -t ${{ secrets.DOCKER_IMAGE_WEB }} \
+          ./web
 
     - name: Push Frontend Docker image to DockerHub
       run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}
@@ -70,7 +73,6 @@ jobs:
 
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env'
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env'
-          echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "NEXT_PUBLIC_DJANGO_HOST=${{ secrets.NEXT_PUBLIC_DJANGO_HOST }}" >> .env'
 
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down --remove-orphans || true
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose pull
