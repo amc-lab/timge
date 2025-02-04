@@ -65,20 +65,20 @@ export default function Circos({ params }: CircosProps) {
   const onSubmit = (files) => {
     const newTracks = files.map((file) => {
       switch (file.trackType) {
-        case "Karyotype":
+        case "karyotype":
           setSegments(file.data);
           return {
             trackType: TrackType.Karyotype,
             data: { segments: file.data, globalConfig, divRef: canvasRef },
             config: defaultAssemblyConfig,
           };
-        case "Bar":
+        case "bar":
           return {
             trackType: TrackType.Bar,
             data: { bars: file.data, globalConfig, divRef: canvasRef },
             config: defaultBarConfig,
           };
-        case "Chord":
+        case "link":
           return {
             trackType: TrackType.Chord,
             data: { chords: file.data, globalConfig, divRef: canvasRef },
@@ -117,13 +117,13 @@ export default function Circos({ params }: CircosProps) {
             justifyContent: "center",
           }}
         >
-          {segments.length > 0 && (
+          {/* {segments.length > 0 && ( */}
             <Form
               tracks={tracks}
               handleTrackConfigUpdate={handleTrackConfigUpdate}
               handleGlobalConfigUpdate={handleGlobalConfigUpdate}
             />
-          )}
+          {/* )} */}
         </div>
       </div>
     </div>
