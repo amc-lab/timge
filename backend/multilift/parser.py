@@ -69,7 +69,6 @@ def format_karyotype(genome) -> list[dict]:
     - List of dictionaries containing the karyotype data
     """
     genome_format = genome.name.split(".")[-1]
-    print(genome_format)
     if genome_format in ["fasta", "fa"]:
         with StringIO(genome.read().decode("utf-8")) as F:
             lines = F.readlines()
@@ -84,7 +83,6 @@ def format_karyotype(genome) -> list[dict]:
 
                 if line.startswith(">"):
                     if current_chromosome:
-                        print("dsijkfvsdijufvisdju")
                         chromosomes[current_chromosome] = current_length
                         karyotype.append(
                             {
@@ -121,7 +119,41 @@ def format_cytoband(cytoband) -> list[dict]:
 
 
 def format_link(link) -> list[dict]:
-    pass
+    """
+    Args:
+    - link: File object containing the link data
+
+    Returns:
+    - List of dictionaries containing the link data
+
+    Link data can be in the following formats:
+    - BEDPE
+    """
+
+    link_format = link.name.split(".")[-1]
+    if link_format in ["bedpe"]:
+        with StringIO(link.read().decode("utf-8")) as F:
+            lines = F.readlines()
+            links = []
+
+            for line in lines:
+                line = line.strip()
+                data = line.split("\t")
+                print(data)
+                links.append(
+                    {
+                        "source_chromosome": data[0],
+                        "source_start": data[1],
+                        "source_end": data[2],
+                        "target_chromosome": data[3],
+                        "target_start": data[4],
+                        "target_end": data[5],
+                    }
+                )
+
+            return links
+    else:
+        return []
 
 
 def format_bar(bar) -> list[dict]:
@@ -142,46 +174,3 @@ def format_scatter(scatter) -> list[dict]:
 
 def format_line(line) -> list[dict]:
     pass
-
-
-def map_genome_to_karyotype(genome) -> list[dict]:
-    with StringIO(genome.read().decode("utf-8")) as F:
-        lines = F.readlines()
-        karyotype = []
-        chromosomes = {}
-        current_chromosome = None
-        current_length = 0
-
-        for line in lines:
-            line = line.strip()
-
-            if line.startswith(">"):  # New chromosome
-                if current_chromosome:  # Save the previous chromosome length
-                    chromosomes[current_chromosome] = current_length
-                    karyotype.append(
-                        {
-                            "chromosome": current_chromosome,
-                            "id": len(karyotype) + 1,
-                            "start": 0,
-                            "end": current_length,
-                        }
-                    )
-
-                current_chromosome = line[1:]  # Extract chromosome name (remove '>')
-                current_length = 0  # Reset length counter
-            else:
-                current_length += len(line)  # Add to sequence length
-
-    # Save the last chromosome length
-    if current_chromosome:
-        chromosomes[current_chromosome] = current_length
-        karyotype.append(
-            {
-                "chromosome": current_chromosome,
-                "id": len(karyotype) + 1,
-                "start": 0,
-                "end": current_length,
-            }
-        )
-
-    return karyotype

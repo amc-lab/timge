@@ -7,7 +7,7 @@ from libraries.multilift import (
     generate_multilift_sequences,
     multilift,
 )
-from multilift.parser import map_genome_to_karyotype, format_genome
+from multilift.parser import format_genome
 import json
 
 
@@ -101,11 +101,7 @@ def format_circos(request):
     data_files = request.FILES.getlist("data_files")
     data = []
 
-    print(track_types)
-    print(data_files)
-
     for i in range(len(track_types)):
         data.append(format_genome(data_files[i], track_types[i]))
 
-    print(data)
     return JsonResponse(data, safe=False)

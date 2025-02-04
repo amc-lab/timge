@@ -97,7 +97,7 @@ const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
   return (
     <Card>
       <h2>Upload genome files</h2>
-      <input type="file" multiple onChange={handleFileChange} accept=".fa" />
+      <input type="file" multiple onChange={handleFileChange} accept=".fa .bedpe" />
 
       {/* <h2>Upload and Configure Files</h2> */}
 
