@@ -49,9 +49,9 @@ jobs:
         # Create SSH config file
         cat <<EOF > ~/.ssh/config
         Host shell
+            User ${{ secrets.SHELL_USER }}
             HostName ${{ secrets.SHELL_HOST }}
             IdentityFile ~/.ssh/id_rsa_shell
-            User ${{ secrets.SHELL_USER }}
 
         Host cloudvm
             User ${{ secrets.CLOUD_VM_USER }}
@@ -66,11 +66,11 @@ jobs:
     - name: Test SSH Connectivity
       run: |
         echo "Testing connection to Shell Server..."
-        ssh -o StrictHostKeyChecking=no shell "echo '✅ Connected to Shell Server'"
+        ssh -o StrictHostKeyChecking=no -J shell cloudvm "echo '✅ Connected to Shell Server'"
         exit
 
         # echo "Testing connection to Cloud VM via ProxyJump..."
-        # ssh -vvv -o StrictHostKeyChecking=no cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
+        # ssh -vv -o StrictHostKeyChecking=no cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
 
     
     # - name: Log in to DockerHub
