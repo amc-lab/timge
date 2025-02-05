@@ -109,7 +109,7 @@ jobs:
 
     - name: Copy Project Files to Cloud VM
       run: |
-        scp -o StrictHostKeyChecking=no ./docker-compose.yml ./timge.conf cloudvm:/tmp/timge-deployment
+        scp -vvv -o StrictHostKeyChecking=no ./docker-compose.yml ./timge.conf cloudvm:/tmp/timge-deployment
 
     # - name: Deploy with Docker Compose
     #   uses: appleboy/ssh-action@v1.2.0
