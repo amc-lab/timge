@@ -66,10 +66,10 @@ jobs:
     - name: Test SSH Connectivity
       run: |
         echo "Testing connection to Shell Server..."
-        ssh -o StrictHostKeyChecking=no ${{ secrets.SHELL_HOST }} "echo '✅ Connected to Shell Server'"
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SHELL_USER }}@${{ secrets.SHELL_HOST }} "echo '✅ Connected to Shell Server'"
 
         echo "Testing connection to Cloud VM via ProxyJump..."
-        ssh -o StrictHostKeyChecking=no ${{ secrets.CLOUD_VM_HOST }} "echo '✅ Connected to Cloud VM through ProxyJump'"
+        ssh -o StrictHostKeyChecking=no ${{ secrets.CLOUD_VM_USER }}@${{ secrets.CLOUD_VM_HOST }} "echo '✅ Connected to Cloud VM through ProxyJump'"
 
     
     # - name: Log in to DockerHub
