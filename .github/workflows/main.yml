@@ -69,7 +69,7 @@ jobs:
         ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null shell "echo '✅ Connected to Shell Server'"
     
         echo "Testing connection to Cloud VM via ProxyJump..."
-        ssh -i ~/.ssh/id_rsa_cloudvm -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
+        ssh -vv -i ~/.ssh/id_rsa_cloudvm -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
       
     
     # - name: Log in to DockerHub
