@@ -66,12 +66,11 @@ jobs:
     - name: Test SSH Connectivity
       run: |
         echo "Testing connection to Shell Server..."
-        ssh -vv -o StrictHostKeyChecking=no -J shell cloudvm "echo '✅ Connected to Shell Server'"
-        exit
-
-        # echo "Testing connection to Cloud VM via ProxyJump..."
-        # ssh -vv -o StrictHostKeyChecking=no cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
-
+        ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null shell "echo '✅ Connected to Shell Server'"
+    
+        echo "Testing connection to Cloud VM via ProxyJump..."
+        ssh -i ~/.ssh/id_rsa_cloudvm -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
+      
     
     # - name: Log in to DockerHub
     #   run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
