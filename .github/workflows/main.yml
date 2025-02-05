@@ -39,17 +39,11 @@ jobs:
         mkdir -p ~/.ssh
 
         # Set up SSH key for shell server
-        # echo "${{ secrets.SHELL_SSH_KEY }}" > ~/.ssh/id_rsa_shell
-        # chmod 600 ~/.ssh/id_rsa_shell
-        
-        printf "%s" "${{ secrets.SHELL_SSH_KEY }}" > ~/.ssh/id_rsa_shell
+        echo "${{ secrets.SHELL_SSH_KEY }}" > ~/.ssh/id_rsa_shell
         chmod 600 ~/.ssh/id_rsa_shell
 
         # Set up SSH key for cloud VM
-        # echo "${{ secrets.CLOUD_VM_SSH_KEY }}" > ~/.ssh/id_rsa_cloudvm
-        # chmod 600 ~/.ssh/id_rsa_cloudvm
-
-        printf "%s" "${{ secrets.CLOUD_VM_SSH_KEY }}" > ~/.ssh/id_rsa_cloudvm
+        echo "${{ secrets.CLOUD_VM_SSH_KEY }}" > ~/.ssh/id_rsa_cloudvm
         chmod 600 ~/.ssh/id_rsa_cloudvm
 
         # Create SSH config file
