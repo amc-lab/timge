@@ -14,60 +14,130 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install OpenVPN
-      run: sudo apt-get update && sudo apt-get install -y openvpn
+    # - name: Install OpenVPN
+    #   run: sudo apt-get update && sudo apt-get install -y openvpn
 
-    - name: Configure VPN Authentication
-      run: |
-        echo -e "${{ secrets.VPN_USER }}\n${{ secrets.VPN_PASS }}" > vpn-auth.txt
+    # - name: Setup SSH Key
+    #   run: echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
 
-    - name: Start OpenVPN
+    # - name: Configure SSH
+    #   run: ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -A -J ${{ secrets.VM_JUMP_HOST }} ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} exit
+
+    # - name: Configure VPN Authentication
+    #   run: |
+    #     echo -e "${{ secrets.VPN_USER }}\n${{ secrets.VPN_PASS }}" > vpn-auth.txt
+
+    # - name: Start OpenVPN
+    #   run: |
+    #     sudo openvpn --config .github/vpn/config.ovpn --auth-user-pass vpn-auth.txt &
+    #     sleep 10
+    #     ping -c 3 ${{ secrets.VM_IP }}
+
+    - name: Setup SSH Keys and Config
       run: |
-        sudo openvpn --config .github/vpn/config.ovpn --auth-user-pass vpn-auth.txt &
-        sleep 10
-        ping -c 3 ${{ secrets.VM_IP }}
+        # Ensure .ssh directory exists
+        mkdir -p ~/.ssh
+
+        # Set up SSH key for shell server
+        echo "${{ secrets.SHELL_SSH_KEY }}" > ~/.ssh/id_rsa_shell
+        chmod 600 ~/.ssh/id_rsa_shell
+
+        # Set up SSH key for cloud VM
+        echo "${{ secrets.CLOUD_VM_SSH_KEY }}" > ~/.ssh/id_rsa_cloudvm
+        chmod 600 ~/.ssh/id_rsa_cloudvm
+
+        # Create SSH config file
+        cat <<EOF > ~/.ssh/config
+        Host ${{ secrets.SHELL_HOST }}
+            HostName ${{ secrets.SHELL_HOST }}
+            IdentityFile ~/.ssh/id_rsa_shell
+            User ${{ secrets.SHELL_USER }}
+
+        Host ${{ secrets.CLOUD_VM_HOST }}
+            User ${{ secrets.CLOUD_VM_USER }}
+            HostName ${{ secrets.CLOUD_VM_HOST }}
+            IdentityFile ~/.ssh/id_rsa_cloudvm
+            ProxyJump ${{ secrets.SHELL_HOST }}
+        EOF
+
+        # Set correct permissions for SSH config
+        chmod 600 ~/.ssh/config
     
-    - name: Log in to DockerHub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+    # - name: Log in to DockerHub
+    #   run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    - name: Build Frontend Docker image
+    # - name: Build Frontend Docker image
+    #   run: |
+    #     echo "Building frontend Docker image"
+    #     docker build \
+    #       --build-arg NEXT_PUBLIC_DJANGO_HOST=${{ secrets.NEXT_PUBLIC_DJANGO_HOST }} \
+    #       -t ${{ secrets.DOCKER_IMAGE_WEB }} \
+    #       ./web
+
+    # - name: Push Frontend Docker image to DockerHub
+    #   run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}
+
+    # - name: Build Backend Docker image
+    #   run: |
+    #     echo "Building backend Docker image"
+    #     docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }} ./backend
+
+    # - name: Push Backend Docker image to DockerHub
+    #   run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
+
+    # - name: Log out of DockerHub
+    #   run: docker logout
+
+    # - name: Copy Project Files to Server
+    #   uses: appleboy/scp-action@v0.1.7
+    #   with:
+    #     host: ${{ secrets.VM_IP }}
+    #     username: ${{ secrets.VM_USER }}
+    #     key: ${{ secrets.VM_SSH_KEY }}
+    #     source: "./docker-compose.yml,./timge.conf"
+    #     target: /tmp/timge-deployment
+
+    - name: Copy Project Files to Cloud VM
       run: |
-        echo "Building frontend Docker image"
-        docker build \
-          --build-arg NEXT_PUBLIC_DJANGO_HOST=${{ secrets.NEXT_PUBLIC_DJANGO_HOST }} \
-          -t ${{ secrets.DOCKER_IMAGE_WEB }} \
-          ./web
+        scp -o StrictHostKeyChecking=no ./docker-compose.yml ./timge.conf ${{ secrets.CLOUD_VM_HOST }}:/tmp/timge-deployment
 
-    - name: Push Frontend Docker image to DockerHub
-      run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}
+    # - name: Deploy with Docker Compose
+    #   uses: appleboy/ssh-action@v1.2.0
+    #   with:
+    #     host: ${{ secrets.VM_IP }}
+    #     username: ${{ secrets.VM_USER }}
+    #     key: ${{ secrets.VM_SSH_KEY }}
+    #     script: |
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mkdir -p /srv/timge
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/docker-compose.yml /srv/timge/docker-compose.yml
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/timge.conf /srv/timge/timge.conf
 
-    - name: Build Backend Docker image
+    #       cd /srv/timge
+
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env'
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env'
+
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down --remove-orphans || true
+    #       echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+    #       docker-compose pull
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose up -d --force-recreate
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker logout
+
+    #       # Install Certbot and Obtain SSL Certificates
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y certbot python3-certbot-nginx
+
+    #       # Use Certbot to Obtain and Configure SSL
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S certbot --nginx -n --redirect \
+    #         --agree-tos --email ${{ secrets.ADMIN_EMAIL }} \
+    #         -d ${{ secrets.DOMAIN_NAME }}
+
+    #       echo "Deployment complete with HTTPS on port 443"
+
+    - name: Deploy with Docker Compose via Proxy
       run: |
-        echo "Building backend Docker image"
-        docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }} ./backend
-
-    - name: Push Backend Docker image to DockerHub
-      run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
-
-    - name: Log out of DockerHub
-      run: docker logout
-
-    - name: Copy Project Files to Server
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.VM_IP }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.VM_SSH_KEY }}
-        source: "./docker-compose.yml,./timge.conf"
-        target: /tmp/timge-deployment
-
-    - name: Deploy with Docker Compose
-      uses: appleboy/ssh-action@v1.2.0
-      with:
-        host: ${{ secrets.VM_IP }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.VM_SSH_KEY }}
-        script: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.CLOUD_VM_HOST }} << 'EOF'
+        
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mkdir -p /srv/timge
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/docker-compose.yml /srv/timge/docker-compose.yml
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/timge.conf /srv/timge/timge.conf
@@ -93,6 +163,8 @@ jobs:
             -d ${{ secrets.DOMAIN_NAME }}
 
           echo "Deployment complete with HTTPS on port 443"
+
+        EOF    
 
     - name: Kill VPN Connection
       if: always()
