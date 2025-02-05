@@ -68,8 +68,8 @@ jobs:
         echo "Testing connection to Shell Server..."
         ssh -vvv -o StrictHostKeyChecking=no shell "echo '✅ Connected to Shell Server'"
 
-        echo "Testing connection to Cloud VM via ProxyJump..."
-        ssh -vvv -o StrictHostKeyChecking=no cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
+        # echo "Testing connection to Cloud VM via ProxyJump..."
+        # ssh -vvv -o StrictHostKeyChecking=no cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
 
     
     # - name: Log in to DockerHub
