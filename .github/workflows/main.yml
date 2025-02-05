@@ -66,7 +66,7 @@ jobs:
     - name: Test SSH Connectivity
       run: |
         echo "Testing connection to Shell Server..."
-        ssh -vvv -o StrictHostKeyChecking=no shell "echo '✅ Connected to Shell Server'"
+        ssh -o StrictHostKeyChecking=no shell "echo '✅ Connected to Shell Server'"
 
         # echo "Testing connection to Cloud VM via ProxyJump..."
         # ssh -vvv -o StrictHostKeyChecking=no cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
@@ -108,7 +108,7 @@ jobs:
 
     - name: Copy Project Files to Cloud VM
       run: |
-        scp -o StrictHostKeyChecking=no ./docker-compose.yml ./timge.conf ${{ secrets.CLOUD_VM_HOST }}:/tmp/timge-deployment
+        scp -o StrictHostKeyChecking=no ./docker-compose.yml ./timge.conf cloud:/tmp/timge-deployment
 
     # - name: Deploy with Docker Compose
     #   uses: appleboy/ssh-action@v1.2.0
