@@ -174,7 +174,7 @@ jobs:
 
           echo "Deployment complete with HTTPS on port 443"
           exit
-          
+
         EOF    
 
     - name: Kill VPN Connection
