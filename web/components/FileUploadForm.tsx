@@ -23,13 +23,28 @@ const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
+        console.log(file.name);
+        if (file.name.split(".")[1] == "json") {
+          const json = JSON.parse(event.target?.result as string);
+          console.log(json);
+          const newFile: FileEntry = {
+          name: file.name,
+          data: json,
+          trackType: _trackTypes[0]
+        };
+        setFiles((prevFiles) => [...prevFiles, newFile]);
+        }
+        else {
+
         const data = event.target?.result;
         const newFile: FileEntry = {  
           name: file.name,
           data: data,
           trackType: _trackTypes[0],
         };
+
         setFiles((prevFiles) => [...prevFiles, newFile]);
+      }
       } catch (error) {
         console.error("Invalid JSON file:", error);
         alert("Uploaded file is not valid JSON.");
@@ -70,9 +85,24 @@ const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
 
     const formData = new FormData();
     formData.append("track_types", JSON.stringify(files.map((file) => file.trackType)));
+    let marked = false;
     files.forEach((file) => {
-      formData.append("data_files", new Blob([file.data]), file.name);
+      console.log(file.name.split("."));
+      if (file.name.split(".")[1] == "json") {
+        console.log(file);
+        circosFiles.push({
+          data: file.data,
+          trackType: file.trackType,
+        })
+        marked = true;
+      } else {
+        formData.append("data_files", new Blob([file.data]), file.name);
+      }
     });
+
+    if (marked) {
+      onSubmit(circosFiles);
+    }
 
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
 
@@ -90,6 +120,7 @@ const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
       }      
     })
     .then(() => {
+      console.log(circosFiles);
       onSubmit(circosFiles);
     });
   };

@@ -234,7 +234,6 @@ def multilift(
                     warning, new_ext, lift_file = liftover(
                         StringIO(file.read().decode("utf-8")), ftype, L, genome
                     )
-                    print(warning)
                     write_warning(warnings, warning)
                 except Exception as e:
                     raise ValueError(

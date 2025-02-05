@@ -287,7 +287,8 @@ def _liftover_wiggle(infile: StringIO, lifter: Lifter, genome: str) -> [str, Str
             chrom, start = lifter(genome, wig_meta["chrom"], loc)
             _, stop = lifter(genome, wig_meta["chrom"], loc + wig_meta["span"])
             print(f"{chrom}\t{start}\t{stop}\t{value}", file=outfile)
-    return ".bedgraph", outfile
+
+    return None, ".bedgraph", outfile
 
 
 def _liftover_dotbracket(
