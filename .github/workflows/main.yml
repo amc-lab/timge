@@ -39,21 +39,27 @@ jobs:
         mkdir -p ~/.ssh
 
         # Set up SSH key for shell server
-        echo "${{ secrets.SHELL_SSH_KEY }}" > ~/.ssh/id_rsa_shell
+        # echo "${{ secrets.SHELL_SSH_KEY }}" > ~/.ssh/id_rsa_shell
+        # chmod 600 ~/.ssh/id_rsa_shell
+        
+        printf "%s" "${{ secrets.SHELL_SSH_KEY }}" > ~/.ssh/id_rsa_shell
         chmod 600 ~/.ssh/id_rsa_shell
 
         # Set up SSH key for cloud VM
-        echo "${{ secrets.CLOUD_VM_SSH_KEY }}" > ~/.ssh/id_rsa_cloudvm
+        # echo "${{ secrets.CLOUD_VM_SSH_KEY }}" > ~/.ssh/id_rsa_cloudvm
+        # chmod 600 ~/.ssh/id_rsa_cloudvm
+
+        printf "%s" "${{ secrets.CLOUD_VM_SSH_KEY }}" > ~/.ssh/id_rsa_cloudvm
         chmod 600 ~/.ssh/id_rsa_cloudvm
 
         # Create SSH config file
         cat <<EOF > ~/.ssh/config
-        Host ${{ secrets.SHELL_HOST }}
+        Host shell
             HostName ${{ secrets.SHELL_HOST }}
             IdentityFile ~/.ssh/id_rsa_shell
             User ${{ secrets.SHELL_USER }}
 
-        Host ${{ secrets.CLOUD_VM_HOST }}
+        Host cloudvm
             User ${{ secrets.CLOUD_VM_USER }}
             HostName ${{ secrets.CLOUD_VM_HOST }}
             IdentityFile ~/.ssh/id_rsa_cloudvm
@@ -66,10 +72,10 @@ jobs:
     - name: Test SSH Connectivity
       run: |
         echo "Testing connection to Shell Server..."
-        ssh -i ~/.ssh/id_rsa_shell -o StrictHostKeyChecking=no ${{ secrets.SHELL_USER }}@${{ secrets.SHELL_HOST }} "echo '✅ Connected to Shell Server'"
+        ssh -vvv -o StrictHostKeyChecking=no shell "echo '✅ Connected to Shell Server'"
 
         echo "Testing connection to Cloud VM via ProxyJump..."
-        ssh -i ~/.ssh/id_rsa_cloudvm -o StrictHostKeyChecking=no ${{ secrets.CLOUD_VM_USER }}@${{ secrets.CLOUD_VM_HOST }} "echo '✅ Connected to Cloud VM through ProxyJump'"
+        ssh -vvv -o StrictHostKeyChecking=no cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
 
     
     # - name: Log in to DockerHub
