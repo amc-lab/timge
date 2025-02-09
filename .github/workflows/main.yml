@@ -44,24 +44,20 @@ jobs:
         # Set correct permissions for SSH config
         chmod 600 ~/.ssh/config
 
-    # - name: Test SSH Connectivity
-    #   run: |
-    #     # echo "Testing connection to Shell Server..."
-    #     # ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null shell "echo '✅ Connected to Shell Server'"
-    
-    #     echo "Testing connection to Cloud VM via ProxyJump..."
-    #     mkdir -p ~/.ssh
-    #     touch ~/.ssh/known_hosts
-    #     chmod 600 ~/.ssh/known_hosts
-    #     ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=~/.ssh/known_hosts -J shell cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
-    #     # ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -J shell cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
+    - name: Test SSH Connectivity
+      run: |
+        echo "Testing connection to Cloud VM via ProxyJump..."
+        ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=~/.ssh/known_hosts -J shell cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
 
     - name: ssh proxy command
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.SHELL_HOST }}
-        username: ${{ secrets.SHELL_USER }}
-        key: ${{ secrets.SHELL_SSH_KEY }}
+        host: ${{ secrets.CLOUD_VM_HOST }}
+        username: ${{ secrets.CLOUD_VM_USER }}
+        key: ${{ secrets.CLOUD_VM_SSH_KEY }}
+        proxy_host: ${{ secrets.SHELL_HOST }}
+        proxy_username: ${{ secrets.SHELL_USER }}
+        proxy_key: ${{ secrets.SHELL_SSH_KEY }}
         script: |
           echo "Connected to Cloud VM through ProxyJump ✅"
       
