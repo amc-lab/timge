@@ -14,41 +14,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Setup SSH Keys and Config
-      run: |
-        # Ensure .ssh directory exists
-        mkdir -p ~/.ssh
-
-        # Set up SSH key for shell server
-        echo "${{ secrets.SHELL_SSH_KEY }}" > ~/.ssh/id_rsa_shell
-        chmod 600 ~/.ssh/id_rsa_shell
-
-        # Set up SSH key for cloud VM
-        echo "${{ secrets.CLOUD_VM_SSH_KEY }}" > ~/.ssh/id_rsa_cloudvm
-        chmod 600 ~/.ssh/id_rsa_cloudvm
-
-        # Create SSH config file
-        cat <<EOF > ~/.ssh/config
-        Host shell
-            User ${{ secrets.SHELL_USER }}
-            HostName ${{ secrets.SHELL_HOST }}
-            IdentityFile ~/.ssh/id_rsa_shell
-
-        Host cloudvm
-            User ${{ secrets.CLOUD_VM_USER }}
-            HostName ${{ secrets.CLOUD_VM_HOST }}
-            IdentityFile ~/.ssh/id_rsa_cloudvm
-            ProxyJump shell
-        EOF
-
-        # Set correct permissions for SSH config
-        chmod 600 ~/.ssh/config
-
-    - name: Test SSH Connectivity
-      run: |
-        echo "Testing connection to Cloud VM via ProxyJump..."
-        ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=~/.ssh/known_hosts -J shell cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
-
     - name: ssh proxy command
       uses: appleboy/ssh-action@master
       with:
@@ -60,7 +25,6 @@ jobs:
         proxy_key: ${{ secrets.SHELL_SSH_KEY }}
         script: |
           echo "Connected to Cloud VM through ProxyJump ✅"
-      
     
     # - name: Log in to DockerHub
     #   run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
@@ -97,8 +61,20 @@ jobs:
     #     target: /tmp/timge-deployment
 
     - name: Copy Project Files to Cloud VM
-      run: |
-        scp -vv -o StrictHostKeyChecking=no ./docker-compose.yml ./timge.conf cloudvm:/tmp/timge-deployment
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.CLOUD_VM_HOST }}
+        username: ${{ secrets.CLOUD_VM_USER }}
+        key: ${{ secrets.CLOUD_VM_SSH_KEY }}
+        proxy_host: ${{ secrets.SHELL_HOST }}
+        proxy_username: ${{ secrets.SHELL_USER }}
+        proxy_key: ${{ secrets.SHELL_SSH_KEY }}
+        source: "./docker-compose.yml,./timge.conf"
+        target: /tmp/timge-deployment
+
+    # - name: Copy Project Files to Cloud VM
+    #   run: |
+    #     scp -vv -o StrictHostKeyChecking=no ./docker-compose.yml ./timge.conf cloudvm:/tmp/timge-deployment
 
     # - name: Deploy with Docker Compose
     #   uses: appleboy/ssh-action@v1.2.0
@@ -134,9 +110,15 @@ jobs:
     #       echo "Deployment complete with HTTPS on port 443"
 
     - name: Deploy with Docker Compose via Proxy
-      run: |
-        ssh -o StrictHostKeyChecking=no cloudvm << 'EOF'
-        
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.CLOUD_VM_HOST }}
+        username: ${{ secrets.CLOUD_VM_USER }}
+        key: ${{ secrets.CLOUD_VM_SSH_KEY }}
+        proxy_host: ${{ secrets.SHELL_HOST }}
+        proxy_username: ${{ secrets.SHELL_USER }}
+        proxy_key: ${{ secrets.SHELL_SSH_KEY }}
+        script: |
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mkdir -p /srv/timge
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/docker-compose.yml /srv/timge/docker-compose.yml
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/timge.conf /srv/timge/timge.conf
@@ -162,9 +144,39 @@ jobs:
             -d ${{ secrets.DOMAIN_NAME }}
 
           echo "Deployment complete with HTTPS on port 443"
-          exit
 
-        EOF    
+    # - name: Deploy with Docker Compose via Proxy
+    #   run: |
+    #     ssh -o StrictHostKeyChecking=no cloudvm << 'EOF'
+        
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mkdir -p /srv/timge
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/docker-compose.yml /srv/timge/docker-compose.yml
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/timge.conf /srv/timge/timge.conf
+
+    #       cd /srv/timge
+
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env'
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env'
+
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down --remove-orphans || true
+    #       echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+    #       docker-compose pull
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose up -d --force-recreate
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker logout
+
+    #       # Install Certbot and Obtain SSL Certificates
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y certbot python3-certbot-nginx
+
+    #       # Use Certbot to Obtain and Configure SSL
+    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S certbot --nginx -n --redirect \
+    #         --agree-tos --email ${{ secrets.ADMIN_EMAIL }} \
+    #         -d ${{ secrets.DOMAIN_NAME }}
+
+    #       echo "Deployment complete with HTTPS on port 443"
+    #       exit
+
+    #     EOF    
 
     - name: Kill VPN Connection
       if: always()
