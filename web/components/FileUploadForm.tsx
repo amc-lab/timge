@@ -17,19 +17,34 @@ interface FileUploadFormProps {
 const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
   const [files, setFiles] = useState<FileEntry[]>([]);
 
-  const trackTypes = ["Karyotype", "Bar", "Chord"];
+  const _trackTypes = ["karyotype", "bar", "link"];
 
   const handleFileUpload = (file: File) => {
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
-        const json = JSON.parse(event.target?.result as string);
-        const newFile: FileEntry = {
+        console.log(file.name);
+        if (file.name.split(".")[1] == "json") {
+          const json = JSON.parse(event.target?.result as string);
+          console.log(json);
+          const newFile: FileEntry = {
           name: file.name,
           data: json,
-          trackType: trackTypes[0],
+          trackType: _trackTypes[0]
         };
         setFiles((prevFiles) => [...prevFiles, newFile]);
+        }
+        else {
+
+        const data = event.target?.result;
+        const newFile: FileEntry = {  
+          name: file.name,
+          data: data,
+          trackType: _trackTypes[0],
+        };
+
+        setFiles((prevFiles) => [...prevFiles, newFile]);
+      }
       } catch (error) {
         console.error("Invalid JSON file:", error);
         alert("Uploaded file is not valid JSON.");
@@ -66,14 +81,58 @@ const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
   };
 
   const handleSubmit = () => {
-    onSubmit(files);
+    let circosFiles = [];
+
+    const formData = new FormData();
+    formData.append("track_types", JSON.stringify(files.map((file) => file.trackType)));
+    let marked = false;
+    files.forEach((file) => {
+      console.log(file.name.split("."));
+      if (file.name.split(".")[1] == "json") {
+        console.log(file);
+        circosFiles.push({
+          data: file.data,
+          trackType: file.trackType,
+        })
+        marked = true;
+      } else {
+        formData.append("data_files", new Blob([file.data]), file.name);
+      }
+    });
+
+    if (marked) {
+      onSubmit(circosFiles);
+    }
+
+    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+
+    fetch(`${host}/api/multilift/circos/`, {
+      method: "POST",
+      body: formData,
+    })
+    .then((response) => response.json())
+    .then((data) => {
+      for (let i = 0; i < data.length; i++) {
+        circosFiles.push({
+          data: data[i],
+          trackType: files[i].trackType,
+        });
+      }      
+    })
+    .then(() => {
+      console.log(circosFiles);
+      onSubmit(circosFiles);
+    });
   };
 
   return (
     <Card>
-      <h2>Upload and Configure Files</h2>
+      <h2>Upload genome files</h2>
+      <input type="file" multiple onChange={handleFileChange} accept=".fa .bedpe" />
 
-      <input type="file" multiple onChange={handleFileChange} accept=".json" />
+      {/* <h2>Upload and Configure Files</h2> */}
+
+      {/* <input type="file" multiple onChange={handleFileChange} accept=".json" /> */}
 
       <div style={{ marginTop: "20px" }}>
         {files.map((fileEntry, index) => (
@@ -95,7 +154,7 @@ const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
               }
               style={{ marginRight: "10px" }}
             >
-              {trackTypes.map((type, idx) => (
+              {_trackTypes.map((type, idx) => (
                 <Option key={idx} value={type}>
                   {type}
                 </Option>

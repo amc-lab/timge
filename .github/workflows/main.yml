@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/26-handle-ignoring-missing-multilift-sequences
 
 jobs:
   build-and-deploy:
@@ -14,19 +13,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: Install OpenVPN
-      run: sudo apt-get update && sudo apt-get install -y openvpn
-
-    - name: Configure VPN Authentication
-      run: |
-        echo -e "${{ secrets.VPN_USER }}\n${{ secrets.VPN_PASS }}" > vpn-auth.txt
-
-    - name: Start OpenVPN
-      run: |
-        sudo openvpn --config .github/vpn/config.ovpn --auth-user-pass vpn-auth.txt &
-        sleep 10
-        ping -c 3 ${{ secrets.VM_IP }}
-    
     - name: Log in to DockerHub
       run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
@@ -52,21 +38,27 @@ jobs:
     - name: Log out of DockerHub
       run: docker logout
 
-    - name: Copy Project Files to Server
-      uses: appleboy/scp-action@v0.1.7
+    - name: Copy Project Files to Cloud VM
+      uses: appleboy/scp-action@master
       with:
-        host: ${{ secrets.VM_IP }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.VM_SSH_KEY }}
+        host: ${{ secrets.CLOUD_VM_HOST }}
+        username: ${{ secrets.CLOUD_VM_USER }}
+        key: ${{ secrets.CLOUD_VM_SSH_KEY }}
+        proxy_host: ${{ secrets.SHELL_HOST }}
+        proxy_username: ${{ secrets.SHELL_USER }}
+        proxy_key: ${{ secrets.SHELL_SSH_KEY }}
         source: "./docker-compose.yml,./timge.conf"
         target: /tmp/timge-deployment
 
-    - name: Deploy with Docker Compose
-      uses: appleboy/ssh-action@v1.2.0
+    - name: Deploy with Docker Compose via Proxy
+      uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.VM_IP }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.VM_SSH_KEY }}
+        host: ${{ secrets.CLOUD_VM_HOST }}
+        username: ${{ secrets.CLOUD_VM_USER }}
+        key: ${{ secrets.CLOUD_VM_SSH_KEY }}
+        proxy_host: ${{ secrets.SHELL_HOST }}
+        proxy_username: ${{ secrets.SHELL_USER }}
+        proxy_key: ${{ secrets.SHELL_SSH_KEY }}
         script: |
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mkdir -p /srv/timge
           echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/docker-compose.yml /srv/timge/docker-compose.yml
@@ -93,8 +85,3 @@ jobs:
             -d ${{ secrets.DOMAIN_NAME }}
 
           echo "Deployment complete with HTTPS on port 443"
-
-    - name: Kill VPN Connection
-      if: always()
-      run: |
-        sudo pkill openvpn

@@ -18,6 +18,7 @@ import {
   defaultGlobalConfig,
 } from "./config/defaultConfigs";
 import FileUploadForm from "../../components/FileUploadForm";
+import { Box, Button } from "@mui/joy";
 
 interface CircosProps {
   params: Promise<{
@@ -65,20 +66,20 @@ export default function Circos({ params }: CircosProps) {
   const onSubmit = (files) => {
     const newTracks = files.map((file) => {
       switch (file.trackType) {
-        case "Karyotype":
+        case "karyotype":
           setSegments(file.data);
           return {
             trackType: TrackType.Karyotype,
             data: { segments: file.data, globalConfig, divRef: canvasRef },
             config: defaultAssemblyConfig,
           };
-        case "Bar":
+        case "bar":
           return {
             trackType: TrackType.Bar,
             data: { bars: file.data, globalConfig, divRef: canvasRef },
             config: defaultBarConfig,
           };
-        case "Chord":
+        case "link":
           return {
             trackType: TrackType.Chord,
             data: { chords: file.data, globalConfig, divRef: canvasRef },
@@ -92,6 +93,18 @@ export default function Circos({ params }: CircosProps) {
     setTracks(newTracks);
   };
 
+  const downloadSVGAsPNG = () => {
+    const d3ToPng = require('d3-svg-to-png');
+    d3ToPng(canvasRef.current, 'output', {
+      scale: 1,
+      format: 'png',
+      quality: 1,
+      download: true,
+      ignore: '.ignored',
+      background: 'white'
+    });
+}
+
   return (
     <div>
       <FileUploadForm onSubmit={onSubmit} />
@@ -104,9 +117,14 @@ export default function Circos({ params }: CircosProps) {
             justifyContent: "center",
           }}
         >
-          <div ref={canvasRef} style={{ border: "1px solid black" }}>
-            <Tracks tracks={tracks} />
-          </div>
+          {
+            segments && segments.length > 0 && (
+              <div ref={canvasRef} style={{ border: "1px solid black" }}>
+                <Tracks tracks={tracks} />
+              </div>
+            )
+          }
+          
         </div>
 
         <div
@@ -117,12 +135,17 @@ export default function Circos({ params }: CircosProps) {
             justifyContent: "center",
           }}
         >
-          {segments.length > 0 && (
+          {segments && segments.length > 0 && (
+          <Box>
             <Form
-              tracks={tracks}
-              handleTrackConfigUpdate={handleTrackConfigUpdate}
-              handleGlobalConfigUpdate={handleGlobalConfigUpdate}
-            />
+                tracks={tracks}
+                handleTrackConfigUpdate={handleTrackConfigUpdate}
+                handleGlobalConfigUpdate={handleGlobalConfigUpdate}
+              />
+          <Button onClick={downloadSVGAsPNG} style={{ margin: "10px", padding: "12px", fontSize: "12px" }}>
+            Download PNG
+          </Button>
+          </Box>
           )}
         </div>
       </div>

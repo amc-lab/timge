@@ -16,6 +16,7 @@
     "@jbrowse/react-linear-genome-view": "^2.18.0",
     "@mui/joy": "^5.0.0-beta.51",
     "d3": "^7.9.0",
+    "d3-svg-to-png": "^0.3.1",
     "next": "15.1.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

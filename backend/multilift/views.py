@@ -7,6 +7,7 @@ from libraries.multilift import (
     generate_multilift_sequences,
     multilift,
 )
+from multilift.parser import format_genome
 import json
 
 
@@ -66,3 +67,41 @@ def run_multilift(request):
     )
     response = FileResponse(res, as_attachment=True, filename="multilift.zip")
     return response
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def karyotype(request):
+    """
+    Args:
+    - genome: FASTA file for genome
+
+    Returns:
+    - JSON with karyotype data
+    """
+
+    genome = request.FILES.get("genome")
+    data = map_genome_to_karyotype(genome)
+    return JsonResponse(data, safe=False)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def format_circos(request):
+    """
+    Args:
+    - track_types: list of track types
+    - data_files: list of data files
+
+    Returns:
+    - List of dictionaries containing the circos data
+    """
+
+    track_types = json.loads(request.POST.get("track_types"))
+    data_files = request.FILES.getlist("data_files")
+    data = []
+
+    for i in range(len(track_types)):
+        data.append(format_genome(data_files[i], track_types[i]))
+
+    return JsonResponse(data, safe=False)
