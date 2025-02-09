@@ -57,7 +57,7 @@ jobs:
     #     # ssh -v -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -J shell cloudvm "echo '✅ Connected to Cloud VM through ProxyJump'"
 
     - name: ssh proxy command
-      uses: appleboy/ssh-action@v1.2.0
+      uses: appleboy/ssh-action@master
       with:
         host: ${{ secrets.CLOUD_VM_HOST }}
         username: ${{ secrets.CLOUD_VM_USER }}
