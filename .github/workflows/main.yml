@@ -59,12 +59,9 @@ jobs:
     - name: ssh proxy command
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.CLOUD_VM_HOST }}
-        username: ${{ secrets.CLOUD_VM_USER }}
-        key: ${{ secrets.CLOUD_VM_SSH_KEY }}
-        proxy_host: ${{ secrets.SHELL_HOST }}
-        proxy_username: ${{ secrets.SHELL_USER }}
-        proxy_key: ${{ secrets.SHELL_SSH_KEY }}
+        host: ${{ secrets.SHELL_HOST }}
+        username: ${{ secrets.SHELL_USER }}
+        key: ${{ secrets.SHELL_SSH_KEY }}
         script: |
           echo "Connected to Cloud VM through ProxyJump ✅"
       
