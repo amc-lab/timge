@@ -14,25 +14,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    # - name: Install OpenVPN
-    #   run: sudo apt-get update && sudo apt-get install -y openvpn
-
-    # - name: Setup SSH Key
-    #   run: echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
-
-    # - name: Configure SSH
-    #   run: ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -A -J ${{ secrets.VM_JUMP_HOST }} ${{ secrets.VM_USER }}@${{ secrets.VM_IP }} exit
-
-    # - name: Configure VPN Authentication
-    #   run: |
-    #     echo -e "${{ secrets.VPN_USER }}\n${{ secrets.VPN_PASS }}" > vpn-auth.txt
-
-    # - name: Start OpenVPN
-    #   run: |
-    #     sudo openvpn --config .github/vpn/config.ovpn --auth-user-pass vpn-auth.txt &
-    #     sleep 10
-    #     ping -c 3 ${{ secrets.VM_IP }}
-
     - name: Setup SSH Keys and Config
       run: |
         # Ensure .ssh directory exists
@@ -57,7 +38,7 @@ jobs:
             User ${{ secrets.CLOUD_VM_USER }}
             HostName ${{ secrets.CLOUD_VM_HOST }}
             IdentityFile ~/.ssh/id_rsa_cloudvm
-            ProxyJump ${{ secrets.SHELL_HOST }}
+            ProxyJump shell
         EOF
 
         # Set correct permissions for SSH config
