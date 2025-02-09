@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Container,
   Box,
@@ -23,6 +23,8 @@ import {
 import FormLabel from "@mui/joy/FormLabel";
 import Input from "@mui/joy/Input";
 import Chip from "@mui/joy/Chip";
+import {useDropzone} from 'react-dropzone'
+import GenomeFileUploadBox from "./components/GenomeFileUpload";
 
 const Multilift: React.FC = () => {
   const [alertOpen, setAlertOpen] = useState(false);
@@ -49,6 +51,8 @@ const Multilift: React.FC = () => {
   };
 
   const addGenomeFile = (genome: string, file: File) => {
+    console.log("Genome:", genome);
+    console.log("File:", file);
     setGenomes({
       ...genomes,
       [genome]: file,
@@ -92,6 +96,19 @@ const Multilift: React.FC = () => {
         console.error("Error fetching sequences:", error);
       });
   };
+
+  const removeGenomeFile = (genome: string) => () => {
+    setGenomes({
+      ...genomes,
+      [genome]: null,
+    });
+  };
+
+  const onDrop = useCallback(acceptedFiles => {
+    
+  }, [])
+
+  const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop})
 
   useEffect(() => {
     console.log(sequences);
@@ -271,25 +288,39 @@ const Multilift: React.FC = () => {
                   </Typography>
                 </AccordionSummary>
                 <AccordionDetails>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "1em",
+                    }}
+                  >
                   {Object.keys(genomes).map((genome) => (
-                    <Card
+                    // <Card
+                    //   key={genome}
+                    //   sx={{
+                    //     padding: "1em",
+                    //     marginBottom: "0.5em",
+                    //   }}
+                    // >
+                    //   <Typography>{`Upload files for genome: ${genome}`}</Typography>
+                    //   <input
+                    //     type="file"
+                    //     onChange={(e) => {
+                    //       if (e.target.files) {
+                    //         addGenomeFile(genome, e.target.files[0]);
+                    //       }
+                    //     }}
+                    //   />
+                    // </Card>
+                    <GenomeFileUploadBox
                       key={genome}
-                      sx={{
-                        padding: "1em",
-                        marginBottom: "0.5em",
-                      }}
-                    >
-                      <Typography>{`Upload files for genome: ${genome}`}</Typography>
-                      <input
-                        type="file"
-                        onChange={(e) => {
-                          if (e.target.files) {
-                            addGenomeFile(genome, e.target.files[0]);
-                          }
-                        }}
-                      />
-                    </Card>
+                      genome={genome}
+                      onGenomeFileUpload={(file) => addGenomeFile(genome, file)}
+                      onGenomeFileRemove={removeGenomeFile(genome)}
+                    />
                   ))}
+                  </Box>
                 </AccordionDetails>
               </Accordion>
             )}
