@@ -14,51 +14,30 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
 
-    - name: ssh proxy command
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.CLOUD_VM_HOST }}
-        username: ${{ secrets.CLOUD_VM_USER }}
-        key: ${{ secrets.CLOUD_VM_SSH_KEY }}
-        proxy_host: ${{ secrets.SHELL_HOST }}
-        proxy_username: ${{ secrets.SHELL_USER }}
-        proxy_key: ${{ secrets.SHELL_SSH_KEY }}
-        script: |
-          echo "Connected to Cloud VM through ProxyJump ✅"
-    
-    # - name: Log in to DockerHub
-    #   run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+    - name: Log in to DockerHub
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    # - name: Build Frontend Docker image
-    #   run: |
-    #     echo "Building frontend Docker image"
-    #     docker build \
-    #       --build-arg NEXT_PUBLIC_DJANGO_HOST=${{ secrets.NEXT_PUBLIC_DJANGO_HOST }} \
-    #       -t ${{ secrets.DOCKER_IMAGE_WEB }} \
-    #       ./web
+    - name: Build Frontend Docker image
+      run: |
+        echo "Building frontend Docker image"
+        docker build \
+          --build-arg NEXT_PUBLIC_DJANGO_HOST=${{ secrets.NEXT_PUBLIC_DJANGO_HOST }} \
+          -t ${{ secrets.DOCKER_IMAGE_WEB }} \
+          ./web
 
-    # - name: Push Frontend Docker image to DockerHub
-    #   run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}
+    - name: Push Frontend Docker image to DockerHub
+      run: docker push ${{ secrets.DOCKER_IMAGE_WEB }}
 
-    # - name: Build Backend Docker image
-    #   run: |
-    #     echo "Building backend Docker image"
-    #     docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }} ./backend
+    - name: Build Backend Docker image
+      run: |
+        echo "Building backend Docker image"
+        docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }} ./backend
 
-    # - name: Push Backend Docker image to DockerHub
-    #   run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
+    - name: Push Backend Docker image to DockerHub
+      run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}
 
-    # - name: Log out of DockerHub
-    #   run: docker logout
-
-    # - name: Copy Project Files to Server
-    #   uses: appleboy/scp-action@v0.1.7
-    #   with:
-    #     host: ${{ secrets.VM_IP }}
-    #     username: ${{ secrets.VM_USER }}
-    #     key: ${{ secrets.VM_SSH_KEY }}
-    #     source: "./docker-compose.yml,./timge.conf"
-    #     target: /tmp/timge-deployment
+    - name: Log out of DockerHub
+      run: docker logout
 
     - name: Copy Project Files to Cloud VM
       uses: appleboy/scp-action@master
@@ -71,43 +50,6 @@ jobs:
         proxy_key: ${{ secrets.SHELL_SSH_KEY }}
         source: "./docker-compose.yml,./timge.conf"
         target: /tmp/timge-deployment
-
-    # - name: Copy Project Files to Cloud VM
-    #   run: |
-    #     scp -vv -o StrictHostKeyChecking=no ./docker-compose.yml ./timge.conf cloudvm:/tmp/timge-deployment
-
-    # - name: Deploy with Docker Compose
-    #   uses: appleboy/ssh-action@v1.2.0
-    #   with:
-    #     host: ${{ secrets.VM_IP }}
-    #     username: ${{ secrets.VM_USER }}
-    #     key: ${{ secrets.VM_SSH_KEY }}
-    #     script: |
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mkdir -p /srv/timge
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/docker-compose.yml /srv/timge/docker-compose.yml
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/timge.conf /srv/timge/timge.conf
-
-    #       cd /srv/timge
-
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env'
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env'
-
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down --remove-orphans || true
-    #       echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-    #       docker-compose pull
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose up -d --force-recreate
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker logout
-
-    #       # Install Certbot and Obtain SSL Certificates
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y certbot python3-certbot-nginx
-
-    #       # Use Certbot to Obtain and Configure SSL
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S certbot --nginx -n --redirect \
-    #         --agree-tos --email ${{ secrets.ADMIN_EMAIL }} \
-    #         -d ${{ secrets.DOMAIN_NAME }}
-
-    #       echo "Deployment complete with HTTPS on port 443"
 
     - name: Deploy with Docker Compose via Proxy
       uses: appleboy/ssh-action@master
@@ -144,41 +86,3 @@ jobs:
             -d ${{ secrets.DOMAIN_NAME }}
 
           echo "Deployment complete with HTTPS on port 443"
-
-    # - name: Deploy with Docker Compose via Proxy
-    #   run: |
-    #     ssh -o StrictHostKeyChecking=no cloudvm << 'EOF'
-        
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S mkdir -p /srv/timge
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/docker-compose.yml /srv/timge/docker-compose.yml
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S cp /tmp/timge-deployment/timge.conf /srv/timge/timge.conf
-
-    #       cd /srv/timge
-
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_WEB=${{ secrets.DOCKER_IMAGE_WEB }}" > .env'
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S sh -c 'echo "DOCKER_IMAGE_BACKEND=${{ secrets.DOCKER_IMAGE_BACKEND }}" >> .env'
-
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose down --remove-orphans || true
-    #       echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-    #       docker-compose pull
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker-compose up -d --force-recreate
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S docker logout
-
-    #       # Install Certbot and Obtain SSL Certificates
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get update
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S apt-get install -y certbot python3-certbot-nginx
-
-    #       # Use Certbot to Obtain and Configure SSL
-    #       echo "${{ secrets.SUDO_PASSWORD }}" | sudo -S certbot --nginx -n --redirect \
-    #         --agree-tos --email ${{ secrets.ADMIN_EMAIL }} \
-    #         -d ${{ secrets.DOMAIN_NAME }}
-
-    #       echo "Deployment complete with HTTPS on port 443"
-    #       exit
-
-    #     EOF    
-
-    - name: Kill VPN Connection
-      if: always()
-      run: |
-        sudo pkill openvpn
