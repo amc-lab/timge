@@ -25,6 +25,8 @@ import Input from "@mui/joy/Input";
 import Chip from "@mui/joy/Chip";
 import {useDropzone} from 'react-dropzone'
 import GenomeFileUploadBox from "./components/GenomeFileUpload";
+import DataTrackFileUploadBox from "./components/DataTrackFileUpload";
+import ChipDelete from '@mui/joy/ChipDelete';
 
 const Multilift: React.FC = () => {
   const [alertOpen, setAlertOpen] = useState(false);
@@ -39,7 +41,7 @@ const Multilift: React.FC = () => {
   const [sequences, setSequences] = useState({});
   const [groups, setGroups] = useState<string[]>(["Group1"]);
   const [liftoverTracks, setLiftoverTracks] = useState<
-    { file: File; genome: string }[]
+    { file: File }[]
   >([]);
 
   const addGenome = () => {
@@ -104,6 +106,14 @@ const Multilift: React.FC = () => {
     });
   };
 
+  const removeLiftoverTrack = (index: number) => {
+    setLiftoverTracks((prevTracks) => {
+      const newTracks = [...prevTracks];
+      newTracks.splice(index, 1);
+      return newTracks;
+    });
+  }
+
   const onDrop = useCallback(acceptedFiles => {
     
   }, [])
@@ -128,10 +138,9 @@ const Multilift: React.FC = () => {
 
   const handleLiftoverTrackUpload = (
     files: FileList | null,
-    genome: string,
   ) => {
     if (files) {
-      const newTracks = Array.from(files).map((file) => ({ file, genome }));
+      const newTracks = Array.from(files).map((file) => ({ file }));
       setLiftoverTracks((prevTracks) => [...prevTracks, ...newTracks]);
     }
   };
@@ -157,8 +166,11 @@ const Multilift: React.FC = () => {
       formData.append(`uploaded_files`, file);
     });
 
-    const liftoverGenomes = liftoverTracks.map(({ genome }) => genome);
-    formData.append("multilift_genomes", JSON.stringify(liftoverGenomes));
+    for (let i = 0; i < liftoverTracks.length; i++) {
+      const { file } = liftoverTracks[i];
+      formData.append(`liftover_files`, file);
+    }
+    formData.append("multilift_genomes", JSON.stringify(genomes));
 
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
     fetch(`${host}/api/multilift/temp/`, {
@@ -338,32 +350,58 @@ const Multilift: React.FC = () => {
                   </AccordionSummary>
                   <AccordionDetails>
                     <Box>
-                      {Object.keys(genomes).map((genome) => (
-                        <Card
-                          key={genome}
-                          sx={{
-                            padding: "1em",
-                            marginBottom: "0.5em",
-                          }}
-                        >
-                          <Typography>{`Upload data tracks for genome: ${genome}`}</Typography>
-                          <input
-                            type="file"
-                            multiple
-                            onChange={(e) =>
-                              handleLiftoverTrackUpload(e.target.files, genome)
+                      <Box
+                      sx={{
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "1em",
+                      }}
+                    >
+                      {/* {Object.keys(genomes).map((genome) => (
+                        // <Card
+                        //   key={genome}
+                        //   sx={{
+                        //     padding: "1em",
+                        //     marginBottom: "0.5em",
+                        //   }}
+                        // >
+                        //   <Typography>{`Upload data tracks for genome: ${genome}`}</Typography>
+                        //   <input
+                        //     type="file"
+                        //     multiple
+                        //     onChange={(e) =>
+                        //       handleLiftoverTrackUpload(e.target.files, genome)
+                        //     }
+                        //   />
+                        // </Card>
+
+                      ))} */}
+                        <>
+                          <DataTrackFileUploadBox
+                            onDataTrackFileUpload={(fileList) =>
+                              handleLiftoverTrackUpload(fileList)
                             }
                           />
-                        </Card>
-                      ))}
+                        </>
+                    </Box>
                       {liftoverTracks.length > 0 && (
-                        <Box mt={2}>
+                        <Box mt={2}
+                          sx={{
+                            paddingBottom: "1em",
+                          }}
+                        >
                           <Typography>Uploaded Liftover Tracks:</Typography>
                           <ul>
-                            {liftoverTracks.map(({ file, genome }, index) => (
-                              <li
-                                key={index}
-                              >{`${file.name} (Genome: ${genome})`}</li>
+                            {liftoverTracks.map(({ file }, index) => (
+                              <Chip
+                              key={index}
+                              variant="soft"
+                              color="primary"
+                              sx={{ margin: "0.25em" }}
+                              endDecorator={<ChipDelete onDelete={() => removeLiftoverTrack(index)} />}
+                              >
+                              {file.name}
+                              </Chip>
                             ))}
                           </ul>
                         </Box>
