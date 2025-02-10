@@ -27,6 +27,7 @@ import {useDropzone} from 'react-dropzone'
 import GenomeFileUploadBox from "./components/GenomeFileUpload";
 import DataTrackFileUploadBox from "./components/DataTrackFileUpload";
 import ChipDelete from '@mui/joy/ChipDelete';
+import DataTrackSelect from "./components/DataTrackSelect";
 
 const Multilift: React.FC = () => {
   const [alertOpen, setAlertOpen] = useState(false);
@@ -41,7 +42,7 @@ const Multilift: React.FC = () => {
   const [sequences, setSequences] = useState({});
   const [groups, setGroups] = useState<string[]>(["Group1"]);
   const [liftoverTracks, setLiftoverTracks] = useState<
-    { file: File }[]
+    { file: File; genome: string | null }[]
   >([]);
 
   const addGenome = () => {
@@ -53,8 +54,6 @@ const Multilift: React.FC = () => {
   };
 
   const addGenomeFile = (genome: string, file: File) => {
-    console.log("Genome:", genome);
-    console.log("File:", file);
     setGenomes({
       ...genomes,
       [genome]: file,
@@ -114,11 +113,16 @@ const Multilift: React.FC = () => {
     });
   }
 
-  const onDrop = useCallback(acceptedFiles => {
-    
-  }, [])
-
-  const {getRootProps, getInputProps, isDragActive} = useDropzone({onDrop})
+  const handleLiftoverTrackSelection = (file: File, genome: string) => {
+    setLiftoverTracks((prevTracks) => {
+      const newTracks = [...prevTracks];
+      const index = newTracks.findIndex((track) => track.file.name === file.name);
+      if (index >= 0) {
+        newTracks[index] = { file, genome };
+      }
+      return newTracks;
+    });
+  };
 
   useEffect(() => {
     console.log(sequences);
@@ -140,7 +144,7 @@ const Multilift: React.FC = () => {
     files: FileList | null,
   ) => {
     if (files) {
-      const newTracks = Array.from(files).map((file) => ({ file }));
+      const newTracks = Array.from(files).map((file) => ({ file, genome: null }));
       setLiftoverTracks((prevTracks) => [...prevTracks, ...newTracks]);
     }
   };
@@ -162,15 +166,19 @@ const Multilift: React.FC = () => {
     formData.append("aligner", "mafft");
     formData.append("download_format", ".zip");
 
-    liftoverTracks.forEach(({ file }, index) => {
+    liftoverTracks.forEach(({ file, genome }, index) => {
       formData.append(`uploaded_files`, file);
     });
 
+    const uploadGenomes = [];
     for (let i = 0; i < liftoverTracks.length; i++) {
-      const { file } = liftoverTracks[i];
-      formData.append(`liftover_files`, file);
+      const { file, genome } = liftoverTracks[i];
+      if (genome) {
+        formData.append(`liftover_files`, file);
+        uploadGenomes.push(genome);
+      }
     }
-    formData.append("multilift_genomes", JSON.stringify(genomes));
+    formData.append("multilift_genomes", JSON.stringify(uploadGenomes));
 
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
     fetch(`${host}/api/multilift/temp/`, {
@@ -392,7 +400,7 @@ const Multilift: React.FC = () => {
                         >
                           <Typography>Uploaded Liftover Tracks:</Typography>
                           <ul>
-                            {liftoverTracks.map(({ file }, index) => (
+                            {liftoverTracks.map(({ file, genome }, index) => (
                               <Chip
                               key={index}
                               variant="soft"
@@ -406,6 +414,26 @@ const Multilift: React.FC = () => {
                           </ul>
                         </Box>
                       )}
+                    </Box>
+                    <Box sx={{                       
+                      display: "flex",
+                      flexWrap: "wrap",
+                      gap: "1em", 
+                    }}
+                    >
+                      {
+                        Object.keys(genomes)
+                          .map((genome, index) => (
+                            <DataTrackSelect
+                              key={index}
+                              dataTracks={liftoverTracks
+                                .filter((track) => track.genome === null || track.genome === genome)
+                                .map((track) => track.file)}
+                              genome={genome}
+                              setSelectedDataTrack={handleLiftoverTrackSelection}
+                            />
+                        ))
+                      }
                     </Box>
                   </AccordionDetails>
                 </Accordion>

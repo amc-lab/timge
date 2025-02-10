@@ -1,25 +1,55 @@
 import React from 'react';
-import { Select, MenuItem } from '@mui/material';
+import { Select, ListItem, Option } from '@mui/joy';
+import { Card } from '@mui/joy';
+import { Typography } from '@mui/joy';
 
 interface DataTrackSelectProps {
-    dataTracks: string[];
-    selectedDataTrack: string;
-    setSelectedDataTrack: (dataTrack: string) => void;
+    dataTracks: File[];
+    genome: string;
+    setSelectedDataTrack: (dataTrack: File, genome: string) => void;
 }
 
 const DataTrackSelect = (props: DataTrackSelectProps) => {
-    const { dataTracks, selectedDataTrack, setSelectedDataTrack } = props;
+    const { dataTracks, genome, setSelectedDataTrack } = props;
+    const [selectedValues, setSelectedValues] = React.useState<File[]>([]);
+
     return (
+        <Card
+            sx={{
+                width: "calc(50% - 0.5em)",
+                display: "flex",
+                marginTop: "0.5em",
+            }}
+        >
         <Select
-            value={selectedDataTrack}
-            onChange={(e) => setSelectedDataTrack(e.target.value)}
+            defaultValue={[]}
+            placeholder={`Select track files for ${genome}`} 
+            sx={{
+                width: "100%",
+                display: "flex",
+                marginTop: "0.5em",
+                marginBottom: "0.5em",
+            }}
+            multiple
+            onChange={(event, value) => {
+                for (const dataTrack of selectedValues) {
+                    if (!value.includes(dataTrack)) {
+                        setSelectedDataTrack(dataTrack, null);
+                    }
+                }
+                for (const dataTrack of value) {
+                    setSelectedDataTrack(dataTrack, genome);
+                }
+                setSelectedValues(value);
+            }}
         >
             {dataTracks.map((dataTrack) => (
-                <MenuItem key={dataTrack} value={dataTrack}>
-                {dataTrack}
-                </MenuItem>
+                <Option key={dataTrack.name} value={dataTrack}>
+                    <Typography>{dataTrack.name}</Typography>
+                </Option>
             ))}
         </Select>
+        </Card>
     );
 }
 
