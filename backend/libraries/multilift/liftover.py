@@ -190,7 +190,7 @@ def _liftover_interact(
             line[13], line[14] = lifter(genome, seqid := line[13], int(line[14]))
             _, line[15] = lifter(genome, seqid, int(line[15]))
             print("\t".join(str(x) for x in line), file=outfile)
-    return "", outfile
+    return None, "", outfile
 
 
 def _liftover_link(infile: StringIO, lifter: Lifter, genome: str) -> [str, StringIO]:
@@ -214,7 +214,7 @@ def _liftover_link(infile: StringIO, lifter: Lifter, genome: str) -> [str, Strin
             line[3], line[4] = lifter(genome, seqid := line[0], int(line[4]))
             _, line[5] = lifter(genome, seqid, int(line[5]))
             print("\t".join(str(x) for x in line), file=outfile)
-    return "", outfile
+    return None, "", outfile
 
 
 def _liftover_gxf(infile: StringIO, lifter: Lifter, genome: str) -> [str, StringIO]:
@@ -240,7 +240,7 @@ def _liftover_gxf(infile: StringIO, lifter: Lifter, genome: str) -> [str, String
             _, line[4] = lifter(genome, seqid, int(line[4]) - 1)
             line[4] += 1
             print("\t".join(str(x) for x in line), file=outfile)
-    return "", outfile
+    return None, "", outfile
 
 
 def _liftover_wiggle(infile: StringIO, lifter: Lifter, genome: str) -> [str, StringIO]:
@@ -354,7 +354,7 @@ def _liftover_dotbracket(
         "0",
         file=outfile,
     )
-    return ".bp", outfile
+    return None, ".bp", outfile
 
 
 def _liftover_basepair(
@@ -404,7 +404,7 @@ def _liftover_basepair(
                 f"{line[5]}",
                 file=outfile,
             )
-    return "", outfile
+    return None, "", outfile
 
 
 def _liftover_dotplot(infile: StringIO, lifter: Lifter, genome: str) -> [str, StringIO]:
@@ -475,7 +475,7 @@ def _liftover_dotplot(infile: StringIO, lifter: Lifter, genome: str) -> [str, St
             f"{prob_level}",
             file=outfile,
         )
-    return ".bp", outfile
+    return None, ".bp", outfile
 
 
 def liftover(infile: StringIO, ftype: str, lifter: Lifter, genome: str) -> Callable:
