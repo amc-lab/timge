@@ -3,6 +3,7 @@ import Segment from "./components/segment";
 import Chords from "./components/chord";
 import Bar from "./components/bar";
 import { Track, TrackType } from "./config/track";
+import Ring from "./components/ring";
 
 interface TracksProps {
   tracks: Array<Track>;
@@ -55,6 +56,19 @@ const Tracks = ({ tracks }: TracksProps) => {
         } else if (track.trackType === TrackType.Chord) {
           minAvailableRadius = track.config.outerRadius;
           return track;
+        } else if (track.trackType === TrackType.Ring) {
+          const ringInnerRadius = minAvailableRadius;
+          minAvailableRadius =
+            ringInnerRadius +
+            track.config.trackWidth +
+            track.config.trackPadding;
+          return {
+            ...track,
+            config: {
+              ...track.config,
+              innerRadius: ringInnerRadius,
+            },
+          };
         }
       })
       .reverse();
@@ -98,6 +112,16 @@ const Tracks = ({ tracks }: TracksProps) => {
               idx={index}
             />
           );
+        }
+        else if (track.trackType === TrackType.Ring) {
+          return (
+            <Ring
+              key={index}
+              data={track.data}
+              config={track.config}
+              idx={index}
+            />
+          )
         }
         return null;
       })}

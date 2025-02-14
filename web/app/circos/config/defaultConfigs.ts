@@ -26,6 +26,22 @@ export const defaultBarConfig = {
   trackWidth: 24,
 };
 
+export const defaultRingConfig = {
+  innerRadius: 200,
+  trackPadding: 10,
+  trackWidth: 24,
+  axisLabelFontSize: 10,
+  showAxis: false,
+  segmentInnerRadius: 200,
+  segmentTrackWidth: 40,
+  segmentGridPadding: 5,
+  tickLength: 5,
+  tickTextPadding: 2,
+  precision: 1,
+  useStroke: true,
+  metricPrefix: "M",
+};
+
 export const defaultGlobalConfig = {
   canvasWidth: 750,
   canvasHeight: 750,

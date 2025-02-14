@@ -23,6 +23,13 @@ export interface BarData {
   value: number;
 }
 
+export interface RingData {
+  chromosome: string;
+  id: number;
+  start: number;
+  end: number;
+}
+
 interface AssemblyConfig {
   segmentPadding: number;
   axisLabelFontSize: number;
@@ -49,6 +56,13 @@ interface BarConfig {
   innerRadius: number;
   trackWidth: number;
   trackPadding: number;
+}
+
+interface RingConfig {
+  innerRadius: number;
+  trackWidth: number;
+  trackPadding: number;
+  sequencePadding: number;
 }
 
 interface GlobalConfig {

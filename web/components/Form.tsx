@@ -88,6 +88,12 @@ const Form: React.FC<FormProps> = ({
                   />
                 </TabPanel>
               );
+            } else if (track.trackType === TrackType.Ring) {
+              return (
+                <TabPanel key={index} value={index}>
+                  <div>Ring</div>
+                </TabPanel>
+              );
             }
           })}
           <TabPanel value={tracks.length}>
