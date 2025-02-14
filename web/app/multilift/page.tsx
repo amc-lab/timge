@@ -251,23 +251,28 @@ const Multilift: React.FC = () => {
               <AccordionDetails
               >
                 <Box display="flex" alignItems="center" gap={2}>
-                  <Box
+                    <Box
                     display="block"
                     sx={{
                       width: "85%",
                       paddingBottom: "1em",
                     }}
-                  >
+                    >
                     <FormLabel>Genome</FormLabel>
                     <Input
                       placeholder="Enter here..."
                       value={genomeInput}
                       onChange={(e) => setGenomeInput(e.target.value)}
+                      onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        addGenome();
+                      }
+                      }}
                       sx={{
-                        height: "3em",
+                      height: "3em",
                       }}
                     />
-                  </Box>
+                    </Box>
 
                   <Button
                     variant="solid"

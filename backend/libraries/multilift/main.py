@@ -1,6 +1,8 @@
 from io import StringIO, BytesIO
 import tarfile
 import zipfile
+import gzip
+import io
 
 from Bio import AlignIO, SeqIO
 from Bio.Seq import Seq
@@ -86,6 +88,29 @@ def write_warning(warnings, message):
     if message:
         num_warnings = len(warnings)
         warnings.append(f"WARN {num_warnings + 1}: {message}\n")
+
+
+def extract(file):
+    """
+    Args:
+    - file: File object to extract (if in .gz format)
+
+    Returns:
+    - extracted_data: BytesIO object of extracted data if in .gz format, else the original file
+    """
+    return file
+
+    # TODO: Fix this
+    file.seek(0)
+    if file.name[-3:] != ".gz":
+        return file
+
+    try:
+        with gzip.GzipFile(fileobj=file, mode="r") as gz_file:
+            return
+    except gzip.BadGzipFile:
+        print("Error extracting file")
+        return file
 
 
 def multilift(
@@ -227,7 +252,7 @@ def multilift(
 
         # Liftover data files, create annotations
         for i, genome in enumerate(multilift_genomes):
-            file = uploaded_files[i]
+            file = extract(uploaded_files[i])
             ftype, application = sniff_filetype(file.name)
             if "data" in application:
                 try:
