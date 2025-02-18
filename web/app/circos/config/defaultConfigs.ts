@@ -28,7 +28,7 @@ export const defaultBarConfig = {
 
 export const defaultRingConfig = {
   innerRadius: 200,
-  trackPadding: 10,
+  trackPadding: 20,
   trackWidth: 24,
   axisLabelFontSize: 10,
   showAxis: false,

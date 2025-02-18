@@ -63,6 +63,11 @@ interface RingConfig {
   trackWidth: number;
   trackPadding: number;
   sequencePadding: number;
+  tickLength: number;
+  precision: number;
+  metricPrefix: string;
+  tickTextPadding: number;
+  axisLabelFontSize: number;
 }
 
 interface GlobalConfig {

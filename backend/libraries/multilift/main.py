@@ -162,7 +162,7 @@ def multilift(
                 add_to_archive(
                     Arc,
                     BytesIO(bytes(result.getvalue(), "utf-8")),
-                    f"alignment/{seq_group}.fa",
+                    f"alignment/multilift.fa",
                     uiobj_download_format,
                 )
 
@@ -193,7 +193,7 @@ def multilift(
             add_to_archive(
                 Arc,
                 BytesIO(bytes(F.getvalue(), "utf-8")),
-                f"genome/multilift.fa",
+                f"genome/consensus.fa",
                 uiobj_download_format,
             )
         del igv_genomes

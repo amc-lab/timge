@@ -61,7 +61,9 @@ const Tracks = ({ tracks }: TracksProps) => {
           minAvailableRadius =
             ringInnerRadius +
             track.config.trackWidth +
-            track.config.trackPadding;
+            track.config.trackPadding +
+            track.config.tickTextPadding +
+            track.config.axisLabelFontSize * 3;
           return {
             ...track,
             config: {
