@@ -4,6 +4,7 @@ import {
   BarConfig,
   ChordConfig,
   GlobalConfig,
+  RingConfig,
 } from "@/app/types/genomes";
 import Card from "@mui/joy/Card";
 import Tabs from "@mui/joy/Tabs";
@@ -16,6 +17,7 @@ import { GlobalForm } from "./GlobalForm";
 import { BarForm } from "./BarForm";
 import { Track, TrackType } from "../app/circos/config/track";
 import { defaultGlobalConfig } from "../app/circos/config/defaultConfigs";
+import { RingForm } from "./RingForm";
 
 interface FormProps {
   tracks: Array<Track>;
@@ -91,7 +93,12 @@ const Form: React.FC<FormProps> = ({
             } else if (track.trackType === TrackType.Ring) {
               return (
                 <TabPanel key={index} value={index}>
-                  <div>Ring</div>
+                  <RingForm
+                    onUpdate={(newConfig: RingConfig) =>
+                      handleTrackConfigUpdate(index, newConfig)
+                    }
+                    defaultConfig={track.config}
+                  />
                 </TabPanel>
               );
             }

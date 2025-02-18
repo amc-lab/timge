@@ -37,7 +37,7 @@ data = [
 
 
 def format_genome(genome, format) -> list[dict]:
-    if format == "karyotype":
+    if format == "karyotype" or format == "ring":
         return format_karyotype(genome)
     elif format == "cytoband":
         return format_cytoband(genome)
@@ -79,7 +79,6 @@ def format_karyotype(genome) -> list[dict]:
 
             for line in lines:
                 line = line.strip()
-                print(current_chromosome)
 
                 if line.startswith(">"):
                     if current_chromosome:

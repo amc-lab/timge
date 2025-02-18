@@ -68,6 +68,9 @@ interface RingConfig {
   metricPrefix: string;
   tickTextPadding: number;
   axisLabelFontSize: number;
+  showAxis: boolean;
+  gridPadding: number;
+  hide: boolean;
 }
 
 interface GlobalConfig {

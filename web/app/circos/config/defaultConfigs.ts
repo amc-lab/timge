@@ -9,7 +9,7 @@ export const defaultAssemblyConfig = {
   tickTextPadding: 2,
   precision: 1,
   useStroke: true,
-  metricPrefix: "M",
+  metricPrefix: "k",
 };
 
 export const defaultChordConfig = {
@@ -28,18 +28,17 @@ export const defaultBarConfig = {
 
 export const defaultRingConfig = {
   innerRadius: 200,
-  trackPadding: 20,
+  trackPadding: 10,
   trackWidth: 24,
   axisLabelFontSize: 10,
   showAxis: false,
-  segmentInnerRadius: 200,
-  segmentTrackWidth: 40,
-  segmentGridPadding: 5,
+  gridPadding: 5,
   tickLength: 5,
   tickTextPadding: 2,
   precision: 1,
   useStroke: true,
-  metricPrefix: "M",
+  metricPrefix: "k",
+  hide: false,
 };
 
 export const defaultGlobalConfig = {

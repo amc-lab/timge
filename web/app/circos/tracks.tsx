@@ -22,7 +22,6 @@ const Tracks = ({ tracks }: TracksProps) => {
   }, [tracks]);
 
   useEffect(() => {
-    console.log(tracks);
     let minAvailableRadius = 160;
 
     const updatedTracks = [...tracks]
@@ -57,13 +56,20 @@ const Tracks = ({ tracks }: TracksProps) => {
           minAvailableRadius = track.config.outerRadius;
           return track;
         } else if (track.trackType === TrackType.Ring) {
+          if (track.config.hide) {
+            return track;
+          }
           const ringInnerRadius = minAvailableRadius;
           minAvailableRadius =
             ringInnerRadius +
             track.config.trackWidth +
-            track.config.trackPadding +
-            track.config.tickTextPadding +
-            track.config.axisLabelFontSize * 3;
+            track.config.trackPadding;
+          if (track.config.showAxis) {
+            minAvailableRadius += track.config.tickLength +
+             track.config.tickTextPadding +
+              track.config.axisLabelFontSize * 3 +
+              track.config.gridPadding;
+          }
           return {
             ...track,
             config: {

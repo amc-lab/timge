@@ -16,7 +16,7 @@ const Ring = ({ data, config, idx }: RingProps) => {
   const { sequences, divRef, globalConfig } = data;
 
   useEffect(() => {
-    if (!divRef.current || sequences.length === 0) return;
+    if (!divRef.current || sequences.length === 0 || config.hide ) return;
 
     let svg = d3.select(divRef.current).select("svg");
     if (svg.empty()) {
@@ -56,6 +56,21 @@ const Ring = ({ data, config, idx }: RingProps) => {
         .startAngle(startAngle)
         .endAngle(startAngle + angle);
 
+      const axisGridlineArc = d3
+        .arc()
+        .innerRadius(
+          config.innerRadius +
+          config.trackWidth +
+          config.gridPadding,
+        )
+        .outerRadius(
+          config.innerRadius +
+          config.trackWidth +
+          config.gridPadding,
+        )
+        .startAngle(startAngle)
+        .endAngle(startAngle + angle);
+
       group
         .append("path")
         .attr("d", arc as any)
@@ -82,10 +97,13 @@ const Ring = ({ data, config, idx }: RingProps) => {
         .range([startAngle, startAngle + angle]);
 
 
-      const precision_vals = [100, 250, 500];
+      if (config.showAxis) {
+        group.append("path").attr("d", axisGridlineArc).attr("stroke", "black");
+
+        const precision_vals = [100, 250, 500];
         const standardIntervalSizes = [
-            500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000,
-            1000000,
+          50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000,
+          1000000,
         ];
         const expectedTickPrecision =
             totalLength / precision_vals[config.precision];
@@ -142,7 +160,7 @@ const Ring = ({ data, config, idx }: RingProps) => {
             .attr(
             "transform",
             (d: { angle: number }) =>
-                `rotate(${(d.angle * 180) / Math.PI - 90}) translate(${config.innerRadius + config.trackWidth}, 0)`
+                `rotate(${(d.angle * 180) / Math.PI - 90}) translate(${config.innerRadius + config.trackWidth + config.gridPadding}, 0)`
             )
             .call((g) =>
             g
@@ -171,6 +189,7 @@ const Ring = ({ data, config, idx }: RingProps) => {
                 d.value?.toLocaleString()
                 )
             );
+          }
 
       startAngle += angle;
     });

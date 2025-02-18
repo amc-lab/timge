@@ -132,7 +132,7 @@ const Segment = ({ data, onSegmentsCreated, config, idx }: SegmentProps) => {
 
       const precision_vals = [100, 250, 500];
       const standardIntervalSizes = [
-        500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000,
+        50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000,
         1000000,
       ];
       const expectedTickPrecision =

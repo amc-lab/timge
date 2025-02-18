@@ -57,6 +57,8 @@ export default function Circos({ params }: CircosProps) {
   };
 
   const handleTrackConfigUpdate = (index: number, updatedConfig: any) => {
+    console.log("Updating track config", index, updatedConfig);
+    console.log("Previous Config", tracks[index].config);
     setTracks((prevTracks) => {
       const newTracks = [...prevTracks];
       newTracks[index] = { ...newTracks[index], config: updatedConfig };
