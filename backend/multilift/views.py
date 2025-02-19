@@ -100,8 +100,6 @@ def format_circos(request):
 
     track_types = json.loads(request.POST.get("track_types"))
     data_files = request.FILES.getlist("data_files")
-    print(track_types)
-    print(data_files)
     data = []
 
     for i in range(len(track_types)):

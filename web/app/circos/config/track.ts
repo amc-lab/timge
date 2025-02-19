@@ -3,6 +3,7 @@ export enum TrackType {
   Chord = "Chord",
   Bar = "Bar",
   Ring = "Ring",
+  Line = "Line",
 }
 
 export interface Track {

@@ -16,6 +16,7 @@ import {
   defaultBarConfig,
   defaultChordConfig,
   defaultGlobalConfig,
+  defaultLineConfig,
   defaultRingConfig,
 } from "./config/defaultConfigs";
 import FileUploadForm from "../../components/FileUploadForm";
@@ -94,6 +95,12 @@ export default function Circos({ params }: CircosProps) {
             data: { sequences: file.data, globalConfig, divRef: canvasRef },
             config: defaultRingConfig,
           };
+        case "line":
+          return {
+            trackType: TrackType.Line,
+            data: { values: file.data, globalConfig, divRef: canvasRef },
+            config: defaultLineConfig
+          }
         default:
           throw new Error("Invalid track type");
       }

@@ -172,4 +172,22 @@ def format_scatter(scatter) -> list[dict]:
 
 
 def format_line(line) -> list[dict]:
-    pass
+    line_format = line.name.split(".")[-1]
+    if line_format in ["bedgraph"]:
+        with StringIO(line.read().decode("utf-8")) as F:
+            lines = F.readlines()[1:]
+            data = []
+
+            for line in lines:
+                line = line.strip()
+                data.append(
+                    {
+                        "chrom": line.split("\t")[0],
+                        "chromStart": line.split("\t")[1],
+                        "chromEnd": line.split("\t")[2],
+                        "value": float(line.split("\t")[3]),
+                    }
+                )
+            return data
+    else:
+        return []

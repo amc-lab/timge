@@ -41,6 +41,14 @@ export const defaultRingConfig = {
   hide: false,
 };
 
+export const defaultLineConfig = {
+  trackPadding: 5,
+  trackWidth: 40,
+  hide: false,
+  innerRadius: 200,
+  colour: "#03c9a9",
+};
+
 export const defaultGlobalConfig = {
   canvasWidth: 750,
   canvasHeight: 750,

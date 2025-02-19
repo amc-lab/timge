@@ -4,6 +4,7 @@ import Chords from "./components/chord";
 import Bar from "./components/bar";
 import { Track, TrackType } from "./config/track";
 import Ring from "./components/ring";
+import Line from "./components/line";
 
 interface TracksProps {
   tracks: Array<Track>;
@@ -18,6 +19,7 @@ const Tracks = ({ tracks }: TracksProps) => {
   };
 
   useEffect(() => {
+    console.log("Setting track data", tracks);
     setTrackData(tracks);
   }, [tracks]);
 
@@ -77,7 +79,20 @@ const Tracks = ({ tracks }: TracksProps) => {
               innerRadius: ringInnerRadius,
             },
           };
+        } else if (track.trackType === TrackType.Line) {
+          const lineInnerRadius = minAvailableRadius;
+          minAvailableRadius +=
+            track.config.trackWidth +
+            track.config.trackPadding;
+          return {
+            ...track,
+            config: {
+              ...track.config,
+              innerRadius: lineInnerRadius,
+            },
+          };
         }
+        return track;
       })
       .reverse();
 
@@ -124,6 +139,17 @@ const Tracks = ({ tracks }: TracksProps) => {
         else if (track.trackType === TrackType.Ring) {
           return (
             <Ring
+              key={index}
+              data={track.data}
+              config={track.config}
+              segments={segmentData}
+              idx={index}
+            />
+          )
+        }
+        else if (track.trackType === TrackType.Line) {
+          return (
+            <Line
               key={index}
               data={track.data}
               config={track.config}

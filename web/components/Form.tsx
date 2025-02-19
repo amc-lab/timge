@@ -18,6 +18,7 @@ import { BarForm } from "./BarForm";
 import { Track, TrackType } from "../app/circos/config/track";
 import { defaultGlobalConfig } from "../app/circos/config/defaultConfigs";
 import { RingForm } from "./RingForm";
+import { LineForm } from "./LineForm";
 
 interface FormProps {
   tracks: Array<Track>;
@@ -95,6 +96,17 @@ const Form: React.FC<FormProps> = ({
                 <TabPanel key={index} value={index}>
                   <RingForm
                     onUpdate={(newConfig: RingConfig) =>
+                      handleTrackConfigUpdate(index, newConfig)
+                    }
+                    defaultConfig={track.config}
+                  />
+                </TabPanel>
+              );
+            } else if (track.trackType === TrackType.Line) {
+              return (
+                <TabPanel key={index} value={index}>
+                  <LineForm
+                    onUpdate={(newConfig: any) =>
                       handleTrackConfigUpdate(index, newConfig)
                     }
                     defaultConfig={track.config}
