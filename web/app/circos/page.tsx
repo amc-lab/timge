@@ -105,7 +105,11 @@ export default function Circos({ params }: CircosProps) {
           throw new Error("Invalid track type");
       }
     });
-
+    // newTracks.push({
+    //   trackType: TrackType.Highlight,
+    //   data: {divRef: canvasRef, globalConfig},
+    //   config: {},
+    // },);
     setTracks(newTracks);
   };
 
