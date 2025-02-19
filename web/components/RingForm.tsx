@@ -133,12 +133,6 @@ export const RingForm: React.FC<RingFormProps> = ({
             value={config.precision}
             onChange={(e, value) => handleConfigChange("precision", value)}
           />
-          <label>Use Stroke</label>
-          <Checkbox
-            label=""
-            checked={config.useStroke}
-            onChange={(e) => handleConfigChange("useStroke", e.target.checked)}
-          />
           <label>Metric Prefix</label>
           <Select
             // defaultValue="k"
