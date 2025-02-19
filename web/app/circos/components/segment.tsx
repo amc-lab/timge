@@ -87,7 +87,8 @@ const Segment = ({ data, onSegmentsCreated, config, idx }: SegmentProps) => {
 
       group
         .append("path")
-        .attr("fill", (d) => colorPalette(d.index / segments.length))
+        .attr("fill","#c2c2c2")
+        // .attr("fill", (d) => colorPalette(d.index / segments.length))
         .attr("d", arc)
         .attr("stroke", `${config.useStroke ? "black" : "none"}`)
         .on("mouseover", (event, d) => {
@@ -105,7 +106,8 @@ const Segment = ({ data, onSegmentsCreated, config, idx }: SegmentProps) => {
         // segment: segments[d.index],
         chromosome: segments[d.index].chromosome,
         length: segments[d.index].end - segments[d.index].start,
-        colour: d3.color(colorPalette(d.index / segments.length)).formatHex(),
+        // colour: d3.color(colorPalette(d.index / segments.length)).formatHex(),
+        colour: "#ababab",
       }));
 
       if (onSegmentsCreated) {

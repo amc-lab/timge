@@ -81,7 +81,7 @@ export const AssemblyForm: React.FC<AssemblyFormProps> = ({
           <Slider
             valueLabelDisplay="auto"
             variant="solid"
-            min={1}
+            min={0}
             max={5}
             step={1}
             value={config.segmentGridPadding}

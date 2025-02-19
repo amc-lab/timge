@@ -141,7 +141,7 @@ export const RingForm: React.FC<RingFormProps> = ({
           />
           <label>Metric Prefix</label>
           <Select
-            defaultValue="M"
+            // defaultValue="k"
             onChange={(e, value) => handleConfigChange("metricPrefix", value)}
             size="sm"
           >

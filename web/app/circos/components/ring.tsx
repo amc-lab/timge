@@ -9,14 +9,15 @@ interface RingProps {
     divRef: any;
   };
   config: RingConfig;
+  segments: Array<any>;
   idx: number;
 }
 
-const Ring = ({ data, config, idx }: RingProps) => {
+const Ring = ({ data, config, segments, idx }: RingProps) => {
   const { sequences, divRef, globalConfig } = data;
 
   useEffect(() => {
-    if (!divRef.current || sequences.length === 0 || config.hide ) return;
+    if (!divRef.current || sequences.length === 0 || segments.length === 0 || config.hide ) return;
 
     let svg = d3.select(divRef.current).select("svg");
     if (svg.empty()) {
@@ -47,7 +48,9 @@ const Ring = ({ data, config, idx }: RingProps) => {
     let startAngle = 0;
     sequences.forEach((segment, i) => {
       const segmentLength = segment.end - segment.start;
-      const angle = (segmentLength / totalLength) * 2 * Math.PI;
+      console.log(segments);
+      // const angle = (segmentLength / totalLength) * 2 * Math.PI;
+      const angle = (segmentLength / segments[i].length) * (segments[i].endAngle - segments[i].startAngle);
 
       const arc = d3
         .arc()
@@ -74,8 +77,14 @@ const Ring = ({ data, config, idx }: RingProps) => {
       group
         .append("path")
         .attr("d", arc as any)
-        .attr("fill", d3.interpolateSpectral(i / sequences.length))
-        .attr("stroke", "black");
+        .attr("fill", d3.interpolateSpectral(idx / 5))
+        .attr("stroke", "black")
+        .on("mouseover", (event, d) => {
+          d3.select(event.currentTarget).attr("filter", "brightness(0.95)");
+        })
+        .on("mouseout", (event, d) => {
+          d3.select(event.currentTarget).attr("filter", "brightness(1)");
+        });
 
         group
         .append("text")
@@ -193,7 +202,7 @@ const Ring = ({ data, config, idx }: RingProps) => {
 
       startAngle += angle;
     });
-  }, [sequences, config, globalConfig]);
+  }, [sequences, config, segments, globalConfig]);
 
   return null;
 };

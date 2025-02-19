@@ -127,6 +127,7 @@ const Tracks = ({ tracks }: TracksProps) => {
               key={index}
               data={track.data}
               config={track.config}
+              segments={segmentData}
               idx={index}
             />
           )

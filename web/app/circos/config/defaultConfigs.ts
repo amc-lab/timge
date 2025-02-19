@@ -4,7 +4,7 @@ export const defaultAssemblyConfig = {
   showAxis: true,
   segmentInnerRadius: 200,
   segmentTrackWidth: 40,
-  segmentGridPadding: 5,
+  segmentGridPadding: 0,
   tickLength: 5,
   tickTextPadding: 2,
   precision: 1,
