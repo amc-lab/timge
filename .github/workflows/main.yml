@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - feature/31-update-multilift-form-ui
+      - feature/33-implement-visualisation-of-additional-genomes-relative-to-consensus
 
 jobs:
   build-and-deploy:

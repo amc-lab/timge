@@ -4,12 +4,12 @@ export const defaultAssemblyConfig = {
   showAxis: true,
   segmentInnerRadius: 200,
   segmentTrackWidth: 40,
-  segmentGridPadding: 5,
+  segmentGridPadding: 0,
   tickLength: 5,
   tickTextPadding: 2,
   precision: 1,
   useStroke: true,
-  metricPrefix: "M",
+  metricPrefix: "k",
 };
 
 export const defaultChordConfig = {
@@ -24,6 +24,21 @@ export const defaultBarConfig = {
   innerRadius: 200,
   trackPadding: 10,
   trackWidth: 24,
+};
+
+export const defaultRingConfig = {
+  innerRadius: 200,
+  trackPadding: 10,
+  trackWidth: 24,
+  axisLabelFontSize: 10,
+  showAxis: false,
+  gridPadding: 5,
+  tickLength: 5,
+  tickTextPadding: 2,
+  precision: 1,
+  useStroke: true,
+  metricPrefix: "k",
+  hide: false,
 };
 
 export const defaultGlobalConfig = {

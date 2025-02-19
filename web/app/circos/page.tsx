@@ -16,6 +16,7 @@ import {
   defaultBarConfig,
   defaultChordConfig,
   defaultGlobalConfig,
+  defaultRingConfig,
 } from "./config/defaultConfigs";
 import FileUploadForm from "../../components/FileUploadForm";
 import { Box, Button } from "@mui/joy";
@@ -56,6 +57,8 @@ export default function Circos({ params }: CircosProps) {
   };
 
   const handleTrackConfigUpdate = (index: number, updatedConfig: any) => {
+    console.log("Updating track config", index, updatedConfig);
+    console.log("Previous Config", tracks[index].config);
     setTracks((prevTracks) => {
       const newTracks = [...prevTracks];
       newTracks[index] = { ...newTracks[index], config: updatedConfig };
@@ -84,6 +87,12 @@ export default function Circos({ params }: CircosProps) {
             trackType: TrackType.Chord,
             data: { chords: file.data, globalConfig, divRef: canvasRef },
             config: defaultChordConfig,
+          };
+        case "ring":
+          return {
+            trackType: TrackType.Ring,
+            data: { sequences: file.data, globalConfig, divRef: canvasRef },
+            config: defaultRingConfig,
           };
         default:
           throw new Error("Invalid track type");

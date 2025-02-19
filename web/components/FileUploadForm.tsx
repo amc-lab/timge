@@ -17,7 +17,7 @@ interface FileUploadFormProps {
 const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
   const [files, setFiles] = useState<FileEntry[]>([]);
 
-  const _trackTypes = ["karyotype", "bar", "link"];
+  const _trackTypes = ["karyotype", "bar", "link", "ring"];
 
   const handleFileUpload = (file: File) => {
     const reader = new FileReader();
@@ -85,24 +85,27 @@ const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
 
     const formData = new FormData();
     formData.append("track_types", JSON.stringify(files.map((file) => file.trackType)));
-    let marked = false;
     files.forEach((file) => {
-      console.log(file.name.split("."));
-      if (file.name.split(".")[1] == "json") {
-        console.log(file);
-        circosFiles.push({
-          data: file.data,
-          trackType: file.trackType,
-        })
-        marked = true;
-      } else {
-        formData.append("data_files", new Blob([file.data]), file.name);
-      }
+      formData.append("data_files", new Blob([file.data]), file.name);
     });
+    // let marked = false;
+    // files.forEach((file) => {
+    //   console.log(file.name.split("."));
+    //   if (file.name.split(".")[1] == "json") {
+    //     console.log(file);
+    //     circosFiles.push({
+    //       data: file.data,
+    //       trackType: file.trackType,
+    //     })
+    //     marked = true;
+    //   } else {
+    //     formData.append("data_files", new Blob([file.data]), file.name);
+    //   }
+    // });
 
-    if (marked) {
-      onSubmit(circosFiles);
-    }
+    // if (marked) {
+    //   onSubmit(circosFiles);
+    // }
 
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
 

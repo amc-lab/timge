@@ -40,7 +40,7 @@ const Multilift: React.FC = () => {
   const [genomes, setGenomes] = useState({});
   const [genomeInput, setGenomeInput] = useState<string>("");
   const [sequences, setSequences] = useState({});
-  const [groups, setGroups] = useState<string[]>(["Group1"]);
+  const [groups, setGroups] = useState<string[]>(["Consensus"]);
   const [liftoverTracks, setLiftoverTracks] = useState<
     { file: File; genome: string | null }[]
   >([]);
@@ -89,7 +89,7 @@ const Multilift: React.FC = () => {
 
           setSequences((prevSequences) => ({
             ...prevSequences,
-            [key]: seq[3],
+            [key]: "Consensus",
           }));
         }
       })
@@ -160,7 +160,6 @@ const Multilift: React.FC = () => {
         formData.append("genome_files", file);
       }
     });
-
     formData.append("sequences", JSON.stringify(sequences));
     formData.append("groups", JSON.stringify(groups));
     formData.append("aligner", "mafft");
@@ -188,14 +187,8 @@ const Multilift: React.FC = () => {
       .then((response) => {
         setShowLoadingBar(false);
         if (!response.ok) {
-          // setAlertMessage(response.)
-          // setAlertSeverity("error");
-          // setAlertOpen(true);
           throw new Error(`HTTP error! status: ${response.status}`);
         } else {
-          // setAlertMessage("Alignment generated successfully");
-          // setAlertSeverity("success");
-          // setAlertOpen(true);
         }
         return response.blob();
       })
@@ -321,23 +314,6 @@ const Multilift: React.FC = () => {
                     }}
                   >
                   {Object.keys(genomes).map((genome) => (
-                    // <Card
-                    //   key={genome}
-                    //   sx={{
-                    //     padding: "1em",
-                    //     marginBottom: "0.5em",
-                    //   }}
-                    // >
-                    //   <Typography>{`Upload files for genome: ${genome}`}</Typography>
-                    //   <input
-                    //     type="file"
-                    //     onChange={(e) => {
-                    //       if (e.target.files) {
-                    //         addGenomeFile(genome, e.target.files[0]);
-                    //       }
-                    //     }}
-                    //   />
-                    // </Card>
                     <GenomeFileUploadBox
                       key={genome}
                       genome={genome}
@@ -370,25 +346,6 @@ const Multilift: React.FC = () => {
                         gap: "1em",
                       }}
                     >
-                      {/* {Object.keys(genomes).map((genome) => (
-                        // <Card
-                        //   key={genome}
-                        //   sx={{
-                        //     padding: "1em",
-                        //     marginBottom: "0.5em",
-                        //   }}
-                        // >
-                        //   <Typography>{`Upload data tracks for genome: ${genome}`}</Typography>
-                        //   <input
-                        //     type="file"
-                        //     multiple
-                        //     onChange={(e) =>
-                        //       handleLiftoverTrackUpload(e.target.files, genome)
-                        //     }
-                        //   />
-                        // </Card>
-
-                      ))} */}
                         <>
                           <DataTrackFileUploadBox
                             onDataTrackFileUpload={(fileList) =>
@@ -447,7 +404,7 @@ const Multilift: React.FC = () => {
 
             {Object.keys(sequences).length > 0 && (
               <Box>
-                <Accordion defaultExpanded>
+                {/* <Accordion defaultExpanded>
                   <AccordionSummary
                     sx={{
                       height: "4em",
@@ -466,7 +423,6 @@ const Multilift: React.FC = () => {
                       <Box key={index} mt={2}>
                         <Typography>{group}</Typography>
                         <FormControl fullWidth>
-                          {/* <InputLabel>Select Sequences</InputLabel> */}
                           <Select
                             multiple
                             value={Object.keys(sequences).filter(
@@ -541,7 +497,7 @@ const Multilift: React.FC = () => {
                       </Button>
                     </Box>
                   </AccordionDetails>
-                </Accordion>
+                </Accordion> */}
                 <Box>
                   <Button
                     variant="solid"

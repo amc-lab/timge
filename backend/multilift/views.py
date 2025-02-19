@@ -56,6 +56,7 @@ def run_multilift(request):
     aligner = request.POST.get("aligner")
 
     multilift_sequences = generate_multilift_sequences(genomes, genome_files, sequences)
+    print(multilift_sequences)
     res = multilift(
         download_format,
         False,
@@ -99,6 +100,8 @@ def format_circos(request):
 
     track_types = json.loads(request.POST.get("track_types"))
     data_files = request.FILES.getlist("data_files")
+    print(track_types)
+    print(data_files)
     data = []
 
     for i in range(len(track_types)):
