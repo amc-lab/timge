@@ -30,6 +30,13 @@ export interface RingData {
   end: number;
 }
 
+export interface LineData {
+  chromosome: string;
+  chromStart: number;
+  chromEnd: number;
+  value: number;
+}
+
 interface AssemblyConfig {
   segmentPadding: number;
   axisLabelFontSize: number;
@@ -70,6 +77,14 @@ interface RingConfig {
   axisLabelFontSize: number;
   showAxis: boolean;
   gridPadding: number;
+  hide: boolean;
+}
+
+interface LineConfig {
+  innerRadius: number;
+  trackWidth: number;
+  trackPadding: number;
+  colour?: string;
   hide: boolean;
 }
 

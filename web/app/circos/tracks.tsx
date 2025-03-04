@@ -3,7 +3,9 @@ import Segment from "./components/segment";
 import Chords from "./components/chord";
 import Bar from "./components/bar";
 import { Track, TrackType } from "./config/track";
+import Highlight from "./components/highlight"; // Ensure this is the correct path to your Highlight component
 import Ring from "./components/ring";
+import Line from "./components/line";
 
 interface TracksProps {
   tracks: Array<Track>;
@@ -18,8 +20,16 @@ const Tracks = ({ tracks }: TracksProps) => {
   };
 
   useEffect(() => {
+    console.log("Setting track data", tracks);
     setTrackData(tracks);
   }, [tracks]);
+
+  const [totalRadius, setTotalRadius] = useState(160);
+
+  useEffect(() => {
+    console.log(totalRadius);
+  }
+  , [totalRadius]);
 
   useEffect(() => {
     let minAvailableRadius = 160;
@@ -77,7 +87,21 @@ const Tracks = ({ tracks }: TracksProps) => {
               innerRadius: ringInnerRadius,
             },
           };
+        } else if (track.trackType === TrackType.Line) {
+          const lineInnerRadius = minAvailableRadius;
+          minAvailableRadius +=
+            track.config.trackWidth +
+            track.config.trackPadding;
+          return {
+            ...track,
+            config: {
+              ...track.config,
+              innerRadius: lineInnerRadius,
+            },
+          };
         }
+        setTotalRadius(minAvailableRadius);
+        return track;
       })
       .reverse();
 
@@ -132,6 +156,33 @@ const Tracks = ({ tracks }: TracksProps) => {
             />
           )
         }
+        else if (track.trackType === TrackType.Line) {
+          return (
+            <Line
+              key={index}
+              data={track.data}
+              config={track.config}
+              segments={segmentData}
+              idx={index}
+            />
+          )
+        }
+        else if (track.trackType === TrackType.Highlight) {
+          return (
+            <Highlight
+              key={index}
+              divRef={track.data.divRef}
+              segmentStartIdx={0}
+              segmentEndIdx={0}
+              segmentStartPos={2000}
+              segmentEndPos={5000}
+              totalRadius={totalRadius}
+              segments={segmentData}
+              globalConfig={track.data.globalConfig}
+            />
+          );
+        }
+        return null;
         return null;
       })}
     </>
