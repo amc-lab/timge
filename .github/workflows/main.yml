@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - feature/33-implement-visualisation-of-additional-genomes-relative-to-consensus
-
+      - feature/36-setup-skeleton-for-landing-page
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest

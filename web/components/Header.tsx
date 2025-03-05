@@ -37,7 +37,7 @@ const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, impo
                         <DropdownMenu 
                             label="File" 
                             items={[
-                                { text: "Import tracks", action: importTracks },
+                                { text: "Import tracks", action: importTracks},
                                 { text: "Configure tracks", link: "/new" },
                             ]}
                         />

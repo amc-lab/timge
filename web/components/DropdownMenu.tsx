@@ -1,22 +1,33 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Box, Menu, MenuItem, Button } from "@mui/joy";
 import Link from "next/link";
 
 interface DropdownMenuProps {
   label: string;
-  items: { text: string; link?: string, action?: () => void }[];
+  items: { 
+    text: string,
+    link?: string, 
+    action?: () => void,
+  }[];
 }
 
 const DropdownMenu: React.FC<DropdownMenuProps> = ({ label, items }) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const handleMouseEnter = (event: React.MouseEvent<HTMLDivElement>) => {
     setAnchorEl(event.currentTarget);
   };
 
   const handleMouseLeave = () => {
     setAnchorEl(null);
+  };
+
+  const triggerFileSelect = () => {
+    if (inputRef.current) {
+      inputRef.current.click();
+    }
   };
 
   return (
@@ -49,20 +60,19 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ label, items }) => {
         {items.map((item, index) => (
           <MenuItem key={index} onClick={handleMouseLeave}>
             {item.action ? (
-                <Box onClick={item.action}
-                    sx={{
-                        background: "none",
-                        color: "black",
-                    }}
+                <Box
+                  onClick={item.action}
+                  sx={{
+                    background: "none",
+                    color: "black",
+                  }}
                 >
-                    {item.text}
+                  {item.text}
                 </Box>
-            ) : (
-                <Link href={item.link
-            }>
-              {item.text}
-            </Link>
-            )}
+              ) : (
+              <Link href={item.link}>{item.text}</Link>
+              )
+            }
           </MenuItem>
         ))}
       </Menu>
