@@ -46,10 +46,10 @@ export const defaultLineConfig = {
   trackWidth: 40,
   hide: false,
   innerRadius: 200,
-  colour: "#03c9a9",
+  colour: "#000000",
 };
 
 export const defaultGlobalConfig = {
-  canvasWidth: 750,
-  canvasHeight: 750,
+  canvasWidth: 650,
+  canvasHeight: 650,
 };
