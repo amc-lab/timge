@@ -1,3 +1,4 @@
+"use client";
 import { useState, useEffect } from "react";
 import Segment from "./components/segment";
 import Chords from "./components/chord";

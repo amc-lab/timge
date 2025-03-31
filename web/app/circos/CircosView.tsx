@@ -1,6 +1,6 @@
+"use client"
 import { Box, IconButton } from "@mui/joy";
 import { Track, TrackType } from "./config/track";
-import {type Assembly} from "../types/genomes";
 import { useState } from "react";
 import Tracks from "./tracks";
 import { defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig, defaultLineConfig } from "./config/defaultConfigs";
@@ -74,7 +74,7 @@ const CircosView = (props: CircosViewProps) => {
         });
         setTracks(updatedTracks);
     }
-    , [props]);
+    , [props.trackFiles]);
     
     return (
         <Box

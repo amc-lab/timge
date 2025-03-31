@@ -1,3 +1,4 @@
+"use client"
 import Link from 'next/link';
 import Image from 'next/image';
 import { Box } from '@mui/joy';
@@ -23,9 +24,12 @@ interface HeaderProps {
     addLinearGenomeView: () => void;
     addCircosView: () => void;
     importTracks: () => void;
+    importState: () => void;
+    exportState: () => void;
+    resetState: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, importTracks}) => {
+const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, importTracks, importState, exportState, resetState}) => {
     return (
         <header className="bg-black text-white p-2 flex justify-between items-center">
             <nav>
@@ -37,8 +41,10 @@ const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, impo
                         <DropdownMenu 
                             label="File" 
                             items={[
-                                { text: "Import tracks", action: importTracks},
-                                { text: "Configure tracks", link: "/new" },
+                                { text: "Upload tracks", action: importTracks},
+                                { text: "Import state", action: importState },
+                                { text: "Export state", action: exportState },
+                                { text: "Reset", action: resetState },
                             ]}
                         />
                     </li>
