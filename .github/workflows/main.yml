@@ -6,7 +6,7 @@ on:
       - main
       - feature/33-implement-visualisation-of-additional-genomes-relative-to-consensus
       - feature/36-setup-skeleton-for-landing-page
-      - feature/40-setup-exportable-state-represetation-for-workspace
+      - feature/40-setup-exportable-state-representation-for-workspace
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
