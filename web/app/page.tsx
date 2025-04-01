@@ -83,16 +83,37 @@ export default function Page() {
     URL.revokeObjectURL(url);
   }
 
+  function deleteTrack(trackName: string) {
+    setTracks(tracks.filter((track) => track.name !== trackName));
+    setSpaceState({
+      ...spaceState,
+      dataFiles: spaceState.dataFiles.filter((file) => file !== trackName),
+    });
+    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+    fetch(`${host}/api/timge/delete_track/?uuid=${spaceState.UUID}&track_name=${trackName}`, {
+      method: "DELETE",
+    })
+    .then((response) => response.json())
+    .then((data) => {
+      if (data.status === "success") {
+        console.log("Track deleted successfully");
+      } else {
+        console.error("Error deleting track:", data.message);
+      }
+    })
+  }
+
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [tracks, setTracks] = useState([]);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [genomeFormOpen, setGenomeFormOpen] = useState(false);
   const [spaceState, setSpaceState] = useState<State>(() => loadState());
 
+  // Update the space state in local storage whenever it changes
   useEffect(() => {
     saveState(spaceState);
   }, [spaceState]);
 
+  // Get track files from the backend on initial load
   useEffect(() => {
     const getTrackFiles = () => {
       const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
@@ -110,7 +131,7 @@ export default function Page() {
               trackType: fileFormatMapping[file.name.split('.').pop()],
             }));
   
-            setTracks(trackFiles);
+            setFiles(trackFiles);
   
           } else {
             console.error("Error fetching tracks:", data.message);
@@ -123,7 +144,37 @@ export default function Page() {
   
     getTrackFiles();
   }, []);
-  
+
+  // Update the tracks whenever the files change
+  useEffect(() => {
+    let circosFiles = [];
+
+    const formData = new FormData();
+    formData.append("track_types", JSON.stringify(files.map((file) => fileFormatMapping[file.name.split(".").pop()])));
+    files.forEach((file) => {
+      formData.append("data_files", new Blob([file.data]), file.name);
+    });
+
+    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+    fetch(`${host}/api/multilift/circos/`, {
+      method: "POST",
+      body: formData,
+    })
+    .then((response) => response.json())
+    .then((data) => {
+      for (let i = 0; i < data.length; i++) {
+        circosFiles.push({
+          data: data[i],
+          name: files[i].name,
+          trackType: fileFormatMapping[files[i].name.split(".").pop()],
+        });
+      }      
+    })
+    .then(() => {
+      setTracks([...tracks, ...circosFiles]);
+    });
+  }
+  , [files]);
 
   const addLinearGenomeView = () => {
     const newView = {
@@ -144,9 +195,6 @@ export default function Page() {
   }
 
   const addCircosView = () => {
-    const newView = {
-      viewType: "CircosView",
-    }
     setSpaceState({
       ...spaceState,
       views: [
@@ -161,6 +209,7 @@ export default function Page() {
     });
   }
 
+  // When importing a state, set the space state to the imported state and fetch the tracks from the backend
   const importState = () => {
     const fileInput = document.createElement("input");
     fileInput.type = "file";
@@ -191,7 +240,7 @@ export default function Page() {
                   size: file.size,
                   trackType: fileFormatMapping[file.name.split('.').pop()],
                 }));
-                setTracks(trackFiles);
+                setFiles(trackFiles);
               } else {
                 console.error("Error fetching tracks:", data.message);
               }
@@ -209,36 +258,6 @@ export default function Page() {
 
   const importTracks = () => {
     setGenomeFormOpen(true);
-  }
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files);
-    let circosFiles = [];
-
-    const formData = new FormData();
-    formData.append("track_types", JSON.stringify(files.map((file) => fileFormatMapping[file.name.split(".").pop()])));
-    files.forEach((file) => {
-      formData.append("data_files", new Blob([file]), file.name);
-    });
-
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/multilift/circos/`, {
-      method: "POST",
-      body: formData,
-    })
-    .then((response) => response.json())
-    .then((data) => {
-      for (let i = 0; i < data.length; i++) {
-        circosFiles.push({
-          data: data[i],
-          name: files[i].name,
-          trackType: fileFormatMapping[files[i].name.split(".").pop()],
-        });
-      }      
-    })
-    .then(() => {
-      setTracks([...tracks, ...circosFiles]);
-    });
   }
 
   return <>
@@ -267,43 +286,23 @@ export default function Page() {
         setSpaceState(getDefaultState());
       }}
     />
+    
     <TrackUploadForm 
       isOpen={genomeFormOpen} 
       onClose={() => setGenomeFormOpen(false)} 
       tracks={tracks}
-      onDeleteTrack={(trackName: string) => {
-        setTracks(tracks.filter((track) => track.name !== trackName));
-        setSpaceState({
-          ...spaceState,
-          dataFiles: spaceState.dataFiles.filter((file) => file !== trackName),
-        });
-        const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-        fetch(`${host}/api/timge/delete_track/?uuid=${spaceState.UUID}&track_name=${trackName}`, {
-          method: "DELETE",
-        })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.status === "success") {
-            console.log("Track deleted successfully");
-          } else {
-            console.error("Error deleting track:", data.message);
-          }
-        }
-        )
-      }}
-      onTrackUpload={(files: File[]) => {
-        const newTracks = files.map((file) => ({
+      onDeleteTrack={deleteTrack}
+      onTrackUpload={(data_files: File[]) => {
+        const newTracks = data_files.map((file) => ({
           name: file.name,
           data: file,
           trackType: fileFormatMapping[file.name.split(".").pop()],
         }));
-        setTracks([...tracks, ...newTracks]);
+        setFiles(newTracks);
         setSpaceState({
           ...spaceState,
-          dataFiles: [
-            ...spaceState.dataFiles,
-            ...newTracks.map((track) => track.name),
-          ],
+          dataFiles:
+            newTracks.map((track) => track.name),
         });
         const formData = new FormData();
         newTracks.forEach((track) => {
@@ -327,7 +326,6 @@ export default function Page() {
         );
       }}
     />
-    <input type="file" ref={fileInputRef} onChange={handleFileChange} style={{ display: "none" }} />
       {
         spaceState.views.map((view, index) => {
           if (view.type === "linear") {
@@ -335,6 +333,8 @@ export default function Page() {
             // return <JBrowseLinearGenomeView key={index} viewState={viewState} />
           }
           else if (view.type === "circos") {
+            console.log("View", view);
+            console.log("Tracks", tracks);
             return <CircosView key={index} trackFiles={tracks} />
           }
         })

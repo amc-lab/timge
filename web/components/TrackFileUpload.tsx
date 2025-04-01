@@ -2,6 +2,7 @@ import React from "react";
 import { useDropzone } from "react-dropzone";
 import { Card, Typography } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import { useRef } from "react";
 
 interface DataTrackFileUploadBoxProps {
     onDataTrackFileUpload: (fileList: FileList) => void;

@@ -16,6 +16,8 @@ const CircosView = (props: CircosViewProps) => {
    const canvasRef = useRef<HTMLDivElement>(null);
    const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
 
+    console.log("CircosView props", props.trackFiles);
+
      useEffect(() => {
        if (canvasRef.current) {
          const svg = d3.select(canvasRef.current).select("svg");
@@ -75,6 +77,23 @@ const CircosView = (props: CircosViewProps) => {
         setTracks(updatedTracks);
     }
     , [props.trackFiles]);
+
+    if (!tracks || tracks.length === 0) {
+        return (
+            <Box
+                sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    width: "100%",
+                    height: "100%",
+                    backgroundColor: "white",
+                }}
+            >
+                <p>No tracks to display</p>
+            </Box>
+        );
+    }
     
     return (
         <Box
