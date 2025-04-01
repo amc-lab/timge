@@ -4,8 +4,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import os
 import mimetypes
+from django.conf import settings
 
-TRACK_ROOT_DIR = "/Users/mithun/Documents/Imperial/Year 4/FYP/uploaded_data/"
+TRACK_ROOT_DIR = settings.TRACK_ROOT_DIR
 
 
 @csrf_exempt
@@ -23,6 +24,7 @@ def upload_tracks(request):
         uuid = request.POST.get("uuid")
 
         # make directory for the uuid
+        print("Track root dir:", TRACK_ROOT_DIR)
         directory = os.path.join(TRACK_ROOT_DIR, uuid)
         if not os.path.exists(directory):
             os.makedirs(directory)

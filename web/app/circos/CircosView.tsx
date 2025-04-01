@@ -1,5 +1,5 @@
 "use client"
-import { Box, IconButton } from "@mui/joy";
+import { Box, Button, IconButton } from "@mui/joy";
 import { Track, TrackType } from "./config/track";
 import { useState } from "react";
 import Tracks from "./tracks";
@@ -7,9 +7,15 @@ import { defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig, default
 import { useRef, useEffect } from "react";
 import MenuIcon from "@mui/icons-material/Menu";
 import * as d3 from "d3";
+import ParentView from "@/components/ParentView";
+import TrackSelector from "./components/TrackSelector";
+import { View } from "../types/state";
 
 interface CircosViewProps {
     trackFiles: any[];
+    viewConfig: View;
+    handleViewUpdate: (index, viewState: View) => void;
+    index: number;
 }
 
 const CircosView = (props: CircosViewProps) => {
@@ -34,6 +40,7 @@ const CircosView = (props: CircosViewProps) => {
      }, [globalConfig]);
 
    const [tracks, setTracks] = useState<Track[]>([]);
+   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
 
     useEffect(() => {
         console.log("Setting track data", props.trackFiles);
@@ -78,65 +85,66 @@ const CircosView = (props: CircosViewProps) => {
     }
     , [props.trackFiles]);
 
-    if (!tracks || tracks.length === 0) {
+    const [isTrackSelectorOpen, setIsTrackSelectorOpen] = useState(false);
+    const handleTrackSelectorClose = () => {
+        setIsTrackSelectorOpen(false);
+    };
+
+    if (selectedTracks.length === 0) {
         return (
-            <Box
-                sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    width: "100%",
-                    height: "100%",
-                    backgroundColor: "white",
-                }}
+            <ParentView
+                viewConfig={props.viewConfig}
             >
-                <p>No tracks to display</p>
-            </Box>
+                {
+                    isTrackSelectorOpen && (
+                        <TrackSelector
+                            tracks={tracks}
+                            trackFiles={props.trackFiles}
+                            onClose={handleTrackSelectorClose}
+                            onConfirm={(selectedTracks) => {
+                                setSelectedTracks(selectedTracks);
+                                setIsTrackSelectorOpen(false);
+                            }}
+                        />
+                    )
+                }
+                <Box
+                    sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        width: "100%",
+                        height: "100%",
+                        flexDirection: "column",
+                        flexGrow: 1,
+                        padding: 2,
+                    }}
+                >
+                    <p>No Tracks Selected</p>
+                    <Button
+                        color="primary"
+                        onClick={() => {
+                            setIsTrackSelectorOpen(true);
+                        }}
+                        sx={{
+                            marginTop: "10px",
+                        }}
+                    >
+                        Select Tracks
+                    </Button>
+                </Box>
+            </ParentView>
         );
     }
     
     return (
-        <Box
-            sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                width: "calc(100% - 5px)",
-                borderRadius: "3px",
-                margin: "2.5px",
-                flexDirection: "column",
-                backgroundColor: "white",
-                border: "4px solid darkblue",
-            }}
+        <ParentView
+            viewConfig={props.viewConfig}
         >
-            <Box
-                sx={{
-                    display: "flex",
-                    // justifyContent: "center",
-                    alignItems: "center",
-                    width: "100%",
-                    height: "2em",
-                    backgroundColor: "darkblue",
-                }}
-            >
-            <IconButton sx={{ color: "white", height: "2em", "&:hover": { background: "none", color: "white" } }}>
-                <MenuIcon />
-            </IconButton>
-            </Box>
-            <Box
-                sx={{
-                    backgroundColor: "white",
-                    borderRadius: "3px",
-                    width: "650px",
-                    height: "650px",  
-                    padding: "5px"  
-                }}
-            >
             <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
-                <Tracks tracks={tracks} />
+                <Tracks tracks={selectedTracks} />
               </div>
-            </Box>
-        </Box>
+        </ParentView>
     )
 }
 

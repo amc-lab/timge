@@ -4,8 +4,9 @@ import { ViewType } from './viewTypes';
 export interface View {
     id: string;
     type: ViewType;
-    name: string;
+    title: string;
     description: string;
+    config?: any;
 }
 
 export interface State {

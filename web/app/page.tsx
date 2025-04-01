@@ -187,7 +187,7 @@ export default function Page() {
         {
           id: `view-${spaceState.views.length + 1}`,
           type: ViewType.Linear,
-          name: `Linear Genome View ${spaceState.views.length + 1}`,
+          title: `Linear Genome View ${spaceState.views.length + 1}`,
           description: "Standard linear genome view",
         },
       ],
@@ -202,8 +202,9 @@ export default function Page() {
         {
           id: `view-${spaceState.views.length + 1}`,
           type: ViewType.Circos,
-          name: `Circos View ${spaceState.views.length + 1}`,
+          title: `Circos View ${spaceState.views.length + 1}`,
           description: "Circular genome view",
+          config: {},
         },
       ],
     });
@@ -258,6 +259,20 @@ export default function Page() {
 
   const importTracks = () => {
     setGenomeFormOpen(true);
+  }
+
+  const updateViewState = (index: number, updatedConfig: any) => {
+    setSpaceState((prevState) => {
+      const updatedViews = [...prevState.views];
+      updatedViews[index] = {
+        ...updatedViews[index],
+        ...updatedConfig,
+      };
+      return {
+        ...prevState,
+        views: updatedViews,
+      };
+    });
   }
 
   return <>
@@ -335,9 +350,10 @@ export default function Page() {
           else if (view.type === "circos") {
             console.log("View", view);
             console.log("Tracks", tracks);
-            return <CircosView key={index} trackFiles={tracks} />
+            return <CircosView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} />
           }
         })
       }
     </>;
+
 }
