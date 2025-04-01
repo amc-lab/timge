@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import os
+import mimetypes
 
 TRACK_ROOT_DIR = "/Users/mithun/Documents/Imperial/Year 4/FYP/uploaded_data/"
 
@@ -46,20 +47,36 @@ def get_tracks(request):
     Returns:
     - JsonResponse: A response containing the list of track files and their contents.
     """
-    if request.method == "GET":
-        uuid = request.GET.get("uuid")
-        directory = os.path.join(TRACK_ROOT_DIR, uuid)
-        if os.path.exists(directory):
-            track_files = {}
-            for file_name in os.listdir(directory):
-                file_path = os.path.join(directory, file_name)
-                with open(file_path, "r") as file:
-                    track_files[file_name] = file.read()
-            return JsonResponse({"status": "success", "track_files": track_files})
-        else:
-            os.makedirs(directory)
+    uuid = request.GET.get("uuid")
+    if not uuid:
+        return JsonResponse({"status": "error", "message": "Missing UUID."}, status=400)
+
+    directory = os.path.join(TRACK_ROOT_DIR, uuid)
+    if not os.path.exists(directory):
         return JsonResponse({"status": "success", "track_files": []})
-    return JsonResponse({"status": "error", "message": "Invalid request method."})
+
+    track_files = []
+    for file_name in os.listdir(directory):
+        file_path = os.path.join(directory, file_name)
+        if not os.path.isfile(file_path):
+            continue
+        try:
+            with open(file_path, "r") as file:
+                content = file.read()
+            size = os.path.getsize(file_path)
+            mime_type, _ = mimetypes.guess_type(file_path)
+            track_files.append(
+                {
+                    "name": file_name,
+                    "type": mime_type or "text/plain",
+                    "size": size,
+                    "content": content,
+                }
+            )
+        except Exception as e:
+            continue
+
+    return JsonResponse({"status": "success", "track_files": track_files})
 
 
 @csrf_exempt

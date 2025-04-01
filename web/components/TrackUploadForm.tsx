@@ -1,13 +1,20 @@
-import { Box, Button, Typography, Stack, Divider, Card, List, ListItem, ListItemButton } from "@mui/joy";
+import {
+  Box,
+  Button,
+  Typography,
+  Stack,
+  Divider,
+  Card,
+} from "@mui/joy";
 import React from "react";
 import DataTrackFileUploadBox from "./TrackFileUpload";
 
-function TrackUploadForm({ 
-  isOpen, 
-  onClose, 
-  tracks = [], 
+function TrackUploadForm({
+  isOpen,
+  onClose,
+  tracks = [],
   onTrackUpload,
-  onDeleteTrack 
+  onDeleteTrack,
 }) {
   if (!isOpen) return null;
 
@@ -28,19 +35,39 @@ function TrackUploadForm({
     >
       <Box
         sx={{
+          position: "relative",
           backgroundColor: "#fff",
           borderRadius: "12px",
           padding: 4,
           minWidth: "50vw",
           boxShadow: "lg",
-          maxHeight: "70vh",
+          maxHeight: "80vh",
           overflowY: "auto",
         }}
       >
+        <Button
+          onClick={onClose}
+          size="sm"
+          variant="plain"
+          color="neutral"
+          sx={{
+            position: "absolute",
+            top: 12,
+            right: 12,
+            fontSize: "1.25rem",
+            minWidth: "unset",
+            padding: "4px 8px",
+            lineHeight: 1,
+          }}
+        >
+          &times;
+        </Button>
+
         <Typography level="title-lg" sx={{ mb: 1 }}>
           My Tracks
         </Typography>
         <Divider sx={{ mb: 2 }} />
+
         <Card
           variant="outlined"
           sx={{
@@ -54,6 +81,7 @@ function TrackUploadForm({
             Upload your own tracks here.
           </Typography>
         </Card>
+
         {tracks.length > 0 && (
           <Box sx={{ mt: 3, mb: 3 }}>
             <Typography level="title-md" sx={{ mb: 1 }}>
@@ -86,7 +114,7 @@ function TrackUploadForm({
           </Box>
         )}
 
-        <DataTrackFileUploadBox 
+        <DataTrackFileUploadBox
           onDataTrackFileUpload={(fileList) => {
             const files = Array.from(fileList);
             onTrackUpload(files);
@@ -110,10 +138,6 @@ function TrackUploadForm({
             Choose from the provided preset tracks.
           </Typography>
         </Card>
-
-        <Button onClick={onClose} sx={{ mt: 3 }}>
-          Close
-        </Button>
       </Box>
     </Box>
   );

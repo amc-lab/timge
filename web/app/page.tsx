@@ -102,22 +102,16 @@ export default function Page() {
         .then((response) => response.json())
         .then((data) => {
           if (data.status === "success") {
-            const fileMap = data.track_files;
-  
-            const trackFiles = Object.entries(fileMap).map(([fileName, content]) => ({
-              name: fileName,
-              data: content,
-              trackType: fileFormatMapping[fileName.split('.').pop()],
+            const trackFiles = data.track_files.map((file) => ({
+              name: file.name,
+              data: file.content,
+              type: file.type,
+              size: file.size,
+              trackType: fileFormatMapping[file.name.split('.').pop()],
             }));
   
             setTracks(trackFiles);
-            setSpaceState((prevState) => ({
-              ...prevState,
-              dataFiles: [
-                ...prevState.dataFiles,
-                ...trackFiles.map((track) => track.name),
-              ],
-            }));
+  
           } else {
             console.error("Error fetching tracks:", data.message);
           }
@@ -129,6 +123,7 @@ export default function Page() {
   
     getTrackFiles();
   }, []);
+  
 
   const addLinearGenomeView = () => {
     const newView = {
@@ -166,8 +161,53 @@ export default function Page() {
     });
   }
 
+  const importState = () => {
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = ".json";
+    fileInput.onchange = (event) => {
+      const file = (event.target as HTMLInputElement).files?.[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const contents = e.target?.result;
+          if (contents) {
+            const state = JSON.parse(contents as string);
+            console.log("Loaded state:", state);
+            setSpaceState(state);
+            localStorage.setItem(STATE_KEY, JSON.stringify(state));
+            // fetch the tracks from the backend
+            const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+            fetch(`${host}/api/timge/get_tracks/?uuid=${state.UUID}`, {
+              method: "GET",
+            })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.status === "success") {
+                const trackFiles = data.track_files.map((file) => ({
+                  name: file.name,
+                  data: file.content,
+                  type: file.type,
+                  size: file.size,
+                  trackType: fileFormatMapping[file.name.split('.').pop()],
+                }));
+                setTracks(trackFiles);
+              } else {
+                console.error("Error fetching tracks:", data.message);
+              }
+            }
+            )
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+    fileInput.click();
+    const state = loadState();
+    setSpaceState(state);
+  }
+
   const importTracks = () => {
-    // fileInputRef.current?.click();
     setGenomeFormOpen(true);
   }
 
@@ -206,10 +246,7 @@ export default function Page() {
       addLinearGenomeView={addLinearGenomeView}
       addCircosView={addCircosView}
       importTracks={importTracks}
-      importState={() => {
-        const state = loadState();
-        setSpaceState(state);
-      }}
+      importState={importState}
       exportState={exportState}
       resetState={() => {
         // make a request to the backend to delete the files
