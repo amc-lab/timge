@@ -15,6 +15,7 @@ import TrackUploadForm from "@/components/TrackUploadForm";
 import { State } from "./types/state";
 import { ViewType } from "./types/viewTypes";
 import { defaultChordConfig } from "./circos/config/defaultConfigs";
+import MapView from "./map/MapView";
 
 interface FileEntry {
   name: string;
@@ -211,6 +212,21 @@ export default function Page() {
     });
   }
 
+  const addMapView = () => {
+    setSpaceState({
+      ...spaceState,
+      views: [
+        ...spaceState.views,
+        {
+          id: `view-${spaceState.views.length + 1}`,
+          type: ViewType.Map,
+          title: `Map View ${spaceState.views.length + 1}`,
+          description: "Map view",
+        },
+      ],
+    });
+  }
+
   // When importing a state, set the space state to the imported state and fetch the tracks from the backend
   const importState = () => {
     const fileInput = document.createElement("input");
@@ -280,6 +296,7 @@ export default function Page() {
     <Header 
       addLinearGenomeView={addLinearGenomeView}
       addCircosView={addCircosView}
+      addMapView={addMapView}
       importTracks={importTracks}
       importState={importState}
       exportState={exportState}
@@ -354,6 +371,9 @@ export default function Page() {
             console.log("View", view);
             console.log("Tracks", tracks);
             return <CircosView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} />
+          }
+          else if (view.type === "map") {
+            return <MapView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} />
           }
         })
       }

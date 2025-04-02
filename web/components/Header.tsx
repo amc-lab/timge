@@ -23,13 +23,14 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({ link, text }) => {
 interface HeaderProps {
     addLinearGenomeView: () => void;
     addCircosView: () => void;
+    addMapView: () => void;
     importTracks: () => void;
     importState: () => void;
     exportState: () => void;
     resetState: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, importTracks, importState, exportState, resetState}) => {
+const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, addMapView, importTracks, importState, exportState, resetState}) => {
     return (
         <header className="bg-black text-white p-2 flex justify-between items-center">
             <nav>
@@ -54,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, impo
                             items={[
                                 { text: "Linear View", action: addLinearGenomeView },
                                 { text: "Circos View", action: addCircosView },
-                                { text: "Map View", link: "/multilift" },
+                                { text: "Map View", action: addMapView },
                             ]}
                         />
                     </li>
