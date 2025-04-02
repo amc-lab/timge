@@ -33,6 +33,7 @@ const Tracks = ({ tracks }: TracksProps) => {
   , [totalRadius]);
 
   useEffect(() => {
+    console.log("DEBUG: Setting track data", tracks);
     let minAvailableRadius = 160;
 
     const updatedTracks = [...tracks]
@@ -40,9 +41,13 @@ const Tracks = ({ tracks }: TracksProps) => {
       .map((track) => {
         if (track.trackType === TrackType.Karyotype) {
           const segmentInnerRadius = minAvailableRadius;
-          const trackWidth = track.config.width;
+          const trackWidth = track.config.segmentTrackWidth;
           minAvailableRadius =
             segmentInnerRadius + trackWidth + track.config.segmentGridPadding;
+          console.log("DEBUG: Karyotype track width", trackWidth);
+          console.log("DEBUG: Karyotype segment inner radius", segmentInnerRadius);
+          console.log("DEBUG: Karyotype segment grid padding", track.config.segmentGridPadding);
+          console.log("DEBUG: Karyotype minimum available radius", minAvailableRadius);
           return {
             ...track,
             config: {
@@ -56,6 +61,7 @@ const Tracks = ({ tracks }: TracksProps) => {
             barInnerRadius +
             track.config.trackWidth +
             track.config.trackPadding;
+          console.log("DEBUG: Bar minimum available radius", minAvailableRadius);
           return {
             ...track,
             config: {
@@ -65,6 +71,7 @@ const Tracks = ({ tracks }: TracksProps) => {
           };
         } else if (track.trackType === TrackType.Chord) {
           minAvailableRadius = track.config.outerRadius;
+          console.log("DEBUG: Chord minimum available radius", minAvailableRadius);
           return track;
         } else if (track.trackType === TrackType.Ring) {
           if (track.config.hide) {
@@ -90,9 +97,13 @@ const Tracks = ({ tracks }: TracksProps) => {
           };
         } else if (track.trackType === TrackType.Line) {
           const lineInnerRadius = minAvailableRadius;
+          console.log("DEBUG: Line inner radius", lineInnerRadius);
+          console.log("DEBUG: Line track width", track.config.trackWidth);
+          console.log("DEBUG: Line track padding", track.config.trackPadding);
           minAvailableRadius +=
             track.config.trackWidth +
             track.config.trackPadding;
+          console.log("DEBUG: Line minimum available radius", minAvailableRadius);
           return {
             ...track,
             config: {

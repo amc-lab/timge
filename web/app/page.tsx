@@ -14,6 +14,7 @@ import { useState } from "react";
 import TrackUploadForm from "@/components/TrackUploadForm";
 import { State } from "./types/state";
 import { ViewType } from "./types/viewTypes";
+import { defaultChordConfig } from "./circos/config/defaultConfigs";
 
 interface FileEntry {
   name: string;
@@ -204,7 +205,7 @@ export default function Page() {
           type: ViewType.Circos,
           title: `Circos View ${spaceState.views.length + 1}`,
           description: "Circular genome view",
-          config: {},
+          visible_tracks: [],
         },
       ],
     });
@@ -316,8 +317,10 @@ export default function Page() {
         setFiles(newTracks);
         setSpaceState({
           ...spaceState,
-          dataFiles:
-            newTracks.map((track) => track.name),
+          dataFiles: [
+            ...spaceState.dataFiles,
+            ...newTracks.map((track) => track.name),
+          ],
         });
         const formData = new FormData();
         newTracks.forEach((track) => {

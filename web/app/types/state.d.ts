@@ -7,6 +7,7 @@ export interface View {
     title: string;
     description: string;
     config?: any;
+    visible_tracks?: string[];
 }
 
 export interface State {

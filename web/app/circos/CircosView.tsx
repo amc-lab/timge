@@ -57,7 +57,8 @@ const CircosView = (props: CircosViewProps) => {
                         values: trackFile.data,
                         globalConfig,
                         divRef: canvasRef,
-                    }
+                    },
+                    name: trackFile.name,
                 });
             } else if (trackFile.name.endsWith(".fa")) {
                 updatedTracks.push({
@@ -67,7 +68,8 @@ const CircosView = (props: CircosViewProps) => {
                         segments: trackFile.data,
                         globalConfig,
                         divRef: canvasRef,
-                    }
+                    },
+                    name: trackFile.name,
                 });
             } else if (trackFile.name.endsWith(".bedpe")) {
                 updatedTracks.push({
@@ -77,7 +79,8 @@ const CircosView = (props: CircosViewProps) => {
                         chords: trackFile.data,
                         globalConfig,
                         divRef: canvasRef,
-                    }
+                    },
+                    name: trackFile.name,
                 });
             }
         });
@@ -90,7 +93,20 @@ const CircosView = (props: CircosViewProps) => {
         setIsTrackSelectorOpen(false);
     };
 
-    if (selectedTracks.length === 0) {
+    useEffect(() => {
+        // const selectedTracks = tracks.filter((track) => {
+        //     return props.viewConfig.visible_tracks.includes(track.name);
+        // });
+        let selectedTracks: Track[] = [];
+        for (let i = 0; i < props.viewConfig.visible_tracks.length; i++) {
+            if (tracks.filter((track) => track.name === props.viewConfig.visible_tracks[i]).length > 0) {
+                selectedTracks.push(tracks.filter((track) => track.name === props.viewConfig.visible_tracks[i])[0]);
+            }
+        }
+        setSelectedTracks(selectedTracks);
+    }, [tracks]);
+
+    if (props.viewConfig.visible_tracks.length === 0) {
         return (
             <ParentView
                 viewConfig={props.viewConfig}
@@ -102,6 +118,10 @@ const CircosView = (props: CircosViewProps) => {
                             trackFiles={props.trackFiles}
                             onClose={handleTrackSelectorClose}
                             onConfirm={(selectedTracks) => {
+                                props.handleViewUpdate(props.index, {
+                                    ...props.viewConfig,
+                                    visible_tracks: selectedTracks.map((track) => track.name)
+                                });
                                 setSelectedTracks(selectedTracks);
                                 setIsTrackSelectorOpen(false);
                             }}
