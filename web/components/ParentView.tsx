@@ -1,15 +1,37 @@
 "use client";
-import React from "react";
-import { Box, IconButton, Typography } from "@mui/material";
+import React, { useState } from "react";
+import {
+  Box,
+  IconButton,
+  Typography,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 
 interface ParentViewProps {
   children?: React.ReactNode;
   viewConfig?: any;
+  userActions?: Record<string, (...args: any[]) => void>;
 }
 
-const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig }) => {
-    console.log("ParentView props", viewConfig);
+const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {} }) => {
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleActionClick = (actionKey: string) => {
+    userActions[actionKey]?.();
+    handleMenuClose();
+  };
+
   return (
     <Box
       sx={{
@@ -34,6 +56,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig }) => {
         }}
       >
         <IconButton
+          onClick={handleMenuClick}
           sx={{
             color: "white",
             height: "2em",
@@ -42,15 +65,26 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig }) => {
         >
           <MenuIcon />
         </IconButton>
-        <Typography
-            sx={{
-                color: "white",
-                fontSize: "0.9em",
-                fontWeight: "bold",
-                marginLeft: "10px",
-                }}
+        <Menu
+          anchorEl={anchorEl}
+          open={open}
+          onClose={handleMenuClose}
         >
-            <strong>{viewConfig.title}</strong>
+          {Object.keys(userActions).map((key) => (
+            <MenuItem key={key} onClick={() => handleActionClick(key)}>
+              {key}
+            </MenuItem>
+          ))}
+        </Menu>
+        <Typography
+          sx={{
+            color: "white",
+            fontSize: "0.9em",
+            fontWeight: "bold",
+            marginLeft: "10px",
+          }}
+        >
+          <strong>{viewConfig?.title}</strong>
         </Typography>
       </Box>
 

@@ -106,66 +106,79 @@ const CircosView = (props: CircosViewProps) => {
         setSelectedTracks(selectedTracks);
     }, [tracks]);
 
-    if (props.viewConfig.visible_tracks.length === 0) {
-        return (
-            <ParentView
-                viewConfig={props.viewConfig}
-            >
-                {
-                    isTrackSelectorOpen && (
-                        <TrackSelector
-                            tracks={tracks}
-                            trackFiles={props.trackFiles}
-                            onClose={handleTrackSelectorClose}
-                            onConfirm={(selectedTracks) => {
-                                props.handleViewUpdate(props.index, {
-                                    ...props.viewConfig,
-                                    visible_tracks: selectedTracks.map((track) => track.name)
-                                });
-                                setSelectedTracks(selectedTracks);
-                                setIsTrackSelectorOpen(false);
-                            }}
-                        />
-                    )
-                }
-                <Box
-                    sx={{
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        width: "100%",
-                        height: "100%",
-                        flexDirection: "column",
-                        flexGrow: 1,
-                        padding: 2,
-                    }}
-                >
-                    <p>No Tracks Selected</p>
-                    <Button
-                        color="primary"
-                        onClick={() => {
-                            setIsTrackSelectorOpen(true);
-                        }}
-                        sx={{
-                            marginTop: "10px",
-                        }}
-                    >
-                        Select Tracks
-                    </Button>
-                </Box>
-            </ParentView>
-        );
-    }
-    
     return (
         <ParentView
-            viewConfig={props.viewConfig}
+          viewConfig={props.viewConfig}
+          userActions={{
+            "Select Tracks": () => {
+              setIsTrackSelectorOpen(true);
+            },
+            "Download SVG": () => {
+              const svg = d3.select(canvasRef.current).select("svg");
+              const serializer = new XMLSerializer();
+              const svgString = serializer.serializeToString(svg.node());
+              const blob = new Blob([svgString], { type: "image/svg+xml" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "circus.svg";
+              a.click();
+            },
+            "Clear": () => {
+                props.handleViewUpdate(props.index, {
+                    ...props.viewConfig,
+                    visible_tracks: [],
+                });
+            },
+          }}
         >
+          {isTrackSelectorOpen ? (
+            <TrackSelector
+              tracks={tracks}
+              trackFiles={props.trackFiles}
+              onClose={handleTrackSelectorClose}
+              onConfirm={(selectedTracks) => {
+                props.handleViewUpdate(props.index, {
+                  ...props.viewConfig,
+                  visible_tracks: selectedTracks.map((track) => track.name),
+                });
+                setSelectedTracks(selectedTracks);
+                setIsTrackSelectorOpen(false);
+              }}
+            />
+          ) : props.viewConfig.visible_tracks.length === 0 ? (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+                height: "100%",
+                flexDirection: "column",
+                flexGrow: 1,
+                padding: 2,
+              }}
+            >
+              <p>No Tracks Selected</p>
+              <Button
+                color="primary"
+                onClick={() => {
+                  setIsTrackSelectorOpen(true);
+                }}
+                sx={{
+                  marginTop: "10px",
+                }}
+              >
+                Select Tracks
+              </Button>
+            </Box>
+          ) : (
             <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
-                <Tracks tracks={selectedTracks} />
-              </div>
+              <Tracks tracks={selectedTracks} />
+            </div>
+          )}
         </ParentView>
-    )
+      );
 }
 
 export default CircosView;

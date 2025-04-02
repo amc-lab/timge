@@ -8,6 +8,8 @@ import {
   IconButton,
   Sheet,
   Button,
+  Divider,
+  Card,
 } from "@mui/joy";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Track } from "../config/track";
@@ -64,10 +66,11 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({ tracks, trackFiles, onClo
         }}
       >
         <Typography level="h4" mb={2}>
-          Select Tracks to Visualize
+          Track Selector
         </Typography>
+        <Divider sx={{ mb: 2 }} />
 
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
           {tracks.map((track, index) => {
 
             return (
@@ -76,10 +79,11 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({ tracks, trackFiles, onClo
                 sx={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 2,
-                  padding: 2,
+                  gap: 1,
+                  padding: 1,
                   backgroundColor: "#f5f5f5",
                   borderRadius: "8px",
+                  outline: "1px solid #ccc",
                 }}
               >
                 <IconButton onClick={() => handleMove(index, -1)}>
