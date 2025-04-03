@@ -1,3 +1,4 @@
+"use client"
 import Link from 'next/link';
 import Image from 'next/image';
 import { Box } from '@mui/joy';
@@ -22,10 +23,14 @@ const HeaderButton: React.FC<HeaderButtonProps> = ({ link, text }) => {
 interface HeaderProps {
     addLinearGenomeView: () => void;
     addCircosView: () => void;
+    addMapView: () => void;
     importTracks: () => void;
+    importState: () => void;
+    exportState: () => void;
+    resetState: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, importTracks}) => {
+const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, addMapView, importTracks, importState, exportState, resetState}) => {
     return (
         <header className="bg-black text-white p-2 flex justify-between items-center">
             <nav>
@@ -37,8 +42,10 @@ const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, impo
                         <DropdownMenu 
                             label="File" 
                             items={[
-                                { text: "Import tracks", action: importTracks},
-                                { text: "Configure tracks", link: "/new" },
+                                { text: "Upload tracks", action: importTracks},
+                                { text: "Import state", action: importState },
+                                { text: "Export state", action: exportState },
+                                { text: "Reset", action: resetState },
                             ]}
                         />
                     </li>
@@ -48,7 +55,7 @@ const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, impo
                             items={[
                                 { text: "Linear View", action: addLinearGenomeView },
                                 { text: "Circos View", action: addCircosView },
-                                { text: "Map View", link: "/multilift" },
+                                { text: "Map View", action: addMapView },
                             ]}
                         />
                     </li>
@@ -59,6 +66,9 @@ const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, impo
             </nav>
             <nav>
                 <ul className="flex space-x-4 items-center">
+                    <li>
+                        <DropdownButton label="Register" link="/register" />
+                    </li>
                     <li>
                         <DropdownButton label="Login" link="/login" />
                     </li>

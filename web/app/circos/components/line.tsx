@@ -16,6 +16,8 @@ interface LineProps {
 const Line = ({ data, config, segments, idx }: LineProps) => {
     const { values, divRef, globalConfig } = data;
 
+    console.log("Line component props", data, config, segments, idx);
+
     useEffect(() => {
         if (!divRef.current || values.length === 0 || segments.length === 0 || config.hide) return;
     

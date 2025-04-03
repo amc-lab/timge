@@ -5,36 +5,38 @@ import Link from "next/link";
 
 interface DropdownMenuProps {
   label: string;
-  items: { 
-    text: string,
-    link?: string, 
-    action?: () => void,
+  items: {
+    text: string;
+    link?: string;
+    action?: () => void;
   }[];
 }
 
 const DropdownMenu: React.FC<DropdownMenuProps> = ({ label, items }) => {
-
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const handleMouseEnter = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+    }
     setAnchorEl(event.currentTarget);
+    setMenuOpen(true);
   };
 
   const handleMouseLeave = () => {
-    setAnchorEl(null);
-  };
-
-  const triggerFileSelect = () => {
-    if (inputRef.current) {
-      inputRef.current.click();
-    }
+    closeTimeoutRef.current = setTimeout(() => {
+      setMenuOpen(false);
+      setAnchorEl(null);
+    }, 100); // Delay in ms
   };
 
   return (
     <Box
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      sx={{ position: "relative", height: "100%" }} // Ensure full height
+      sx={{ position: "relative", height: "100%" }}
     >
       <Button
         variant="solid"
@@ -46,33 +48,30 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ label, items }) => {
           alignItems: "center",
           px: 3,
           "&:hover": { backgroundColor: "#333" },
-          minWidth: "4em"
+          minWidth: "4em",
         }}
       >
         {label}
       </Button>
       <Menu
         anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleMouseLeave}
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
         placement="bottom-start"
+        onMouseEnter={() => {
+          if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+        }}
+        onMouseLeave={handleMouseLeave}
       >
         {items.map((item, index) => (
-          <MenuItem key={index} onClick={handleMouseLeave}>
+          <MenuItem key={index} onClick={() => setMenuOpen(false)}>
             {item.action ? (
-                <Box
-                  onClick={item.action}
-                  sx={{
-                    background: "none",
-                    color: "black",
-                  }}
-                >
-                  {item.text}
-                </Box>
-              ) : (
-              <Link href={item.link}>{item.text}</Link>
-              )
-            }
+              <Box onClick={item.action} sx={{ background: "none", color: "black" }}>
+                {item.text}
+              </Box>
+            ) : (
+              <Link href={item.link || "#"}>{item.text}</Link>
+            )}
           </MenuItem>
         ))}
       </Menu>

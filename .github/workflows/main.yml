@@ -6,6 +6,7 @@ on:
       - main
       - feature/33-implement-visualisation-of-additional-genomes-relative-to-consensus
       - feature/36-setup-skeleton-for-landing-page
+      - feature/40-setup-exportable-state-representation-for-workspace
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -31,7 +32,10 @@ jobs:
     - name: Build Backend Docker image
       run: |
         echo "Building backend Docker image"
-        docker build -t ${{ secrets.DOCKER_IMAGE_BACKEND }} ./backend
+        docker build \
+          --build-arg TRACK_ROOT_DIR=${{ secrets.TRACK_ROOT_DIR }} \
+          -t ${{ secrets.DOCKER_IMAGE_BACKEND }} \
+          ./backend
 
     - name: Push Backend Docker image to DockerHub
       run: docker push ${{ secrets.DOCKER_IMAGE_BACKEND }}

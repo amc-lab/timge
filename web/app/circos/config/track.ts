@@ -11,4 +11,5 @@ export interface Track {
   trackType: TrackType;
   data: any;
   config: any;
+  name?: string;
 }

@@ -1,20 +1,28 @@
-import { Box, IconButton } from "@mui/joy";
+"use client"
+import { Box, Button, IconButton } from "@mui/joy";
 import { Track, TrackType } from "./config/track";
-import {type Assembly} from "../types/genomes";
 import { useState } from "react";
 import Tracks from "./tracks";
 import { defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig, defaultLineConfig } from "./config/defaultConfigs";
 import { useRef, useEffect } from "react";
 import MenuIcon from "@mui/icons-material/Menu";
 import * as d3 from "d3";
+import ParentView from "@/components/ParentView";
+import TrackSelector from "./components/TrackSelector";
+import { View } from "../types/state";
 
 interface CircosViewProps {
     trackFiles: any[];
+    viewConfig: View;
+    handleViewUpdate: (index, viewState: View) => void;
+    index: number;
 }
 
 const CircosView = (props: CircosViewProps) => {
    const canvasRef = useRef<HTMLDivElement>(null);
    const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
+
+    console.log("CircosView props", props.trackFiles);
 
      useEffect(() => {
        if (canvasRef.current) {
@@ -32,6 +40,7 @@ const CircosView = (props: CircosViewProps) => {
      }, [globalConfig]);
 
    const [tracks, setTracks] = useState<Track[]>([]);
+   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
 
     useEffect(() => {
         console.log("Setting track data", props.trackFiles);
@@ -48,7 +57,8 @@ const CircosView = (props: CircosViewProps) => {
                         values: trackFile.data,
                         globalConfig,
                         divRef: canvasRef,
-                    }
+                    },
+                    name: trackFile.name,
                 });
             } else if (trackFile.name.endsWith(".fa")) {
                 updatedTracks.push({
@@ -58,7 +68,8 @@ const CircosView = (props: CircosViewProps) => {
                         segments: trackFile.data,
                         globalConfig,
                         divRef: canvasRef,
-                    }
+                    },
+                    name: trackFile.name,
                 });
             } else if (trackFile.name.endsWith(".bedpe")) {
                 updatedTracks.push({
@@ -68,57 +79,106 @@ const CircosView = (props: CircosViewProps) => {
                         chords: trackFile.data,
                         globalConfig,
                         divRef: canvasRef,
-                    }
+                    },
+                    name: trackFile.name,
                 });
             }
         });
         setTracks(updatedTracks);
     }
-    , [props]);
-    
+    , [props.trackFiles]);
+
+    const [isTrackSelectorOpen, setIsTrackSelectorOpen] = useState(false);
+    const handleTrackSelectorClose = () => {
+        setIsTrackSelectorOpen(false);
+    };
+
+    useEffect(() => {
+        // const selectedTracks = tracks.filter((track) => {
+        //     return props.viewConfig.visible_tracks.includes(track.name);
+        // });
+        let selectedTracks: Track[] = [];
+        for (let i = 0; i < props.viewConfig.visible_tracks.length; i++) {
+            if (tracks.filter((track) => track.name === props.viewConfig.visible_tracks[i]).length > 0) {
+                selectedTracks.push(tracks.filter((track) => track.name === props.viewConfig.visible_tracks[i])[0]);
+            }
+        }
+        setSelectedTracks(selectedTracks);
+    }, [tracks]);
+
     return (
-        <Box
-            sx={{
+        <ParentView
+          viewConfig={props.viewConfig}
+          userActions={{
+            "Select Tracks": () => {
+              setIsTrackSelectorOpen(true);
+            },
+            "Download SVG": () => {
+              const svg = d3.select(canvasRef.current).select("svg");
+              const serializer = new XMLSerializer();
+              const svgString = serializer.serializeToString(svg.node());
+              const blob = new Blob([svgString], { type: "image/svg+xml" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = "circus.svg";
+              a.click();
+            },
+            "Clear": () => {
+                props.handleViewUpdate(props.index, {
+                    ...props.viewConfig,
+                    visible_tracks: [],
+                });
+            },
+          }}
+        >
+          {isTrackSelectorOpen ? (
+            <TrackSelector
+              tracks={tracks}
+              trackFiles={props.trackFiles}
+              onClose={handleTrackSelectorClose}
+              onConfirm={(selectedTracks) => {
+                props.handleViewUpdate(props.index, {
+                  ...props.viewConfig,
+                  visible_tracks: selectedTracks.map((track) => track.name),
+                });
+                setSelectedTracks(selectedTracks);
+                setIsTrackSelectorOpen(false);
+              }}
+            />
+          ) : props.viewConfig.visible_tracks.length === 0 ? (
+            <Box
+              sx={{
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
-                width: "calc(100% - 5px)",
-                borderRadius: "3px",
-                margin: "2.5px",
+                width: "100%",
+                height: "100%",
                 flexDirection: "column",
-                backgroundColor: "white",
-                border: "4px solid darkblue",
-            }}
-        >
-            <Box
-                sx={{
-                    display: "flex",
-                    // justifyContent: "center",
-                    alignItems: "center",
-                    width: "100%",
-                    height: "2em",
-                    backgroundColor: "darkblue",
-                }}
+                flexGrow: 1,
+                padding: 2,
+              }}
             >
-            <IconButton sx={{ color: "white", height: "2em", "&:hover": { background: "none", color: "white" } }}>
-                <MenuIcon />
-            </IconButton>
+              <p>No Tracks Selected</p>
+              <Button
+                color="primary"
+                onClick={() => {
+                  setIsTrackSelectorOpen(true);
+                }}
+                sx={{
+                  marginTop: "10px",
+                }}
+              >
+                Select Tracks
+              </Button>
             </Box>
-            <Box
-                sx={{
-                    backgroundColor: "white",
-                    borderRadius: "3px",
-                    width: "650px",
-                    height: "650px",  
-                    padding: "5px"  
-                }}
-            >
+          ) : (
             <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
-                <Tracks tracks={tracks} />
-              </div>
-            </Box>
-        </Box>
-    )
+              <Tracks tracks={selectedTracks} />
+            </div>
+          )}
+        </ParentView>
+      );
 }
 
 export default CircosView;

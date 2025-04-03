@@ -17,6 +17,7 @@ RUN wget https://mafft.cbrc.jp/alignment/software/mafft_7.526-1_amd64.deb && \
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
 ENV PATH="/root/.local/bin:$PATH"
+ENV TRACK_ROOT_DIR=$TRACK_ROOT_DIR
 
 WORKDIR /app
 
