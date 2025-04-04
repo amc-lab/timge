@@ -233,7 +233,15 @@ const MapView = (props: MapViewProps) => {
             </Select>
         </Box>
             ) : (
-        <Box className="flex flex-col gap-6 p-4 w-full">
+        <Box className="flex flex-col gap-6 w-full"
+            sx={{
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+            }}
+        >
             <Card
             variant="outlined"
             className="w-full"
@@ -309,6 +317,9 @@ const MapView = (props: MapViewProps) => {
                 </Box>
             </Card>
             <Box
+            sx={{
+                margin: "1em",
+            }}
             >
                 <svg ref={heatmapRef}></svg>
             </Box>

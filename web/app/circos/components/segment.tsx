@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import * as d3 from "d3";
 import { Assembly, AssemblyConfig, GlobalConfig } from "../../types/genomes";
+import { useState } from "react";
 
 interface SegmentProps {
   data: {
@@ -11,16 +12,27 @@ interface SegmentProps {
     divRef: any;
   };
   onSegmentsCreated?: (segmentsData: any[]) => void;
+  onSelectSegments?: (selectedSegments: Set<string>) => void;
   config: AssemblyConfig;
   idx: number;
 }
 
-const Segment = ({ data, onSegmentsCreated, config, idx }: SegmentProps) => {
+const Segment = ({ data, onSegmentsCreated, onSelectSegments, config, idx }: SegmentProps) => {
   const segments = data.segments;
   const canvasRef = data.divRef;
   const globalConfig = data.globalConfig;
+  const [selectedSegments, setSelectedSegments] = useState<Set<string>>(
+    new Set(),
+  );
 
   const colorPalette = d3.scaleSequential(d3.interpolateSpectral);
+
+  useEffect(() => {
+    if (onSelectSegments) {
+      onSelectSegments(selectedSegments);
+    }
+  }
+  , [selectedSegments]);
 
   useEffect(() => {
     if (canvasRef.current && segments.length > 0) {
@@ -87,15 +99,36 @@ const Segment = ({ data, onSegmentsCreated, config, idx }: SegmentProps) => {
 
       group
         .append("path")
-        .attr("fill","#c2c2c2")
-        // .attr("fill", (d) => colorPalette(d.index / segments.length))
+        .attr("fill", (d) => {
+          if (segments.length === 1) {
+            return "#c2c2c2";
+          }
+          if (selectedSegments.has(segments[d.index].chromosome)) {
+            return "#038aff";
+          }
+          return colorPalette(d.index / segments.length)
+        })
         .attr("d", arc)
         .attr("stroke", `${config.useStroke ? "black" : "none"}`)
         .on("mouseover", (event, d) => {
           d3.select(event.currentTarget).attr("filter", "brightness(0.95)");
+          document.body.style.cursor = "pointer";
         })
         .on("mouseout", (event, d) => {
           d3.select(event.currentTarget).attr("filter", "brightness(1)");
+          document.body.style.cursor = "default";
+        })
+        .on("click", (event, d) => {
+          const chromosome = segments[d.index].chromosome;
+          setSelectedSegments((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(chromosome)) {
+              newSet.delete(chromosome);
+            } else {
+              newSet.add(chromosome);
+            }
+            return newSet;
+          });
         })
         .append("title");
 
@@ -232,7 +265,7 @@ const Segment = ({ data, onSegmentsCreated, config, idx }: SegmentProps) => {
           );
       }
     }
-  }, [segments, config, globalConfig]);
+  }, [segments, config, globalConfig, selectedSegments]);
 
   return null;
 };
