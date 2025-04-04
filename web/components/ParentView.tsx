@@ -92,7 +92,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
         sx={{
           backgroundColor: "white",
           borderRadius: "3px",
-          width: "650px",
+          width: "100%",
           minHeight: "200px",
           padding: "5px",
           display: "flex",

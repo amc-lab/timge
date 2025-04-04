@@ -48,9 +48,27 @@ const Chords = ({ data, config, segments, idx }: ChordProps) => {
     const chord_padding = config.chordPadding;
     const chord_radius = radius - chord_padding;
 
+    const minAcceptedScore = 100;
+    const filteredChords = chords.filter((d) => d.score > minAcceptedScore);
+
+    // get maximum score from all the segments
+    const maxScore = d3.max(filteredChords, (d) => d.score);
+    const minScore = d3.min(filteredChords, (d) => d.score);
+
+    console.log("DEBUG: Chord min score", minScore);
+    console.log("DEBUG: Chord max score", maxScore);
+    const colourScale = d3
+      .scaleSequential()
+      .domain([minScore, maxScore])
+      .interpolator(d3.interpolateOrRd);
+    const opacityScale = d3
+      .scaleLinear()
+      .domain([minScore, maxScore])
+      .range([config.opacity, 1]);
+
     group
       .selectAll("path")
-      .data(chords)
+      .data(filteredChords)
       .join("path")
       .attr(
         "d",
@@ -122,7 +140,8 @@ const Chords = ({ data, config, segments, idx }: ChordProps) => {
         const sourceSegment = segments.find(
           (segment) => segment.chromosome === d.source_chromosome,
         );
-        return sourceSegment?.colour || "gray";
+        // return sourceSegment?.colour || "red";
+        return colourScale(d.score);
       })
       .attr("opacity", config.opacity)
       .attr("stroke", `${config.useStroke ? "black" : "none"}`)

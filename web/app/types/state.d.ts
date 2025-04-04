@@ -8,6 +8,7 @@ export interface View {
     description: string;
     config?: any;
     visible_tracks?: string[];
+    uuid?: string;
 }
 
 export interface State {

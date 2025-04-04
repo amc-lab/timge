@@ -222,6 +222,7 @@ export default function Page() {
           type: ViewType.Map,
           title: `Map View ${spaceState.views.length + 1}`,
           description: "Map view",
+          uuid: spaceState.UUID,
         },
       ],
     });

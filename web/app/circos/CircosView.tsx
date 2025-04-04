@@ -1,5 +1,5 @@
 "use client"
-import { Box, Button, IconButton } from "@mui/joy";
+import { Box, Button, Card, IconButton, Slider, Typography } from "@mui/joy";
 import { Track, TrackType } from "./config/track";
 import { useState } from "react";
 import Tracks from "./tracks";
@@ -60,7 +60,7 @@ const CircosView = (props: CircosViewProps) => {
                     },
                     name: trackFile.name,
                 });
-            } else if (trackFile.name.endsWith(".fa")) {
+            } else if (trackFile.name.endsWith(".fa") || trackFile.name.endsWith(".fasta")) {
                 updatedTracks.push({
                     trackType: TrackType.Karyotype,
                     config: defaultAssemblyConfig,
@@ -173,9 +173,38 @@ const CircosView = (props: CircosViewProps) => {
               </Button>
             </Box>
           ) : (
-            <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
-              <Tracks tracks={selectedTracks} />
-            </div>
+            <Box
+              sx={{
+                width: "100%",
+                justifyContent: "center",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
+            >
+              <Card
+                sx={{
+                  width: "100%",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "1em",
+                  }}
+                >
+                  Customisations
+                </Typography>
+              </Card>
+              <Box
+                sx={{
+                  width: "650px"
+                }}
+                >
+              <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
+                <Tracks tracks={selectedTracks} />
+              </div>
+              </Box>
+            </Box>
           )}
         </ParentView>
       );

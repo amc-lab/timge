@@ -147,6 +147,7 @@ def format_link(link) -> list[dict]:
                         "target_chromosome": data[3],
                         "target_start": data[4],
                         "target_end": data[5],
+                        "score": int(data[7]),
                     }
                 )
 

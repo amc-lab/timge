@@ -14,6 +14,7 @@ export interface Chord {
   target_start: number;
   target_end: number;
   color?: string;
+  score?: number;
 }
 
 export interface BarData {
