@@ -223,9 +223,66 @@ export default function Page() {
           title: `Map View ${spaceState.views.length + 1}`,
           description: "Map view",
           uuid: spaceState.UUID,
+          config: {
+            reference: "",
+            track: "",
+            segmentA: "",
+            segmentB: "",
+            resolution: 25,
+          },
         },
       ],
     });
+  }
+
+  const addCustomMapView = (mapConfig) => {
+    setSpaceState({
+      ...spaceState,
+      views: [
+        ...spaceState.views,
+        {
+          id: `view-${spaceState.views.length + 1}`,
+          type: ViewType.Map,
+          title: `Map View ${spaceState.views.length + 1}`,
+          description: "Map view",
+          uuid: spaceState.UUID,
+          config: mapConfig,
+        },
+      ],
+    });
+  }
+
+  const crossViewActionHandler = (action: string, data: any) => {
+    if (action === "generate_heatmap") {
+      if (!data || !data.track || !data.reference || !data.segmentA || !data.segmentB || !data.resolution) {
+        console.error("Invalid or missing data for generate_heatmap action");
+        return;
+      }
+      console.log("Generating heatmap with data:", data);
+      addCustomMapView({
+        reference: data.reference,
+        track: data.track,
+        segmentA: data.segmentA,
+        segmentB: data.segmentB,
+        resolution: data.resolution,
+      });
+    }
+    else if (action === "delete_view") {
+      const viewIndex = data.index;
+      if (viewIndex !== -1) {
+        setSpaceState((prevState) => {
+          const updatedViews = [...prevState.views];
+          updatedViews.splice(viewIndex, 1);
+          return {
+            ...prevState,
+            views: updatedViews,
+          };
+        });
+      }
+    }
+    else {
+      console.log("Unknown action:", action);
+    }
   }
 
   // When importing a state, set the space state to the imported state and fetch the tracks from the backend
@@ -371,10 +428,11 @@ export default function Page() {
           else if (view.type === "circos") {
             console.log("View", view);
             console.log("Tracks", tracks);
-            return <CircosView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} />
+            console.log("Key", index);
+            return <CircosView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} crossViewActionHandler={crossViewActionHandler} />
           }
           else if (view.type === "map") {
-            return <MapView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} />
+            return <MapView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} crossViewActionHandler={crossViewActionHandler} />
           }
         })
       }

@@ -58,6 +58,8 @@ interface ChordConfig {
   colour?: string;
   useStroke: boolean;
   outerRadius: number;
+  minFilterScore: number;
+  maxFilterScore: number;
 }
 
 interface BarConfig {

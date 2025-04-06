@@ -10,14 +10,15 @@ interface MapViewProps {
   viewConfig: View;
   handleViewUpdate: (index, viewState: View) => void;
   index: number;
+  crossViewActionHandler?: any;
 }
 
 const MapView = (props: MapViewProps) => {
-  const [reference, setReference] = useState("");
-  const [track, setTrack] = useState("");
-  const [segmentA, setSegmentA] = useState("");
-  const [segmentB, setSegmentB] = useState("");
-  const [resolution, setResolution] = useState(25);
+  const [reference, setReference] = useState(props.viewConfig.config.reference);
+  const [track, setTrack] = useState(props.viewConfig.config.track);
+  const [segmentA, setSegmentA] = useState(props.viewConfig.config.segmentA);
+  const [segmentB, setSegmentB] = useState(props.viewConfig.config.segmentB);
+  const [resolution, setResolution] = useState(props.viewConfig.config.resolution);
   const [availableSegments, setAvailableSegments] = useState([]);
 
   const heatmapRef = useRef(null);
@@ -49,7 +50,13 @@ const MapView = (props: MapViewProps) => {
     }
   }, [reference, track]);
 
-  let zoom;
+  useEffect(() => {
+    if (props.viewConfig.config.segmentA && props.viewConfig.config.segmentB && props.viewConfig.config.resolution) {
+      renderHeatmap();
+    }
+  }, []);
+
+  const zoomRef = useRef<d3.ZoomBehavior<Element, unknown> | null>(null);
 
   const drawHeatmap = (matrix: number[][]) => {
     const svg = d3.select(heatmapRef.current);
@@ -135,12 +142,12 @@ const MapView = (props: MapViewProps) => {
       .text(segmentA);
   
     // Zoom behavior
-    zoom = d3.zoom()
+    zoomRef.current = d3.zoom()
       .scaleExtent([1, 10])
       .translateExtent([[-100, -100], [width + 100, height + 100]])
       .on("zoom", zoomed);
   
-    svg.call(zoom);
+    svg.call(zoomRef.current);
   
     function zoomed({ transform }) {
       // Zoom heatmap
@@ -165,7 +172,7 @@ const MapView = (props: MapViewProps) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        uuid: "1234",
+        uuid: props.viewConfig.uuid,
         file_name: track,
         genome_path: reference,
         resolution: resolution,
@@ -185,7 +192,7 @@ const MapView = (props: MapViewProps) => {
   }
 
   return (
-    <ParentView viewConfig={props.viewConfig}>
+    <ParentView viewConfig={props.viewConfig} index={props.index} crossViewActionHandler={props.crossViewActionHandler} >
         {
             ! (reference && track) ? (
         <Box
@@ -203,7 +210,16 @@ const MapView = (props: MapViewProps) => {
             <Select
             defaultValue={reference}
             placeholder="Select reference genome"
-            onChange={(e, value) => setReference(value)}
+            onChange={(e, value) => {
+                setReference(value)
+                props.handleViewUpdate(props.index, {
+                    ...props.viewConfig,
+                    config: {
+                        ...props.viewConfig.config,
+                        reference: value,
+                    },
+                })
+            }}
             sx={{
                 margin: "0 10px",}}
             >
@@ -220,7 +236,16 @@ const MapView = (props: MapViewProps) => {
             <Select
             defaultValue={track}
             placeholder="Select track"
-            onChange={(e, value) => setTrack(value)}
+            onChange={(e, value) => {
+                setTrack(value)
+                props.handleViewUpdate(props.index, {
+                    ...props.viewConfig,
+                    config: {
+                        ...props.viewConfig.config,
+                        track: value,
+                    },
+                })
+            }}
             sx={{
                 margin: "0 10px",}}
             >
@@ -256,7 +281,16 @@ const MapView = (props: MapViewProps) => {
                     Segment A:
                     </Typography>
                     <Select
-                    onChange={(e, value) => setSegmentA(value)}
+                    onChange={(e, value) => {
+                        setSegmentA(value)
+                        props.handleViewUpdate(props.index, {
+                            ...props.viewConfig,
+                            config: {
+                                ...props.viewConfig.config,
+                                segmentA: value,
+                            },
+                        })
+                    }}
                     defaultValue={segmentA}
                     placeholder="Select segment A"
                     >
@@ -271,7 +305,16 @@ const MapView = (props: MapViewProps) => {
                     Segment B:
                     </Typography>
                     <Select
-                    onChange={(e, value) => setSegmentB(value)}
+                    onChange={(e, value) => {
+                        setSegmentB(value)
+                        props.handleViewUpdate(props.index, {
+                            ...props.viewConfig,
+                            config: {
+                                ...props.viewConfig.config,
+                                segmentB: value,
+                            },
+                        })
+                    }}
                     defaultValue={segmentB}
                     placeholder="Select segment B"
                     >
@@ -288,7 +331,16 @@ const MapView = (props: MapViewProps) => {
                     <Select
                     defaultValue={resolution}
                     placeholder="Select resolution"
-                    onChange={(e, value) => setResolution(value)}
+                    onChange={(e, value) => {
+                        setResolution(value)
+                        props.handleViewUpdate(props.index, {
+                            ...props.viewConfig,
+                            config: {
+                                ...props.viewConfig.config,
+                                resolution: value,
+                            },
+                        })
+                    }}
                     >
                     <Option value={5}>5</Option>
                     <Option value={25}>25</Option>
@@ -303,17 +355,21 @@ const MapView = (props: MapViewProps) => {
                     Render
                     </Button>
                     <Button
-                    variant="outlined"
-                    color="neutral"
-                    onClick={() => {
-                        const svg = d3.select(heatmapRef.current);
-                        svg.transition()
-                        .duration(500)
-                        .call(zoom.transform, d3.zoomIdentity); // Reset zoom!
-                    }}
+                      variant="outlined"
+                      color="neutral"
+                      onClick={() => {
+                        if (zoomRef.current) {
+                          const svg = d3.select(heatmapRef.current);
+                          svg.transition()
+                            .duration(500)
+                            .call(zoomRef.current.transform, d3.zoomIdentity);
+                        } else {
+                          console.warn("Zoom behavior not initialized yet");
+                        }
+                      }}
                     >
-                    Reset Zoom
-                </Button>
+                      Reset Zoom
+                    </Button>
                 </Box>
             </Card>
             <Box

@@ -155,6 +155,8 @@ def generate_heatmap(request):
     file_path = os.path.join(directory, file_name)
     reference_path = os.path.join(directory, genome_path)
 
+    print(uuid, file_path, reference_path)
+
     if not os.path.exists(file_path):
         return JsonResponse({"status": "error", "message": "File not found."})
     if not os.path.exists(reference_path):

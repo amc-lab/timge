@@ -8,14 +8,17 @@ import {
   MenuItem,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
+import CloseIcon from "@mui/icons-material/Close";
 
 interface ParentViewProps {
   children?: React.ReactNode;
   viewConfig?: any;
   userActions?: Record<string, (...args: any[]) => void>;
+  index?: number;
+  crossViewActionHandler?: any;
 }
 
-const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {} }) => {
+const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {}, index, crossViewActionHandler }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -31,6 +34,15 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
     userActions[actionKey]?.();
     handleMenuClose();
   };
+
+  const handleViewClose = () => {
+    crossViewActionHandler(
+     "delete_view",
+     {
+        index: index,
+      },
+    );
+  }
 
   return (
     <Box
@@ -53,6 +65,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
           width: "100%",
           height: "2em",
           backgroundColor: "darkblue",
+          px: 1,
         }}
       >
         <IconButton
@@ -65,17 +78,15 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
         >
           <MenuIcon />
         </IconButton>
-        <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleMenuClose}
-        >
+
+        <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
           {Object.keys(userActions).map((key) => (
             <MenuItem key={key} onClick={() => handleActionClick(key)}>
               {key}
             </MenuItem>
           ))}
         </Menu>
+
         <Typography
           sx={{
             color: "white",
@@ -86,6 +97,20 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
         >
           <strong>{viewConfig?.title}</strong>
         </Typography>
+
+        <Box sx={{ ml: "auto" }}>
+          <IconButton
+            onClick={handleViewClose}
+            sx={{
+              color: "white",
+              height: "2em",
+              "&:hover": { background: "none", color: "white" },
+              padding: "0px",
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </Box>
 
       <Box

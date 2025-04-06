@@ -12,7 +12,7 @@ interface ChordProps {
   };
   config: ChordConfig;
   segments: Array<any>;
-  selectedSegments?: Set<string>;
+  selectedSegments?: string[];
   idx: number;
 }
 
@@ -49,10 +49,11 @@ const Chords = ({ data, config, segments, selectedSegments, idx }: ChordProps) =
     const chord_padding = config.chordPadding;
     const chord_radius = radius - chord_padding;
 
-    const minAcceptedScore = 100;
-    const filteredChords = chords.filter((d) => d.score > minAcceptedScore);
+    const minFilterScore = config.minFilterScore;
+    const maxFilterScore = config.maxFilterScore;
+    const filteredChords = chords.filter((d) => d.score >= minFilterScore && d.score <= maxFilterScore);
+    filteredChords.sort((a, b) => b.score - a.score);
 
-    // get maximum score from all the segments
     const maxScore = d3.max(filteredChords, (d) => d.score);
     const minScore = d3.min(filteredChords, (d) => d.score);
 
@@ -60,6 +61,7 @@ const Chords = ({ data, config, segments, selectedSegments, idx }: ChordProps) =
       .scaleSequential()
       .domain([minScore, maxScore])
       .interpolator(d3.interpolateOrRd);
+
     const opacityScale = d3
       .scaleLinear()
       .domain([minScore, maxScore])
@@ -139,8 +141,8 @@ const Chords = ({ data, config, segments, selectedSegments, idx }: ChordProps) =
         return colourScale(d.score);
       })
       .attr("opacity", (d) => {
-        if (selectedSegments?.size > 0 && ! selectedSegments.has(d.source_chromosome)) {
-          return 0.2;
+        if (selectedSegments?.length > 0 && ! selectedSegments.includes(d.source_chromosome)) {
+          return 0.1;
         }
         return config.opacity;
       })
@@ -150,7 +152,7 @@ const Chords = ({ data, config, segments, selectedSegments, idx }: ChordProps) =
       })
       .on("mouseout", function () {
         d3.select(this).attr("opacity", (d) => {
-          if (selectedSegments?.size > 0 && ! selectedSegments.has(d.source_chromosome)) {
+          if (selectedSegments?.length > 0 && ! selectedSegments.includes(d.source_chromosome)) {
             return 0.2;
           }
           return config.opacity;

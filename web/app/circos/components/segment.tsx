@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import * as d3 from "d3";
 import { Assembly, AssemblyConfig, GlobalConfig } from "../../types/genomes";
 import { useState } from "react";
+import { Sheet, Typography } from "@mui/joy";
 
 interface SegmentProps {
   data: {
@@ -12,22 +13,44 @@ interface SegmentProps {
     divRef: any;
   };
   onSegmentsCreated?: (segmentsData: any[]) => void;
-  onSelectSegments?: (selectedSegments: Set<string>) => void;
+  onSelectSegments?: (selectedSegments: string[]) => void;
+  onCustomAction?: any;
   config: AssemblyConfig;
-  idx: number;
+  idx: string;
 }
 
-const Segment = ({ data, onSegmentsCreated, onSelectSegments, config, idx }: SegmentProps) => {
+const Segment = ({ data, onSegmentsCreated, onSelectSegments, onCustomAction, config, idx }: SegmentProps) => {
   const segments = data.segments;
   const canvasRef = data.divRef;
   const globalConfig = data.globalConfig;
-  const [selectedSegments, setSelectedSegments] = useState<Set<string>>(
-    new Set(),
-  );
+  const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
 
   const colorPalette = d3.scaleSequential(d3.interpolateSpectral);
 
+  const handleContextMenu = (event, d) => {
+    event.preventDefault();
+  
+    const contextMenu = document.getElementById(`custom-context-menu-${idx}`);
+    if (contextMenu) {
+      contextMenu.style.top = `${event.pageY}px`;
+      contextMenu.style.left = `${event.pageX}px`;
+      contextMenu.style.display = "block";
+  
+      contextMenu.dataset.chromosome = segments[d.index].chromosome;
+    }
+  };
+  
+  const hideContextMenu = () => {
+    const contextMenu = document.getElementById(`custom-context-menu-${idx}`);
+    if (contextMenu) {
+      contextMenu.style.display = "none";
+    }
+  };
+  
+  document.addEventListener("click", hideContextMenu);
+
   useEffect(() => {
+    console.log("Selected segments:", selectedSegments);
     if (onSelectSegments) {
       onSelectSegments(selectedSegments);
     }
@@ -103,7 +126,7 @@ const Segment = ({ data, onSegmentsCreated, onSelectSegments, config, idx }: Seg
           if (segments.length === 1) {
             return "#c2c2c2";
           }
-          if (selectedSegments.has(segments[d.index].chromosome)) {
+          if (selectedSegments.includes(segments[d.index].chromosome)) {
             return "#038aff";
           }
           return colorPalette(d.index / segments.length)
@@ -121,15 +144,14 @@ const Segment = ({ data, onSegmentsCreated, onSelectSegments, config, idx }: Seg
         .on("click", (event, d) => {
           const chromosome = segments[d.index].chromosome;
           setSelectedSegments((prev) => {
-            const newSet = new Set(prev);
-            if (newSet.has(chromosome)) {
-              newSet.delete(chromosome);
+            if (prev.includes(chromosome)) {
+              return prev.filter((seg) => seg !== chromosome);
             } else {
-              newSet.add(chromosome);
+              return [...prev, chromosome];
             }
-            return newSet;
           });
         })
+        .on("contextmenu", (event, d) => handleContextMenu(event, d))
         .append("title");
 
       const segmentData = chords.groups.map((d) => ({
@@ -267,7 +289,58 @@ const Segment = ({ data, onSegmentsCreated, onSelectSegments, config, idx }: Seg
     }
   }, [segments, config, globalConfig, selectedSegments]);
 
-  return null;
+  const enabledStyle = {
+  cursor: 'pointer',
+  color: 'text.primary',
+};
+
+const disabledStyle = {
+  cursor: 'not-allowed',
+  color: 'neutral.plainDisabledColor',
+  opacity: 0.6,
+  pointerEvents: 'none',
+};
+
+  return (
+    <Sheet
+  id={`custom-context-menu-${idx}`}
+  sx={{
+    display: 'none',
+    position: 'absolute',
+    backgroundColor: 'background.surface',
+    border: '1px solid',
+    borderColor: 'neutral.outlinedBorder',
+    zIndex: 1000,
+    px: 2,
+    py: 1,
+    borderRadius: 'sm',
+    boxShadow: 'md',
+    textAlign: 'left',
+  }}
+>
+  <Typography
+    level="body-sm"
+    id={`context-menu-item-${idx}`}
+    sx={selectedSegments.length === 2 ? enabledStyle : disabledStyle}
+    onClick={() => {
+      if (selectedSegments.length !== 2) {
+        return;
+      }
+      console.log(selectedSegments);
+      onCustomAction("generate_heatmap", {
+        reference: "WSN.fodor.fasta",
+        track: "SRR6388155_SPLASH_WSN_ligase_2.bedpe",
+        segmentA: selectedSegments[0],
+        segmentB: selectedSegments[1],
+        resolution: 25,
+      });
+    }}
+  >
+    Generate heatmap
+  </Typography>
+</Sheet>
+
+  )
 };
 
 export default Segment;

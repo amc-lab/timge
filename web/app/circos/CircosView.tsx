@@ -15,12 +15,20 @@ interface CircosViewProps {
     trackFiles: any[];
     viewConfig: View;
     handleViewUpdate: (index, viewState: View) => void;
+    crossViewActionHandler?: any;
     index: number;
 }
 
 const CircosView = (props: CircosViewProps) => {
    const canvasRef = useRef<HTMLDivElement>(null);
    const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
+
+   const maxScore = d3.max(props.trackFiles, (d) => {
+       if (d.data) {
+           return d3.max(d.data, (d) => d.score);
+       }
+       return 0;
+   });
 
     console.log("CircosView props", props.trackFiles);
 
@@ -109,6 +117,8 @@ const CircosView = (props: CircosViewProps) => {
     return (
         <ParentView
           viewConfig={props.viewConfig}
+          index={props.index}
+          crossViewActionHandler={props.crossViewActionHandler}
           userActions={{
             "Select Tracks": () => {
               setIsTrackSelectorOpen(true);
@@ -185,6 +195,10 @@ const CircosView = (props: CircosViewProps) => {
               <Card
                 sx={{
                   width: "100%",
+                  borderRadius: "none",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  alignItems: "center",
                 }}
               >
                 <Typography
@@ -192,8 +206,35 @@ const CircosView = (props: CircosViewProps) => {
                     fontSize: "1em",
                   }}
                 >
-                  Customisations
+                  Filter score:
                 </Typography>
+                <Slider
+                  defaultValue={[0, maxScore]}
+                  min={0}
+                  max={maxScore}
+                  step={1}
+                  valueLabelDisplay="auto"
+                  sx={{
+                    width: "10%",
+                  }}
+                  onChange={(event, newValue) => {
+                    setSelectedTracks((prevTracks) => {
+                      return prevTracks.map((track) => {
+                        if (track.trackType === TrackType.Chord) {
+                          return {
+                            ...track,
+                            config: {
+                              ...track.config,
+                              minFilterScore: newValue[0],
+                              maxFilterScore: newValue[1],
+                            },
+                          };
+                        }
+                        return track;
+                      });
+                    });
+                  }}
+                  ></Slider>
               </Card>
               <Box
                 sx={{
@@ -201,7 +242,7 @@ const CircosView = (props: CircosViewProps) => {
                 }}
                 >
               <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
-                <Tracks tracks={selectedTracks} />
+                <Tracks id={props.viewConfig.id} tracks={selectedTracks} crossViewActionHandler={props.crossViewActionHandler} />
               </div>
               </Box>
             </Box>

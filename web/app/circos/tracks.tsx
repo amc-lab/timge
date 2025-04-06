@@ -10,13 +10,13 @@ import Line from "./components/line";
 
 interface TracksProps {
   tracks: Array<Track>;
+  crossViewActionHandler?: any;
+  id?: string;
 }
 
-const Tracks = ({ tracks }: TracksProps) => {
+const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
   const [segmentData, setSegmentData] = useState<any[]>([]);
-  const [selectedSegments, setSelectedSegments] = useState<Set<string>>(
-    new Set(),
-  );
+  const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
   const [trackData, setTrackData] = useState<Array<Track>>([]);
 
   const onSegmentsCreated = (segData: any[]) => {
@@ -111,10 +111,20 @@ const Tracks = ({ tracks }: TracksProps) => {
     setTrackData(updatedTracks);
   }, [tracks]);
 
-  const onSelectSegments = (selectedSegments: Set<string>) => {
-    console.log("Selected segments", selectedSegments);
+  const onSelectSegments = (selectedSegments: string[]) => {
+    console.log("Selected segments:", selectedSegments);
     setSelectedSegments(selectedSegments);
   }
+
+  const onCustomAction = (action: string, data: any) => {
+    console.log("Custom action triggered:", action, data);
+    if (action === "generate_heatmap") {
+      crossViewActionHandler(
+        "generate_heatmap",
+        data,
+      );
+    }
+  };
 
   return (
     <>
@@ -127,7 +137,8 @@ const Tracks = ({ tracks }: TracksProps) => {
               config={track.config}
               onSegmentsCreated={onSegmentsCreated}
               onSelectSegments={onSelectSegments}
-              idx={index}
+              onCustomAction={onCustomAction}
+              idx={id + index}
             />
           );
         } else if (track.trackType === TrackType.Bar) {
