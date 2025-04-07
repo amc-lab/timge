@@ -26,7 +26,7 @@ SECRET_KEY = "django-insecure-*z6(5q2(g*=^)nc-ptv8uf6e0+x=9x#53u+*=_u@8ty+0!^9ht
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-TRACK_ROOT_DIR = config("TRACK_ROOT_DIR")
+TRACK_ROOT_DIR = config("TRACK_ROOT_DIR", default="/srv/uploads")
 
 # Application definition
 

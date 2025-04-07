@@ -25,6 +25,8 @@ services:
     container_name: timge-backend
     volumes:
       - /srv/uploads:/srv/uploads
+    environment:
+      - TRACK_ROOT_DIR=${TRACK_ROOT_DIR}
     networks:
       - timge-network
 
