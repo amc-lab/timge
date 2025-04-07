@@ -119,7 +119,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
           borderRadius: "3px",
           width: "100%",
           minHeight: "200px",
-          padding: "5px",
+          // padding: "5px",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",

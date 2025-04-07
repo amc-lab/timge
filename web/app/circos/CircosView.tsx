@@ -123,16 +123,16 @@ const CircosView = (props: CircosViewProps) => {
             "Select Tracks": () => {
               setIsTrackSelectorOpen(true);
             },
-            "Download SVG": () => {
-              const svg = d3.select(canvasRef.current).select("svg");
-              const serializer = new XMLSerializer();
-              const svgString = serializer.serializeToString(svg.node());
-              const blob = new Blob([svgString], { type: "image/svg+xml" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "circus.svg";
-              a.click();
+            "Download PNG": () => {
+              const d3ToPng = require('d3-svg-to-png');
+              d3ToPng(canvasRef.current, 'output', {
+                scale: 1,
+                format: 'png',
+                quality: 1,
+                download: true,
+                ignore: '.ignored',
+                background: 'white'
+              });
             },
             "Clear": () => {
                 props.handleViewUpdate(props.index, {

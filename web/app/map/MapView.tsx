@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { View } from "../types/state";
 import ParentView from "@/components/ParentView";
-import { Box, Button, Card, Dropdown, Option, Select, Typography } from "@mui/joy";
+import { Box, Button, Card, Checkbox, Dropdown, Option, Select, Typography } from "@mui/joy";
 
 interface MapViewProps {
   trackFiles: any[];
@@ -20,6 +20,9 @@ const MapView = (props: MapViewProps) => {
   const [segmentB, setSegmentB] = useState(props.viewConfig.config.segmentB);
   const [resolution, setResolution] = useState(props.viewConfig.config.resolution);
   const [availableSegments, setAvailableSegments] = useState([]);
+  const [showGridlines, setShowGridlines] = useState(false);
+  const [toggleColourScheme, setToggleColourScheme] = useState(true); // default to white-red
+  const [normalise, setNormalise] = useState(false);
 
   const heatmapRef = useRef(null);
 
@@ -62,13 +65,19 @@ const MapView = (props: MapViewProps) => {
     const svg = d3.select(heatmapRef.current);
     svg.selectAll("*").remove(); // Clear previous drawing
   
-    const cellSize = 20;
+    const maxWidth = 1000;
+    const maxHeight = 700;
+
+    // Get matrix dimensions
     const numRows = matrix.length;
     const numCols = matrix[0].length;
+
+    // Dynamically calculate cell size based on max bounds
+    const cellSize = Math.min(maxWidth / numRows, maxHeight / numCols);
   
-    const margin = { top: 20, right: 20, bottom: 40, left: 40 };
-    const width = numCols * cellSize;
-    const height = numRows * cellSize;
+    const margin = { top: 20, right: 20, bottom: 70, left: 70 };
+    const width = numRows * cellSize;   // flipped: used to be numCols
+    const height = numCols * cellSize;  // flipped: used to be numRows
   
     svg
       .attr("width", width + margin.left + margin.right)
@@ -81,22 +90,24 @@ const MapView = (props: MapViewProps) => {
     const flatValues = matrix.flat();
     const colorScale = d3.scaleSequential()
       .domain([0, d3.max(flatValues)!])
-      .interpolator(d3.interpolateOrRd);
+      .interpolator(toggleColourScheme ? d3.interpolateOrRd : d3.interpolateGnBu);
   
+  
+    // Flip axes
     const xScale = d3.scaleLinear()
-      .domain([0, numCols])
+      .domain([0, numRows])
       .range([0, width]);
   
     const yScale = d3.scaleLinear()
-      .domain([0, numRows])
-      .range([0, height]);
+      .domain([0, numCols])
+      .range([height, 0]); // flip for top-down
   
     const xAxis = d3.axisBottom(xScale)
-      .ticks(Math.min(numCols, 10))
+      .ticks(Math.min(numRows, 10))
       .tickFormat(d => `${d * resolution}`);
   
     const yAxis = d3.axisLeft(yScale)
-      .ticks(Math.min(numRows, 10))
+      .ticks(Math.min(numCols, 10))
       .tickFormat(d => `${d * resolution}`);
   
     const gx = svg.append("g")
@@ -111,27 +122,28 @@ const MapView = (props: MapViewProps) => {
   
     const heatmap = g.append("g").attr("class", "heatmap");
   
-    // Draw heatmap cells
+    // Flip axes in drawing
     heatmap.selectAll("g")
-      .data(matrix)
-      .join("g")
-      .attr("transform", (_, i) => `translate(0, ${i * cellSize})`)
-      .selectAll("rect")
-      .data(d => d)
-      .join("rect")
-      .attr("x", (_, j) => j * cellSize)
-      .attr("width", cellSize)
-      .attr("height", cellSize)
-      .attr("fill", d => colorScale(d))
-      .attr("stroke", "#ccc");
+    .data(matrix)
+    .join("g")
+    .attr("transform", (_, i) => `translate(${(numRows - 1 - i) * cellSize}, 0)`) // flip X
+    .selectAll("rect")
+    .data((d, i) => d.map((val, j) => ({ val, j })))
+    .join("rect")
+    .attr("y", d => (d.j) * cellSize) // flip Y
+    .attr("width", cellSize)
+    .attr("height", cellSize)
+    .attr("fill", d => colorScale(d.val))
+    .attr("stroke", showGridlines ? "#ccc" : "none");
   
-    // Axis labels
+  
+    // Axis labels — flipped
     svg.append("text")
       .attr("x", margin.left + width / 2)
       .attr("y", height + margin.top + 35)
       .attr("text-anchor", "middle")
       .attr("font-size", "12px")
-      .text(segmentB);
+      .text(segmentA); // now X-axis (used to be B)
   
     svg.append("text")
       .attr("transform", `rotate(-90)`)
@@ -139,7 +151,7 @@ const MapView = (props: MapViewProps) => {
       .attr("y", 12)
       .attr("text-anchor", "middle")
       .attr("font-size", "12px")
-      .text(segmentA);
+      .text(segmentB); // now Y-axis (used to be A)
   
     // Zoom behavior
     zoomRef.current = d3.zoom()
@@ -160,8 +172,8 @@ const MapView = (props: MapViewProps) => {
       gx.call(xAxis.scale(zx));
       gy.call(yAxis.scale(zy));
     }
-
   };
+  
 
   const renderHeatmap = () => {
     // make request to backend
@@ -177,7 +189,8 @@ const MapView = (props: MapViewProps) => {
         genome_path: reference,
         resolution: resolution,
         segment_1: segmentA,
-        segment_2: segmentB
+        segment_2: segmentB,
+        normalise: normalise,
       })
     })
       .then(response => response.json())
@@ -192,7 +205,25 @@ const MapView = (props: MapViewProps) => {
   }
 
   return (
-    <ParentView viewConfig={props.viewConfig} index={props.index} crossViewActionHandler={props.crossViewActionHandler} >
+    <ParentView 
+      viewConfig={props.viewConfig}
+      index={props.index}
+      crossViewActionHandler={props.crossViewActionHandler} 
+      userActions={{
+        "Download PNG": () => {
+              const d3ToPng = require('d3-svg-to-png');
+              d3ToPng(heatmapRef.current, 'output', {
+                scale: 1,
+                format: 'png',
+                quality: 1,
+                download: true,
+                ignore: '.ignored',
+                background: 'white'
+              });
+            },
+          }
+      }
+    >
         {
             ! (reference && track) ? (
         <Box
@@ -221,7 +252,9 @@ const MapView = (props: MapViewProps) => {
                 })
             }}
             sx={{
-                margin: "0 10px",}}
+                margin: "0 10px",
+                boxShadow: "none",
+              }}
             >
             {
                 props.trackFiles.map((file, index) => (
@@ -247,7 +280,9 @@ const MapView = (props: MapViewProps) => {
                 })
             }}
             sx={{
-                margin: "0 10px",}}
+                margin: "0 10px",
+                boxShadow: "none",
+              }}
             >
             {
                 props.trackFiles.map((file, index) => (
@@ -293,6 +328,9 @@ const MapView = (props: MapViewProps) => {
                     }}
                     defaultValue={segmentA}
                     placeholder="Select segment A"
+                    sx={{
+                      boxShadow: "none",
+                    }}
                     >
                     {availableSegments.map((segment, index) => (
                         <Option key={index} value={segment}>
@@ -317,6 +355,9 @@ const MapView = (props: MapViewProps) => {
                     }}
                     defaultValue={segmentB}
                     placeholder="Select segment B"
+                    sx={{
+                      boxShadow: "none",
+                    }}
                     >
                     {availableSegments.map((segment, index) => (
                         <Option key={index} value={segment}>
@@ -326,7 +367,7 @@ const MapView = (props: MapViewProps) => {
                     </Select>
 
                     <Typography fontSize="md">
-                    Resolution:
+                    Resolution (bp):
                     </Typography>
                     <Select
                     defaultValue={resolution}
@@ -341,8 +382,13 @@ const MapView = (props: MapViewProps) => {
                             },
                         })
                     }}
+                    sx={{
+                      boxShadow: "none",
+                    }}
                     >
+                    <Option value={1}>1</Option>
                     <Option value={5}>5</Option>
+                    <Option value={10}>10</Option>
                     <Option value={25}>25</Option>
                     <Option value={50}>50</Option>
                     <Option value={100}>100</Option>
@@ -350,7 +396,33 @@ const MapView = (props: MapViewProps) => {
                     <Option value={500}>500</Option>
                     <Option value={1000}>1000</Option>
                     </Select>
-
+                    <Typography fontSize="md">
+                    Show gridlines:
+                    </Typography>
+                    <Checkbox
+                    checked={showGridlines}
+                    onChange={(e) => {
+                        setShowGridlines(e.target.checked);
+                    }}
+                    />
+                    <Typography fontSize="md">
+                    Toggle colour scheme:
+                    </Typography>
+                    <Checkbox
+                    checked={toggleColourScheme}
+                    onChange={(e) => {
+                        setToggleColourScheme(e.target.checked);
+                    }}
+                    />
+                    <Typography fontSize="md">
+                    Normalise:
+                    </Typography>
+                    <Checkbox
+                    checked={normalise}
+                    onChange={(e) => {
+                        setNormalise(e.target.checked);
+                    }}
+                    />
                     <Button variant="solid" color="primary" onClick={renderHeatmap}>
                     Render
                     </Button>
@@ -373,11 +445,16 @@ const MapView = (props: MapViewProps) => {
                 </Box>
             </Card>
             <Box
-            sx={{
-                margin: "1em",
-            }}
+              sx={{
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                overflow: 'auto',
+                // border: '1px solid #ccc',
+                marginBottom: '20px',
+                padding: '10px',
+              }}
             >
-                <svg ref={heatmapRef}></svg>
+              <svg ref={heatmapRef}></svg>
             </Box>
         </Box>
             )

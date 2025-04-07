@@ -10,6 +10,7 @@ services:
       - ./timge.conf:/etc/nginx/conf.d/default.conf
       - /etc/ssl/certs:/etc/ssl/certs
       - /etc/ssl/private:/etc/ssl/private
+      - /srv/uploads:/srv/uploads
     networks:
       - timge-network
 
@@ -22,6 +23,8 @@ services:
   timge-backend:
     image: ${DOCKER_IMAGE_BACKEND}
     container_name: timge-backend
+    volumes:
+      - /srv/uploads:/srv/uploads
     networks:
       - timge-network
 

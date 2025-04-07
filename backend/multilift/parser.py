@@ -138,7 +138,6 @@ def format_link(link) -> list[dict]:
             for line in lines:
                 line = line.strip()
                 data = line.split("\t")
-                print(data)
                 links.append(
                     {
                         "source_chromosome": data[0],
@@ -147,7 +146,7 @@ def format_link(link) -> list[dict]:
                         "target_chromosome": data[3],
                         "target_start": data[4],
                         "target_end": data[5],
-                        "score": int(data[7]),
+                        "score": int(data[7]) if data[7].isdigit() else 0,
                     }
                 )
 

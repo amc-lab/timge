@@ -1,12 +1,6 @@
 "use client";
 import React, { useEffect } from "react";
 import "@fontsource/roboto";
-// import {
-  // createViewState,
-  // JBrowseLinearGenomeView,
-// } from "@jbrowse/react-linear-genome-view";
-import assembly from "./assembly";
-import tracks_ from "./tracks";
 import Header from "@/components/Header";
 import { v4 as uuidv4 } from "uuid";
 import CircosView from "./circos/CircosView";
@@ -14,8 +8,8 @@ import { useState } from "react";
 import TrackUploadForm from "@/components/TrackUploadForm";
 import { State } from "./types/state";
 import { ViewType } from "./types/viewTypes";
-import { defaultChordConfig } from "./circos/config/defaultConfigs";
 import MapView from "./map/MapView";
+import LinearView from "./linear/LinearView";
 
 interface FileEntry {
   name: string;
@@ -38,10 +32,6 @@ function getDefaultState(): State {
 }
 
 export default function Page() {
-  // const viewState = createViewState({
-  //   assembly,
-  //   tracks: tracks_,
-  // });
 
   const fileFormatMapping = {
     "fasta": "karyotype",
@@ -422,13 +412,9 @@ export default function Page() {
       {
         spaceState.views.map((view, index) => {
           if (view.type === "linear") {
-            return;
-            // return <JBrowseLinearGenomeView key={index} viewState={viewState} />
+            return <LinearView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} crossViewActionHandler={crossViewActionHandler} />  
           }
           else if (view.type === "circos") {
-            console.log("View", view);
-            console.log("Tracks", tracks);
-            console.log("Key", index);
             return <CircosView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} crossViewActionHandler={crossViewActionHandler} />
           }
           else if (view.type === "map") {

@@ -13,6 +13,7 @@ import math
 import numpy as np
 import os
 from django.http import JsonResponse
+from timge.utils.heatmap import generate_contact_map, generate_contact_map_bedpe
 
 TRACK_ROOT_DIR = settings.TRACK_ROOT_DIR
 
@@ -145,53 +146,57 @@ def generate_heatmap(request):
         return JsonResponse({"status": "error", "message": "Invalid JSON."})
 
     uuid = data.get("uuid")
-    file_name = data.get("file_name")
+    reads_path = data.get("file_name")
     resolution = int(data.get("resolution", 100))
     segment_1 = data.get("segment_1")
     segment_2 = data.get("segment_2")
     genome_path = data.get("genome_path")
+    normalise = data.get("normalise", False)
 
     directory = os.path.join(TRACK_ROOT_DIR, uuid)
-    file_path = os.path.join(directory, file_name)
+    reads_path = os.path.join(directory, reads_path)
     reference_path = os.path.join(directory, genome_path)
+    fai_path = os.path.join(directory, genome_path + ".fai")
 
-    print(uuid, file_path, reference_path)
-
-    if not os.path.exists(file_path):
+    if not os.path.exists(reads_path):
         return JsonResponse({"status": "error", "message": "File not found."})
     if not os.path.exists(reference_path):
         return JsonResponse({"status": "error", "message": "Reference file not found."})
+    if not os.path.exists(fai_path):
+        os.system(f'samtools faidx "{reference_path}"')
+        print("FAI file created.")
 
-    try:
-        with open(file_path, "r") as f:
-            content = f.read()
-    except Exception as e:
-        return JsonResponse(
-            {"status": "error", "message": f"Error reading file: {str(e)}"}
+    if reads_path.endswith(".bedpe"):
+        matrix = generate_contact_map_bedpe(
+            reads_path, segment_1, segment_2, fai_path, normalise, resolution
+        )
+    else:
+        matrix = generate_contact_map(
+            reads_path, segment_1, segment_2, reference_path, normalise, resolution
         )
 
-    segment_1_seq = get_segment(reference_path, segment_1)
-    segment_2_seq = get_segment(reference_path, segment_2)
+    # segment_1_seq = get_segment(reference_path, segment_1)
+    # segment_2_seq = get_segment(reference_path, segment_2)
 
-    if segment_1_seq is None or segment_2_seq is None:
-        return JsonResponse(
-            {"status": "error", "message": "Segment not found in reference."}
-        )
+    # if segment_1_seq is None or segment_2_seq is None:
+    #     return JsonResponse(
+    #         {"status": "error", "message": "Segment not found in reference."}
+    #     )
 
-    num_bins_1 = math.ceil(len(segment_1_seq) / resolution)
-    num_bins_2 = math.ceil(len(segment_2_seq) / resolution)
+    # num_bins_1 = math.ceil(len(segment_1_seq) / resolution)
+    # num_bins_2 = math.ceil(len(segment_2_seq) / resolution)
 
-    matrix = np.zeros((num_bins_1, num_bins_2))
+    # matrix = np.zeros((num_bins_1, num_bins_2))
 
-    for line in content.splitlines():
-        fields = line.split()
-        if len(fields) < 8:
-            continue  # skip malformed lines
-        seg1, start1, _, seg2, start2, _, _, score = fields[:8]
-        if seg1 == segment_1 and seg2 == segment_2:
-            bin1 = int(start1) // resolution
-            bin2 = int(start2) // resolution
-            matrix[bin1, bin2] += float(score)
+    # for line in content.splitlines():
+    #     fields = line.split()
+    #     if len(fields) < 8:
+    #         continue  # skip malformed lines
+    #     seg1, start1, _, seg2, start2, _, _, score = fields[:8]
+    #     if seg1 == segment_1 and seg2 == segment_2:
+    #         bin1 = int(start1) // resolution
+    #         bin2 = int(start2) // resolution
+    #         matrix[bin1, bin2] += float(score)
 
     return JsonResponse(
         {
