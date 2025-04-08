@@ -84,7 +84,7 @@ const MapView = (props: MapViewProps) => {
     const svg = d3.select(heatmapRef.current);
     svg.selectAll("*").remove();
 
-    const maxWidth = window.innerWidth * 0.8 * (props.viewConfig.config.isMinimised ? 0.5 : 1) - 100;
+    const maxWidth = window.innerWidth * 0.8 * (props.viewConfig.config.isMinimised ? 0.5 : 1) - 150;
     const maxHeight = window.innerHeight * 0.8;
   
     const numRows = matrix.length;

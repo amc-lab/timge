@@ -25,8 +25,7 @@ const LinearView = (props: LinearViewProps) => {
   const [renderView, setRenderView] = useState(false);
   const [viewState, setViewState] = useState<any>(null);
 
-  const HOST = "http://localhost:3000/";
-  const uuid = props.viewConfig.uuid;
+  const HOST = "https://timge.doc.ic.ac.uk/uploads/" + props.viewConfig.uuid + "/";
 
 //   // Filter reference tracks (e.g., .fasta/.fa)
 //   const referenceTracks = props.trackFiles.filter((file) =>
@@ -81,8 +80,8 @@ const LinearView = (props: LinearViewProps) => {
     //     },
     //   }));
     const assembly = {
-        name: "Fodor",
-        aliases: ["Fodor"],
+        name: reference,
+        aliases: [reference],
         sequence: {
           type: "ReferenceSequenceTrack",
           trackId: "GRCh38-ReferenceSequenceTrack",
@@ -100,15 +99,15 @@ const LinearView = (props: LinearViewProps) => {
     
     const jbrowseTracks = [
         {
-        "trackId": "my_wiggle_track",
-          "name": "My Wiggle Track",
-          "assemblyNames": ["Fodor"],
+        "trackId": selectedTracks[0],
+          "name": selectedTracks[0],
+          "assemblyNames": [reference],
           "type": "QuantitativeTrack",
           "adapter": {
             "type": "BedGraphAdapter",
             "bedGraphLocation": {
               "locationType": "UriLocation",
-              "uri": "http://localhost:3000/" + selectedTracks[0],
+              "uri": HOST + selectedTracks[0],
             },
           }
         }
@@ -130,7 +129,11 @@ const LinearView = (props: LinearViewProps) => {
   }, [viewState]);
 
   return (
-    <Box>
+    <Box sx={{
+      display: "flex",
+      width: "100%",
+    }}
+    >
       {(!reference || selectedTracks.length === 0 || !renderView) && (
         <ParentView
           viewConfig={props.viewConfig}
@@ -206,7 +209,7 @@ const LinearView = (props: LinearViewProps) => {
       )}
 
       { renderView && reference && selectedTracks.length > 0 && viewState && (
-        <Box sx={{ mt: 4 }}>
+        <Box sx={{ width: "100%" }}>
           <JBrowseLinearGenomeView viewState={viewState} />
         </Box>
       )}
