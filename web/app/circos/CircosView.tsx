@@ -1,5 +1,5 @@
 "use client"
-import { Box, Button, Card, IconButton, Slider, Typography } from "@mui/joy";
+import { Box, Button, Card, IconButton, Option, Select, Slider, Typography } from "@mui/joy";
 import { Track, TrackType } from "./config/track";
 import { useState } from "react";
 import Tracks from "./tracks";
@@ -17,11 +17,17 @@ interface CircosViewProps {
     handleViewUpdate: (index, viewState: View) => void;
     crossViewActionHandler?: any;
     index: number;
+    dependencies?: any;
+    addConnection?: any;
+    removeConnection?: any;
+    connections?: string[];
+    createdViews: Set<any>;
 }
 
 const CircosView = (props: CircosViewProps) => {
    const canvasRef = useRef<HTMLDivElement>(null);
    const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
+   const [connectedViews, setConnectedViews] = useState<string[]>([]);
 
    const maxScore = d3.max(props.trackFiles, (d) => {
        if (d.data) {
@@ -244,6 +250,45 @@ const CircosView = (props: CircosViewProps) => {
                     });
                   }}
                   ></Slider>
+                  <Typography
+                    sx={{
+                      fontSize: "1em",
+                      marginLeft: "10px",
+                    }}
+                  >
+                    Connect to:
+                  </Typography>
+                  <Select
+                    placeholder="Select views"
+                    multiple
+                    value={connectedViews}
+                    onChange={(event, value) => {
+                      setConnectedViews(value);
+                      for (let i = 0; i < value.length; i++) {
+                        if (props.crossViewActionHandler) {
+                          props.crossViewActionHandler("add_connection", {
+                            source: props.viewConfig.id,
+                            target: value[i],
+                          });
+                        }
+                      }
+                    }
+                    }
+      
+                  >
+                    {props.createdViews &&
+                      Array.from(props.createdViews).filter((view) => view.id !== props.viewConfig.id).map((view_id) => {
+                        return (
+                          <Option
+                            key={view_id}
+                            value={view_id}
+                          >
+                            {view_id}
+                          </Option>
+                        );
+                      }
+                    )}
+                  </Select>
               </Card>
               <Box
                 sx={{

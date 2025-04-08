@@ -11,6 +11,10 @@ interface MapViewProps {
   handleViewUpdate: (index, viewState: View) => void;
   index: number;
   crossViewActionHandler?: any;
+  dependencies: any;
+  addConnection?: any;
+  removeConnection?: any;
+  createdViews: Set<any>;
 }
 
 const MapView = (props: MapViewProps) => {
@@ -53,19 +57,34 @@ const MapView = (props: MapViewProps) => {
     }
   }, [reference, track]);
 
+  // useEffect(() => {
+  //   if (props.viewConfig.config.segmentA && props.viewConfig.config.segmentB && props.viewConfig.config.resolution) {
+  //     renderHeatmap();
+  //   }
+  // }, []);
+
   useEffect(() => {
-    if (props.viewConfig.config.segmentA && props.viewConfig.config.segmentB && props.viewConfig.config.resolution) {
-      renderHeatmap();
-    }
-  }, []);
+    props.handleViewUpdate(props.index, {
+      ...props.viewConfig,
+      config: {
+        ...props.viewConfig.config,
+        reference: reference,
+        track: track,
+        segmentA: segmentA,
+        segmentB: segmentB,
+        resolution: resolution,
+      },
+    });
+  }
+  , [reference, track, segmentA, segmentB, resolution]);
 
   const zoomRef = useRef<d3.ZoomBehavior<Element, unknown> | null>(null);
 
-  const drawHeatmap = (matrix: number[][]) => {
+  const drawHeatmap = (matrix: number[][], segmentA: string, segmentB: string) => {
     const svg = d3.select(heatmapRef.current);
     svg.selectAll("*").remove();
 
-    const maxWidth = window.innerWidth * 0.8;
+    const maxWidth = window.innerWidth * 0.8 * (props.viewConfig.config.isMinimised ? 0.5 : 1);
     const maxHeight = window.innerHeight * 0.8;
   
     const numRows = matrix.length;
@@ -162,6 +181,7 @@ const MapView = (props: MapViewProps) => {
   
     const legendGradientId = "legend-gradient";
   
+    svg.select("defs").remove();
     const defs = svg.append("defs");
     const linearGradient = defs.append("linearGradient")
       .attr("id", legendGradientId)
@@ -206,8 +226,8 @@ const MapView = (props: MapViewProps) => {
     }
   };
   
-
-  const renderHeatmap = () => {
+  const renderHeatmap = (_segmentA?, _segmentB?) => {
+    console.log("Rendering heatmap", _segmentA, _segmentB);
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
     fetch(`${host}/api/timge/heatmap/`, {
       method: "POST",
@@ -219,21 +239,35 @@ const MapView = (props: MapViewProps) => {
         file_name: track,
         genome_path: reference,
         resolution: resolution,
-        segment_1: segmentA,
-        segment_2: segmentB,
+        segment_1: _segmentA ? _segmentA : segmentA,
+        segment_2: _segmentB ? _segmentB : segmentB,
         normalise: normalise,
       })
     })
       .then(response => response.json())
       .then(data => {
         if (data.status === "success") {
-          drawHeatmap(data.matrix);
+          drawHeatmap(data.matrix, _segmentA ? _segmentA : segmentA, _segmentB ? _segmentB : segmentB);
         } else {
           console.error("Failed to generate heatmap", data.message);
         }
       }
-      )
+    )
   }
+
+  useEffect(() => {
+    if (reference && track) {
+      if (props.dependencies) {
+        const _segmentA = props.dependencies.segmentA;
+        const _segmentB = props.dependencies.segmentB;
+        console.log("Dependencies changed", _segmentA, _segmentB);
+        setSegmentA(props.dependencies.segmentA);
+        setSegmentB(props.dependencies.segmentB);
+        renderHeatmap(_segmentA, _segmentB);
+      }
+    }
+  }
+  , [props.dependencies]);
 
   return (
     <ParentView 
@@ -365,7 +399,7 @@ const MapView = (props: MapViewProps) => {
                             },
                         })
                     }}
-                    defaultValue={segmentA}
+                    value={segmentA}
                     placeholder="Select segment A"
                     sx={{
                       boxShadow: "none",
@@ -392,7 +426,7 @@ const MapView = (props: MapViewProps) => {
                             },
                         })
                     }}
-                    defaultValue={segmentB}
+                    value={segmentB}
                     placeholder="Select segment B"
                     sx={{
                       boxShadow: "none",
@@ -462,7 +496,7 @@ const MapView = (props: MapViewProps) => {
                         setNormalise(e.target.checked);
                     }}
                     />
-                    <Button variant="solid" color="primary" onClick={renderHeatmap}>
+                    <Button variant="solid" color="primary" onClick={() => renderHeatmap(null, null)}>
                     Render
                     </Button>
                     <Button

@@ -16,6 +16,9 @@ export interface State {
     // dateCreated: string;
     // dateModified: string;
     isUserLoggedIn: boolean;
+    // connections: Map<string, string[]>;
+    // dependencies: Map<string, any>;
+    // createdViews: Set<string>;
     UUID: string?;
     // dataFilesRootDir: string;
     dataFiles: string[]; 

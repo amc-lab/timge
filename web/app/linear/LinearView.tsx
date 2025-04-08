@@ -13,6 +13,10 @@ interface LinearViewProps {
   handleViewUpdate: (index: number, viewState: View) => void;
   index: number;
   crossViewActionHandler?: any;
+  dependencies?: any;
+  addConnection?: any;
+  removeConnection?: any;
+  createdViews: Set<any>;
 }
 
 const LinearView = (props: LinearViewProps) => {

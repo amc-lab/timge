@@ -11,6 +11,7 @@ import { ViewType } from "./types/viewTypes";
 import MapView from "./map/MapView";
 import LinearView from "./linear/LinearView";
 import { Box } from "@mui/joy";
+import { Hash } from "crypto";
 
 interface FileEntry {
   name: string;
@@ -100,6 +101,11 @@ export default function Page() {
   const [tracks, setTracks] = useState([]);
   const [genomeFormOpen, setGenomeFormOpen] = useState(false);
   const [spaceState, setSpaceState] = useState<State>(() => loadState());
+  // Mapping from view ID to linked view ID
+  const [connections, setConnections] = useState<Map<string, string[]>>(new Map());
+  // Maintains dependency properties for each view
+  const [dependencies, setDependencies] = useState<Map<string, any>>(new Map());
+  const [createdViews, setCreatedViews] = useState<Set<string>>(new Set());
 
   // Update the space state in local storage whenever it changes
   useEffect(() => {
@@ -169,7 +175,14 @@ export default function Page() {
   }
   , [files]);
 
+  useEffect(() => {
+    console.log("Connections:", connections);
+    console.log("Dependencies:", dependencies);
+    console.log("Created Views:", createdViews);
+  }, [connections, dependencies, createdViews]);
+
   const addLinearGenomeView = () => {
+    const id = `view-${spaceState.views.length + 1}`;
     const newView = {
       viewType: "LinearGenomeView",
     }
@@ -185,15 +198,19 @@ export default function Page() {
         },
       ],
     });
+    setCreatedViews((prev) => new Set(prev).add(id));
+    setDependencies((prev) => new Map(prev).set(id, {}));
+    setConnections((prev) => new Map(prev).set(id, []));
   }
 
   const addCircosView = () => {
+    const id = `view-${spaceState.views.length + 1}`;
     setSpaceState({
       ...spaceState,
       views: [
         ...spaceState.views,
         {
-          id: `view-${spaceState.views.length + 1}`,
+          id: id,
           type: ViewType.Circos,
           title: `Circos View ${spaceState.views.length + 1}`,
           description: "Circular genome view",
@@ -204,15 +221,19 @@ export default function Page() {
         },
       ],
     });
+    setDependencies((prev) => new Map(prev).set(id, {}));
+    setConnections((prev) => new Map(prev).set(id, []));
+    setCreatedViews((prev) => new Set(prev).add(id));
   }
 
   const addMapView = () => {
+    const id = `view-${spaceState.views.length + 1}`;
     setSpaceState({
       ...spaceState,
       views: [
         ...spaceState.views,
         {
-          id: `view-${spaceState.views.length + 1}`,
+          id: id,
           type: ViewType.Map,
           title: `Map View ${spaceState.views.length + 1}`,
           description: "Map view",
@@ -223,10 +244,42 @@ export default function Page() {
             segmentA: "",
             segmentB: "",
             resolution: 25,
-            isMinimised: true,
+            isMinimised: false,
           },
         },
       ],
+    });
+    setDependencies((prev) => new Map(prev).set(id, {}));
+    setConnections((prev) => new Map(prev).set(id, []));
+    setCreatedViews((prev) => new Set(prev).add(id));
+  }
+
+  const addConnection = (viewId: string, linkedViewId: string) => {
+    setConnections((prev) => {
+      const newConnections = new Map(prev);
+      newConnections.set(viewId, [...(newConnections.get(viewId) || []), linkedViewId]);
+      return newConnections;
+    });
+  }
+
+  const removeConnection = (viewId: string) => {
+    const dependents = connections.get(viewId);
+    if (dependents) {
+      dependents.forEach((dependentId) => {
+        setDependencies((prev) => {
+          const newDependencies = new Map(prev);
+          newDependencies.set(dependentId, {});
+          return newDependencies;
+        }
+        );
+      }
+      );
+    }
+
+    setConnections((prev) => {
+      const newConnections = new Map(prev);
+      newConnections.delete(viewId);
+      return newConnections;
     });
   }
 
@@ -272,6 +325,34 @@ export default function Page() {
             ...prevState,
             views: updatedViews,
           };
+        });
+      }
+    }
+    else if (action === "add_connection") {
+      const { source, target } = data;
+      if (source && target) {
+        addConnection(source, target);
+      }
+    }
+    else if (action === "remove_connection") {
+      const { viewId } = data;
+      if (viewId) {
+        removeConnection(viewId);
+      }
+    }
+    else if (action === "propagate_dependencies") {
+      const { viewId, dependencies } = data;
+      console.log("Propagating dependencies for view:", viewId, "with dependencies:", dependencies);
+      const dependents = connections.get(viewId);
+      console.log("Dependents:", dependents);
+      if (dependents) {
+        dependents.forEach((dependentId) => {
+          console.log("Setting dependencies for dependent view:", dependentId);
+          setDependencies((prev) => {
+            const newDependencies = new Map(prev);
+            newDependencies.set(dependentId, dependencies);
+            return newDependencies;
+          });
         });
       }
     }
@@ -425,13 +506,46 @@ export default function Page() {
       {
         spaceState.views.map((view, index) => {
           if (view.type === "linear") {
-            return <LinearView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} crossViewActionHandler={crossViewActionHandler} />  
+            return <LinearView 
+                      key={index} 
+                      trackFiles={tracks} 
+                      viewConfig={view} 
+                      handleViewUpdate={updateViewState} 
+                      index={index} 
+                      crossViewActionHandler={crossViewActionHandler} 
+                      dependencies={dependencies.get(view.id)}
+                      addConnection={addConnection}
+                      removeConnection={removeConnection}
+                      createdViews={createdViews}
+                    />  
           }
           else if (view.type === "circos") {
-            return <CircosView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} crossViewActionHandler={crossViewActionHandler} />
+            return <CircosView 
+                      key={index}
+                      trackFiles={tracks}
+                      viewConfig={view}
+                      handleViewUpdate={updateViewState} 
+                      index={index} 
+                      crossViewActionHandler={crossViewActionHandler} 
+                      dependencies={dependencies.get(view.id)}
+                      addConnection={addConnection}
+                      removeConnection={removeConnection}
+                      createdViews={createdViews}
+                    />
           }
           else if (view.type === "map") {
-            return <MapView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} crossViewActionHandler={crossViewActionHandler} />
+            return <MapView 
+                      key={index} 
+                      trackFiles={tracks} 
+                      viewConfig={view}
+                      handleViewUpdate={updateViewState} 
+                      index={index} 
+                      crossViewActionHandler={crossViewActionHandler} 
+                      dependencies={dependencies.get(view.id)}
+                      addConnection={addConnection}
+                      removeConnection={removeConnection}
+                      createdViews={createdViews}
+                    />
           }
         })
       }
