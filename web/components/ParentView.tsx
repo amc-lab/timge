@@ -56,7 +56,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        width: "calc(100% - 5px)",
+        width: viewConfig.config.isMinimised ? "calc(50% - 5px)" : "calc(100% - 5px)",
         borderRadius: "3px",
         margin: "2.5px",
         flexDirection: "column",

@@ -3,15 +3,14 @@ import {
   Box,
   Checkbox,
   Typography,
-  Select,
-  Option,
   IconButton,
   Sheet,
   Button,
   Divider,
   Card,
 } from "@mui/joy";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { Track } from "../config/track";
 
 interface TrackSelectorProps {
@@ -21,23 +20,35 @@ interface TrackSelectorProps {
   onConfirm: (selectedTracks: Track[]) => void;
 }
 
-const visualizationOptions = ["Linear View", "Circular", "Heatmap"];
+const TrackSelector: React.FC<TrackSelectorProps> = ({
+  tracks,
+  trackFiles,
+  onClose,
+  onConfirm,
+}) => {
+  const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
 
-const TrackSelector: React.FC<TrackSelectorProps> = ({ tracks, trackFiles, onClose, onConfirm }) => {
-
-  const handleMove = (index: number, direction: number) => {
-    // const newIndex = index + direction;
-    // if (newIndex < 0 || newIndex >= trackOrder.length) return;
-    // const newOrder = [...trackOrder];
-    // const [movedItem] = newOrder.splice(index, 1);
-    // newOrder.splice(newIndex, 0, movedItem);
-    // setTrackOrder(newOrder);
+  const toggleTrack = (track: Track) => {
+    setSelectedTracks((prev) => {
+      if (prev.includes(track)) {
+        return prev.filter((t) => t !== track);
+      } else {
+        return [...prev, track];
+      }
+    });
   };
 
-  const [selectedTracks, setSelectedTracks] = useState<Set<Track>>(new Set());
+  const handleMove = (index: number, direction: number) => {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= selectedTracks.length) return;
+    const newOrder = [...selectedTracks];
+    const [movedItem] = newOrder.splice(index, 1);
+    newOrder.splice(newIndex, 0, movedItem);
+    setSelectedTracks(newOrder);
+  };
 
   const handleConfirm = () => {
-    onConfirm(selectedTracks ? Array.from(selectedTracks) : []);
+    onConfirm(selectedTracks);
   };
 
   return (
@@ -70,62 +81,80 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({ tracks, trackFiles, onClo
         </Typography>
         <Divider sx={{ mb: 2 }} />
 
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-          {tracks.map((track, index) => {
+        {/* Box 1: All tracks with checkboxes */}
+        <Typography mb={1}>
+          Available Tracks
+        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            mb: 3,
+            p: 2,
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            backgroundColor: "#f9f9f9",
+          }}
+        >
+          {tracks.map((track, index) => (
+            <Box
+              key={index}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+              }}
+            >
+              <Checkbox
+                checked={selectedTracks.includes(track)}
+                onChange={() => toggleTrack(track)}
+              />
+              <Typography>{trackFiles[index]?.name || `Track ${index + 1}`}</Typography>
+            </Box>
+          ))}
+        </Box>
 
-            return (
-              <Box
-                key={index}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  padding: 1,
-                  backgroundColor: "#f5f5f5",
-                  borderRadius: "8px",
-                  outline: "1px solid #ccc",
-                }}
-              >
+        {/* Box 2: Selected tracks with move buttons */}
+        <Typography mb={1}>
+          Selected Tracks (Reorderable)
+        </Typography>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 1,
+            p: 2,
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            backgroundColor: "#eef3ff",
+          }}
+        >
+          {selectedTracks.map((track, index) => (
+            <Box
+              key={index}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 2,
+                padding: 1,
+                backgroundColor: "#fff",
+                borderRadius: "6px",
+                boxShadow: "sm",
+              }}
+            >
+              <Typography>{trackFiles[tracks.indexOf(track)]?.name || index}</Typography>
+              <Box sx={{ display: "flex", gap: 1 }}>
                 <IconButton onClick={() => handleMove(index, -1)}>
-                  ↑
+                  <ArrowUpwardIcon />
                 </IconButton>
                 <IconButton onClick={() => handleMove(index, 1)}>
-                  ↓
+                  <ArrowDownwardIcon />
                 </IconButton>
-                <Checkbox
-                  checked={selectedTracks.has(track)}
-                  onChange={(e) =>
-                    setSelectedTracks((prev) => {
-                      const newSet = new Set(prev);
-                      if (e.target.checked) {
-                        newSet.add(track);
-                      } else {
-                        newSet.delete(track);
-                      }
-                      return newSet;
-                    }
-                  )}
-                />
-                <Typography sx={{ minWidth: 120 }}>{trackFiles[index].name}</Typography>
-                {/* <Select
-                  value={visualizationTypes[track.id]}
-                  onChange={(_, value) =>
-                    setVisualizationTypes((prev) => ({
-                      ...prev,
-                      [track.id]: value || visualizationOptions[0],
-                    }))
-                  }
-                  sx={{ minWidth: 150 }}
-                >
-                  {visualizationOptions.map((opt, idx) => (
-                    <Option key={idx} value={opt}>
-                      {opt}
-                    </Option>
-                  ))}
-                </Select> */}
               </Box>
-            );
-          })}
+            </Box>
+          ))}
         </Box>
 
         <Box mt={4} display="flex" justifyContent="flex-end" gap={2}>

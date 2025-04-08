@@ -146,7 +146,11 @@ def format_link(link) -> list[dict]:
                         "target_chromosome": data[3],
                         "target_start": data[4],
                         "target_end": data[5],
-                        "score": int(data[7]) if data[7].isdigit() else 0,
+                        "score": 1
+                        if len(data) <= 6
+                        else int(data[7])
+                        if data[7].isdigit()
+                        else 0,
                     }
                 )
 

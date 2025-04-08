@@ -295,7 +295,9 @@ const CircosView = (props: CircosViewProps) => {
               </Card>
               <Box
                 sx={{
-                  width: "650px"
+                  width: "650px",
+                  paddingTop: "25px",
+                  paddingBottom: "25px",
                 }}
                 >
               <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
