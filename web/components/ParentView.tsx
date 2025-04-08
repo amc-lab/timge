@@ -16,9 +16,10 @@ interface ParentViewProps {
   userActions?: Record<string, (...args: any[]) => void>;
   index?: number;
   crossViewActionHandler?: any;
+  ref?: React.Ref<any>;
 }
 
-const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {}, index, crossViewActionHandler }) => {
+const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {}, index, crossViewActionHandler, ref }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -50,13 +51,14 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        width: "calc(100% - 5px)",
+        width: viewConfig.config.isMinimised ? "calc(50% - 5px)" : "calc(100% - 5px)",
         borderRadius: "3px",
         margin: "2.5px",
         flexDirection: "column",
         backgroundColor: "white",
         border: "4px solid darkblue",
       }}
+      ref={ref}
     >
       <Box
         sx={{

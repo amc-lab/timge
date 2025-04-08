@@ -10,6 +10,7 @@ import { State } from "./types/state";
 import { ViewType } from "./types/viewTypes";
 import MapView from "./map/MapView";
 import LinearView from "./linear/LinearView";
+import { Box } from "@mui/joy";
 
 interface FileEntry {
   name: string;
@@ -197,6 +198,9 @@ export default function Page() {
           title: `Circos View ${spaceState.views.length + 1}`,
           description: "Circular genome view",
           visible_tracks: [],
+          config: {
+            isMinimised: false,
+          },
         },
       ],
     });
@@ -219,6 +223,7 @@ export default function Page() {
             segmentA: "",
             segmentB: "",
             resolution: 25,
+            isMinimised: true,
           },
         },
       ],
@@ -409,6 +414,14 @@ export default function Page() {
         );
       }}
     />
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "flex-start",
+      }}
+      >
       {
         spaceState.views.map((view, index) => {
           if (view.type === "linear") {
@@ -422,6 +435,7 @@ export default function Page() {
           }
         })
       }
+    </Box>
     </>;
 
 }

@@ -140,6 +140,15 @@ const CircosView = (props: CircosViewProps) => {
                     visible_tracks: [],
                 });
             },
+            [props.viewConfig.config.isMinimised ? "Maximise" : "Minimise"]: () => {
+              props.handleViewUpdate(props.index, {
+                ...props.viewConfig,
+                config: {
+                  ...props.viewConfig.config,
+                  isMinimised: !props.viewConfig.config.isMinimised,
+                },
+              });
+            }
           }}
         >
           {isTrackSelectorOpen ? (

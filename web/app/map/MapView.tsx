@@ -65,8 +65,8 @@ const MapView = (props: MapViewProps) => {
     const svg = d3.select(heatmapRef.current);
     svg.selectAll("*").remove();
 
-    const maxWidth = 1000;
-    const maxHeight = 700;
+    const maxWidth = window.innerWidth * 0.8;
+    const maxHeight = window.innerHeight * 0.8;
   
     const numRows = matrix.length;
     const numCols = matrix[0].length;
@@ -252,8 +252,16 @@ const MapView = (props: MapViewProps) => {
                 background: 'white'
               });
             },
-          }
-      }
+            [props.viewConfig.config.isMinimised ? "Maximise" : "Minimise"]: () => {
+              props.handleViewUpdate(props.index, {
+                ...props.viewConfig,
+                config: {
+                  ...props.viewConfig.config,
+                  isMinimised: !props.viewConfig.config.isMinimised,
+                },
+              });
+            }
+      }}
     >
         {
             ! (reference && track) ? (

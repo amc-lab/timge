@@ -21,6 +21,9 @@ const LinearView = (props: LinearViewProps) => {
   const [renderView, setRenderView] = useState(false);
   const [viewState, setViewState] = useState<any>(null);
 
+  const HOST = "http://localhost:3000/";
+  const uuid = props.viewConfig.uuid;
+
 //   // Filter reference tracks (e.g., .fasta/.fa)
 //   const referenceTracks = props.trackFiles.filter((file) =>
 //     file.endsWith(".fa") || file.endsWith(".fasta")
@@ -82,10 +85,10 @@ const LinearView = (props: LinearViewProps) => {
           adapter: {
             type: "IndexedFastaAdapter",
             fastaLocation: {
-              uri: "http://localhost:3000/" + reference,
+              uri: HOST + reference,
             },
             faiLocation: {
-              uri: "http://localhost:3000/consensus.fa.fai",
+              uri: HOST + reference + ".fai",
             }
           },
         },
