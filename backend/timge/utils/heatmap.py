@@ -19,19 +19,36 @@ def get_contact_map_py(
 
 
 def reorient_hybrids(df):
-    incorrect = df[df["L_start"] > df["R_start"]].copy()
-    correct = df[df["L_start"] <= df["R_start"]]
+    def swap_lr_columns(df_subset):
+        swap_cols = (
+            lambda col: col.replace("L_", "X_").replace("R_", "L_").replace("X_", "R_")
+        )
+        df_swapped = df_subset.copy()
+        df_swapped.columns = [
+            swap_cols(c) if c.startswith("L_") or c.startswith("R_") else c
+            for c in df_swapped.columns
+        ]
+        return df_swapped
 
-    swap_cols = (
-        lambda col: col.replace("L_", "X_").replace("R_", "L_").replace("X_", "R_")
+    correct_start = df[df["L_start"] <= df["R_start"]]
+    incorrect_start = df[df["L_start"] > df["R_start"]]
+    corrected_df = pd.concat(
+        [correct_start, swap_lr_columns(incorrect_start)], ignore_index=True
     )
-    incorrect.columns = [
-        swap_cols(c) if c.startswith("L_") or c.startswith("R_") else c
-        for c in incorrect.columns
-    ]
 
-    df = pd.concat([correct, incorrect], ignore_index=True)
-    return df
+    correct_seq = corrected_df[corrected_df["L_seqnames"] <= corrected_df["R_seqnames"]]
+    incorrect_seq = corrected_df[
+        corrected_df["L_seqnames"] > corrected_df["R_seqnames"]
+    ]
+    reoriented_df = pd.concat(
+        [correct_seq, swap_lr_columns(incorrect_seq)], ignore_index=True
+    )
+
+    assert (reoriented_df["L_start"] <= reoriented_df["R_start"]).all()
+    assert (reoriented_df["L_seqnames"] <= reoriented_df["R_seqnames"]).all()
+    assert len(reoriented_df) == len(df)
+
+    return reoriented_df
 
 
 def normalise_matrix(matrix, hybrids_len):
@@ -128,9 +145,12 @@ def generate_contact_map_bedpe(
         normalise (bool): Whether to return normalised contact matrix.
 
     Returns:
-        np.ndarray: Raw or normalised contact matrix.
+        np.ndarray: Raw or normalised contact matrix, possibly transposed.
     """
+    input_flipped = (gene1, gene2) != tuple(sorted([gene1, gene2]))
+
     gene1, gene2 = sorted([gene1, gene2])
+
     fai = pd.read_csv(
         fai_path, sep="\t", header=None, names=["gene", "length"], usecols=[0, 1]
     )
@@ -147,6 +167,7 @@ def generate_contact_map_bedpe(
     if gene1 == gene2:
         sub = bedpe[(bedpe["L_seqnames"] == gene1) & (bedpe["R_seqnames"] == gene1)]
         genome_size = fai_dict[gene1]
+        input_flipped = False
     else:
         bedpe = bedpe.copy()
         need_swap = bedpe["L_seqnames"] > bedpe["R_seqnames"]
@@ -178,6 +199,10 @@ def generate_contact_map_bedpe(
     )
 
     if normalise:
-        return normalise_matrix(mat, len(sub))
-    else:
-        return mat
+        mat = normalise_matrix(mat, len(sub))
+
+    # Flip axes if user passed genes in reverse
+    if input_flipped:
+        mat = mat.T
+
+    return mat

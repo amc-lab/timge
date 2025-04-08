@@ -63,21 +63,19 @@ const MapView = (props: MapViewProps) => {
 
   const drawHeatmap = (matrix: number[][]) => {
     const svg = d3.select(heatmapRef.current);
-    svg.selectAll("*").remove(); // Clear previous drawing
-  
+    svg.selectAll("*").remove();
+
     const maxWidth = 1000;
     const maxHeight = 700;
-
-    // Get matrix dimensions
+  
     const numRows = matrix.length;
     const numCols = matrix[0].length;
-
-    // Dynamically calculate cell size based on max bounds
+  
     const cellSize = Math.min(maxWidth / numRows, maxHeight / numCols);
   
-    const margin = { top: 20, right: 20, bottom: 70, left: 70 };
-    const width = numRows * cellSize;   // flipped: used to be numCols
-    const height = numCols * cellSize;  // flipped: used to be numRows
+    const margin = { top: 20, right: 80, bottom: 70, left: 70 };
+    const width = numRows * cellSize;
+    const height = numCols * cellSize;
   
     svg
       .attr("width", width + margin.left + margin.right)
@@ -92,15 +90,13 @@ const MapView = (props: MapViewProps) => {
       .domain([0, d3.max(flatValues)!])
       .interpolator(toggleColourScheme ? d3.interpolateOrRd : d3.interpolateGnBu);
   
-  
-    // Flip axes
     const xScale = d3.scaleLinear()
       .domain([0, numRows])
       .range([0, width]);
   
     const yScale = d3.scaleLinear()
       .domain([0, numCols])
-      .range([height, 0]); // flip for top-down
+      .range([height, 0]);
   
     const xAxis = d3.axisBottom(xScale)
       .ticks(Math.min(numRows, 10))
@@ -122,28 +118,25 @@ const MapView = (props: MapViewProps) => {
   
     const heatmap = g.append("g").attr("class", "heatmap");
   
-    // Flip axes in drawing
     heatmap.selectAll("g")
-    .data(matrix)
-    .join("g")
-    .attr("transform", (_, i) => `translate(${(numRows - 1 - i) * cellSize}, 0)`) // flip X
-    .selectAll("rect")
-    .data((d, i) => d.map((val, j) => ({ val, j })))
-    .join("rect")
-    .attr("y", d => (d.j) * cellSize) // flip Y
-    .attr("width", cellSize)
-    .attr("height", cellSize)
-    .attr("fill", d => colorScale(d.val))
-    .attr("stroke", showGridlines ? "#ccc" : "none");
+      .data(matrix)
+      .join("g")
+      .attr("transform", (_, i) => `translate(${(numRows - 1 - i) * cellSize}, 0)`)
+      .selectAll("rect")
+      .data((d, i) => d.map((val, j) => ({ val, j })))
+      .join("rect")
+      .attr("y", d => (d.j) * cellSize)
+      .attr("width", cellSize)
+      .attr("height", cellSize)
+      .attr("fill", d => colorScale(d.val))
+      .attr("stroke", showGridlines ? "#ccc" : "none");
   
-  
-    // Axis labels — flipped
     svg.append("text")
       .attr("x", margin.left + width / 2)
       .attr("y", height + margin.top + 35)
       .attr("text-anchor", "middle")
       .attr("font-size", "12px")
-      .text(segmentA); // now X-axis (used to be B)
+      .text(segmentA);
   
     svg.append("text")
       .attr("transform", `rotate(-90)`)
@@ -151,9 +144,52 @@ const MapView = (props: MapViewProps) => {
       .attr("y", 12)
       .attr("text-anchor", "middle")
       .attr("font-size", "12px")
-      .text(segmentB); // now Y-axis (used to be A)
+      .text(segmentB);
   
-    // Zoom behavior
+    const legendHeight = 200;
+    const legendWidth = 15;
+  
+    const legendScale = d3.scaleLinear()
+      .domain(colorScale.domain())
+      .range([legendHeight, 0]);
+  
+    const legendAxis = d3.axisRight(legendScale)
+      .ticks(5);
+  
+    const legend = svg.append("g")
+      .attr("class", "legend")
+      .attr("transform", `translate(${margin.left + width + 20}, ${margin.top})`);
+  
+    const legendGradientId = "legend-gradient";
+  
+    const defs = svg.append("defs");
+    const linearGradient = defs.append("linearGradient")
+      .attr("id", legendGradientId)
+      .attr("x1", "0%")
+      .attr("y1", "100%")
+      .attr("x2", "0%")
+      .attr("y2", "0%");
+  
+    const numStops = 10;
+    const step = 1 / (numStops - 1);
+  
+    d3.range(numStops).forEach(i => {
+      linearGradient.append("stop")
+        .attr("offset", `${i * step * 100}%`)
+        .attr("stop-color", colorScale(colorScale.domain()[0] + i * step * (colorScale.domain()[1] - colorScale.domain()[0])));
+    });
+  
+    legend.append("rect")
+      .attr("width", legendWidth)
+      .attr("height", legendHeight)
+      .style("fill", `url(#${legendGradientId})`);
+  
+    legend.append("g")
+      .attr("transform", `translate(${legendWidth}, 0)`)
+      .call(legendAxis);
+    
+    svg.style("shape-rendering", "crispEdges");
+
     zoomRef.current = d3.zoom()
       .scaleExtent([1, 10])
       .translateExtent([[-100, -100], [width + 100, height + 100]])
@@ -162,13 +198,9 @@ const MapView = (props: MapViewProps) => {
     svg.call(zoomRef.current);
   
     function zoomed({ transform }) {
-      // Zoom heatmap
       heatmap.attr("transform", transform);
-  
-      // Zoom axes
       const zx = transform.rescaleX(xScale);
       const zy = transform.rescaleY(yScale);
-  
       gx.call(xAxis.scale(zx));
       gy.call(yAxis.scale(zy));
     }
@@ -176,7 +208,6 @@ const MapView = (props: MapViewProps) => {
   
 
   const renderHeatmap = () => {
-    // make request to backend
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
     fetch(`${host}/api/timge/heatmap/`, {
       method: "POST",
@@ -195,7 +226,7 @@ const MapView = (props: MapViewProps) => {
     })
       .then(response => response.json())
       .then(data => {
-        if (data.status === "success" && data.matrix) {
+        if (data.status === "success") {
           drawHeatmap(data.matrix);
         } else {
           console.error("Failed to generate heatmap", data.message);

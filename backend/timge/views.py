@@ -175,34 +175,11 @@ def generate_heatmap(request):
             reads_path, segment_1, segment_2, reference_path, normalise, resolution
         )
 
-    # segment_1_seq = get_segment(reference_path, segment_1)
-    # segment_2_seq = get_segment(reference_path, segment_2)
-
-    # if segment_1_seq is None or segment_2_seq is None:
-    #     return JsonResponse(
-    #         {"status": "error", "message": "Segment not found in reference."}
-    #     )
-
-    # num_bins_1 = math.ceil(len(segment_1_seq) / resolution)
-    # num_bins_2 = math.ceil(len(segment_2_seq) / resolution)
-
-    # matrix = np.zeros((num_bins_1, num_bins_2))
-
-    # for line in content.splitlines():
-    #     fields = line.split()
-    #     if len(fields) < 8:
-    #         continue  # skip malformed lines
-    #     seg1, start1, _, seg2, start2, _, _, score = fields[:8]
-    #     if seg1 == segment_1 and seg2 == segment_2:
-    #         bin1 = int(start1) // resolution
-    #         bin2 = int(start2) // resolution
-    #         matrix[bin1, bin2] += float(score)
-
     return JsonResponse(
         {
             "status": "success",
             "message": "Heatmap generated.",
-            "matrix": matrix.tolist(),
+            "matrix": matrix.tolist() if matrix is not None else None,
         }
     )
 
