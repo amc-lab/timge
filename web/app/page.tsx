@@ -316,16 +316,28 @@ export default function Page() {
       });
     }
     else if (action === "delete_view") {
-      const viewIndex = data.index;
-      if (viewIndex !== -1) {
-        setSpaceState((prevState) => {
-          const updatedViews = [...prevState.views];
-          updatedViews.splice(viewIndex, 1);
-          return {
-            ...prevState,
-            views: updatedViews,
-          };
+      const viewId = data.viewId;
+      if (viewId) {
+        setSpaceState((prevState) => ({
+          ...prevState,
+          views: prevState.views.filter((view) => view.id !== viewId),
+        }));
+        setConnections((prev) => {
+          const newConnections = new Map(prev);
+          newConnections.delete(viewId);
+          return newConnections;
         });
+        setDependencies((prev) => {
+          const newDependencies = new Map(prev);
+          newDependencies.delete(viewId);
+          return newDependencies;
+        });
+        setCreatedViews((prev) => {
+          const newCreatedViews = new Set(prev);
+          newCreatedViews.delete(viewId);
+          return newCreatedViews;
+        }
+        );
       }
     }
     else if (action === "add_connection") {

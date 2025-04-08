@@ -40,7 +40,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
     crossViewActionHandler(
      "delete_view",
      {
-        index: index,
+        viewId: viewConfig?.id,
       },
     );
   }

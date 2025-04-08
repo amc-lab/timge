@@ -28,6 +28,7 @@ const CircosView = (props: CircosViewProps) => {
    const canvasRef = useRef<HTMLDivElement>(null);
    const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
    const [connectedViews, setConnectedViews] = useState<string[]>([]);
+  const [minFilterScore, setMinFilterScore] = useState(20);
 
    const maxScore = d3.max(props.trackFiles, (d) => {
        if (d.data) {
@@ -224,7 +225,8 @@ const CircosView = (props: CircosViewProps) => {
                   Filter score:
                 </Typography>
                 <Slider
-                  defaultValue={[0, maxScore]}
+                  // defaultValue={[20, maxScore]}
+                  value={minFilterScore}
                   min={0}
                   max={maxScore}
                   step={1}
@@ -233,6 +235,7 @@ const CircosView = (props: CircosViewProps) => {
                     width: "10%",
                   }}
                   onChange={(event, newValue) => {
+                    setMinFilterScore(newValue as number);
                     setSelectedTracks((prevTracks) => {
                       return prevTracks.map((track) => {
                         if (track.trackType === TrackType.Chord) {
@@ -240,8 +243,8 @@ const CircosView = (props: CircosViewProps) => {
                             ...track,
                             config: {
                               ...track.config,
-                              minFilterScore: newValue[0],
-                              maxFilterScore: newValue[1],
+                              minFilterScore: newValue as number,
+                              // maxFilterScore: newValue[1],
                             },
                           };
                         }
