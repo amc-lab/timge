@@ -195,6 +195,7 @@ export default function Page() {
           type: ViewType.Linear,
           title: `Linear Genome View ${spaceState.views.length + 1}`,
           description: "Standard linear genome view",
+          uuid: spaceState.UUID,
           config: {
             isMinimised: false,
           }
@@ -218,6 +219,7 @@ export default function Page() {
           title: `Circos View ${spaceState.views.length + 1}`,
           description: "Circular genome view",
           visible_tracks: [],
+          uuid: spaceState.UUID,
           config: {
             isMinimised: false,
           },
