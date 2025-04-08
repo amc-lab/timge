@@ -280,7 +280,10 @@ const CircosView = (props: CircosViewProps) => {
       
                   >
                     {props.createdViews &&
-                      Array.from(props.createdViews).filter((view) => view.id !== props.viewConfig.id).map((view_id) => {
+                      Array.from(props.createdViews).filter(
+                        (view_id) => view_id !== props.viewConfig.id
+                      )
+                        .map((view_id) => {
                         return (
                           <Option
                             key={view_id}

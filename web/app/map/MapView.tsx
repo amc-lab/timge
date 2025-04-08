@@ -330,7 +330,8 @@ const MapView = (props: MapViewProps) => {
               }}
             >
             {
-                props.trackFiles.map((file, index) => (
+                props.trackFiles.filter((file) => file.name.endsWith(".fa") || file.name.endsWith(".fasta"))
+                  .map((file, index) => (
                     <Option key={index} value={file.name}>
                     {file.name}
                     </Option>
@@ -358,7 +359,8 @@ const MapView = (props: MapViewProps) => {
               }}
             >
             {
-                props.trackFiles.map((file, index) => (
+                props.trackFiles.filter((file) => file.name.endsWith(".bedpe") || file.name.endsWith(".tsv"))
+                  .map((file, index) => (
                     <Option key={index} value={file.name}>
                     {file.name}
                     </Option>

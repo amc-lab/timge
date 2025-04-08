@@ -195,6 +195,9 @@ export default function Page() {
           type: ViewType.Linear,
           title: `Linear Genome View ${spaceState.views.length + 1}`,
           description: "Standard linear genome view",
+          config: {
+            isMinimised: false,
+          }
         },
       ],
     });
