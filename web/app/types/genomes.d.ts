@@ -32,7 +32,7 @@ export interface RingData {
 }
 
 export interface LineData {
-  chromosome: string;
+  chrom: string;
   chromStart: number;
   chromEnd: number;
   value: number;

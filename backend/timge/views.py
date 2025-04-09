@@ -184,6 +184,41 @@ def generate_heatmap(request):
     )
 
 
+@csrf_exempt
+@require_http_methods(["GET"])
+def generate_fai(request):
+    """
+    Generates a FASTA index (FAI) file for a given reference genome.
+    Args:
+    - request: The HTTP request containing the uuid and genome path.
+    Returns:
+    - JsonResponse: A response containing the status of the generation.
+    """
+    uuid = request.GET.get("uuid")
+    genome_path = request.GET.get("genome_path")
+
+    directory = os.path.join(TRACK_ROOT_DIR, uuid)
+    reference_path = os.path.join(directory, genome_path)
+
+    if not os.path.exists(directory):
+        return JsonResponse({"status": "error", "message": "Directory not found."})
+
+    if not os.path.exists(reference_path):
+        return JsonResponse({"status": "error", "message": "Reference file not found."})
+
+    if os.path.exists(reference_path + ".fai"):
+        return JsonResponse(
+            {"status": "success", "message": "FAI file already exists."}
+        )
+
+    try:
+        os.system(f'samtools faidx "{reference_path}"')
+        print("FAI file created.")
+        return JsonResponse({"status": "success", "message": "FAI file created."})
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": str(e)})
+
+
 def get_segment(sequence, segment):
     """
     Extracts a segment from a sequence.

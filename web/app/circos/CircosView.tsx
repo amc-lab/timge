@@ -64,6 +64,7 @@ const CircosView = (props: CircosViewProps) => {
         }
         let updatedTracks: Track[] = [];
         props.trackFiles.forEach((trackFile) => {
+          console.log("Track file", trackFile);
             if (trackFile.name.endsWith(".bed") || trackFile.name.endsWith(".bedgraph")) {
                 updatedTracks.push({
                     trackType: TrackType.Line,
@@ -98,7 +99,11 @@ const CircosView = (props: CircosViewProps) => {
                     name: trackFile.name,
                 });
             }
+            else {
+              return;
+            }
         });
+        console.log("Updated tracks", updatedTracks);
         setTracks(updatedTracks);
     }
     , [props.trackFiles]);

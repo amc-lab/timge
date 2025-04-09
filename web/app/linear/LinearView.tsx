@@ -122,6 +122,30 @@ const LinearView = (props: LinearViewProps) => {
     }
   }, [reference, selectedTracks]);
 
+  const generateFai = async() => {
+    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+    const queryParams = new URLSearchParams({
+      uuid: props.viewConfig.uuid,
+      genome_path: reference,
+    }).toString();
+    await fetch(`${host}/api/timge/generate_fai/?${queryParams}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === "success") {
+          console.log("FAI file generated successfully");
+          return true;
+        } else {
+          console.error("Failed to fetch segments", data.message);
+          return false;
+        }
+      });
+  }
+
   useEffect(() => {
     if (viewState === null) return;
     console.log("ViewState updated:", viewState);
@@ -199,7 +223,9 @@ const LinearView = (props: LinearViewProps) => {
                     variant="solid"
                     color="primary"
                     onClick={() => {
-                        setRenderView(true);
+                        generateFai().then((success) => {
+                          setRenderView(true);
+                        });
                     }}
                     >Submit</Button>
                     </Box>

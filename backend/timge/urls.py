@@ -9,4 +9,5 @@ urlpatterns = [
     path("delete_track/", views.delete_track, name="delete_track"),
     path("heatmap/", views.generate_heatmap, name="generate_heatmap"),
     path("get_segments/", views.get_segments, name="get_segments"),
+    path("generate_fai/", views.generate_fai, name="generate_fai"),
 ]
