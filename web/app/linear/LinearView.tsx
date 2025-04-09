@@ -26,7 +26,7 @@ const LinearView = (props: LinearViewProps) => {
   const [viewState, setViewState] = useState<any>(null);
 
   const HOST = "https://timge.doc.ic.ac.uk/uploads/" + props.viewConfig.uuid + "/";
-
+  
 //   // Filter reference tracks (e.g., .fasta/.fa)
 //   const referenceTracks = props.trackFiles.filter((file) =>
 //     file.endsWith(".fa") || file.endsWith(".fasta")
@@ -97,21 +97,35 @@ const LinearView = (props: LinearViewProps) => {
         },
       };
     
-    const jbrowseTracks = [
-        {
-        "trackId": selectedTracks[0],
-          "name": selectedTracks[0],
-          "assemblyNames": [reference],
-          "type": "QuantitativeTrack",
-          "adapter": {
-            "type": "BedGraphAdapter",
-            "bedGraphLocation": {
-              "locationType": "UriLocation",
-              "uri": HOST + selectedTracks[0],
-            },
-          }
-        }
-      ];
+    // const jbrowseTracks = [
+    //     {
+    //     "trackId": selectedTracks[0],
+    //       "name": selectedTracks[0],
+    //       "assemblyNames": [reference],
+    //       "type": "QuantitativeTrack",
+    //       "adapter": {
+    //         "type": "BedGraphAdapter",
+    //         "bedGraphLocation": {
+    //           "locationType": "UriLocation",
+    //           "uri": HOST + selectedTracks[0],
+    //         },
+    //       }
+    //     }
+    //   ];
+
+    const jbrowseTracks = selectedTracks.map((track) => ({
+      trackId: track,
+      name: track,
+      assemblyNames: [reference],
+      type: "QuantitativeTrack",
+      adapter: {
+      type: "BedGraphAdapter",
+      bedGraphLocation: {
+        locationType: "UriLocation",
+        uri: HOST + track,
+      },
+      },
+    }));
       
       setViewState(
         createViewState({

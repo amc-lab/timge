@@ -453,21 +453,25 @@ export default function Page() {
       exportState={exportState}
       resetState={() => {
         // make a request to the backend to delete the files
-        const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-        fetch(`${host}/api/timge/delete_tracks/?uuid=${spaceState.UUID}`, {
-          method: "DELETE",
-        })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.status === "success") {
-            console.log("Tracks deleted successfully");
-          } else {
-            console.error("Error deleting tracks:", data.message);
-          }
-        })
+        // const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+        // fetch(`${host}/api/timge/delete_tracks/?uuid=${spaceState.UUID}`, {
+        //   method: "DELETE",
+        // })
+        // .then((response) => response.json())
+        // .then((data) => {
+        //   if (data.status === "success") {
+        //     console.log("Tracks deleted successfully");
+        //   } else {
+        //     console.error("Error deleting tracks:", data.message);
+        //   }
+        // })
         localStorage.removeItem(STATE_KEY);
         setTracks([]);
         setSpaceState(getDefaultState());
+        setConnections(new Map());
+        setDependencies(new Map());
+        setCreatedViews(new Set());
+        setFiles([]);
       }}
     />
     
