@@ -248,7 +248,7 @@ export default function Page() {
             track: "",
             segmentA: "",
             segmentB: "",
-            resolution: 25,
+            resolution: 5,
             isMinimised: false,
           },
         },

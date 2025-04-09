@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { View } from "../types/state";
 import ParentView from "@/components/ParentView";
-import { Box, Button, Card, Checkbox, Dropdown, Option, Select, Typography } from "@mui/joy";
+import { Box, Button, Card, Checkbox, CircularProgress, Dropdown, LinearProgress, Option, Select, Typography } from "@mui/joy";
 
 interface MapViewProps {
   trackFiles: any[];
@@ -27,6 +27,7 @@ const MapView = (props: MapViewProps) => {
   const [showGridlines, setShowGridlines] = useState(false);
   const [toggleColourScheme, setToggleColourScheme] = useState(true); // default to white-red
   const [normalise, setNormalise] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const heatmapRef = useRef(null);
 
@@ -81,6 +82,7 @@ const MapView = (props: MapViewProps) => {
   const zoomRef = useRef<d3.ZoomBehavior<Element, unknown> | null>(null);
 
   const drawHeatmap = (matrix: number[][], segmentA: string, segmentB: string) => {
+    setLoading(true);
     const svg = d3.select(heatmapRef.current);
     svg.selectAll("*").remove();
 
@@ -180,6 +182,7 @@ const MapView = (props: MapViewProps) => {
       .attr("transform", `translate(${margin.left + width + 20}, ${margin.top})`);
   
     const legendGradientId = "legend-gradient";
+    setLoading(false);
   
     svg.select("defs").remove();
     const defs = svg.append("defs");
@@ -224,9 +227,16 @@ const MapView = (props: MapViewProps) => {
       gx.call(xAxis.scale(zx));
       gy.call(yAxis.scale(zy));
     }
+
   };
+
+  const clearHeatmap = () => {
+    const svg = d3.select(heatmapRef.current);
+    svg.selectAll("*").remove();
+  }
   
   const renderHeatmap = (_segmentA?, _segmentB?) => {
+    setLoading(true);
     console.log("Rendering heatmap", _segmentA, _segmentB);
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
     fetch(`${host}/api/timge/heatmap/`, {
@@ -287,6 +297,7 @@ const MapView = (props: MapViewProps) => {
               });
             },
             [props.viewConfig.config.isMinimised ? "Maximise" : "Minimise"]: () => {
+              clearHeatmap();
               props.handleViewUpdate(props.index, {
                 ...props.viewConfig,
                 config: {
@@ -461,7 +472,7 @@ const MapView = (props: MapViewProps) => {
                       boxShadow: "none",
                     }}
                     >
-                    <Option value={1}>1</Option>
+                    {/* <Option value={1}>1</Option> */}
                     <Option value={5}>5</Option>
                     <Option value={10}>10</Option>
                     <Option value={25}>25</Option>
@@ -498,7 +509,11 @@ const MapView = (props: MapViewProps) => {
                         setNormalise(e.target.checked);
                     }}
                     />
-                    <Button variant="solid" color="primary" onClick={() => renderHeatmap(null, null)}>
+                    <Button variant="solid" color="primary" onClick={() => {
+                      clearHeatmap();
+                      renderHeatmap(null, null)
+                    }
+                    }>
                     Render
                     </Button>
                     <Button
@@ -529,7 +544,20 @@ const MapView = (props: MapViewProps) => {
                 padding: '10px',
               }}
             >
+              {loading && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <CircularProgress
+                  />
+                </Box>
+            )} {
               <svg ref={heatmapRef}></svg>
+            }
             </Box>
         </Box>
             )

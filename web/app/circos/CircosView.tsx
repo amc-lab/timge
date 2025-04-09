@@ -1,5 +1,5 @@
 "use client"
-import { Box, Button, Card, IconButton, Option, Select, Slider, Typography } from "@mui/joy";
+import { Box, Button, Card, IconButton, Input, Option, Select, Slider, TextField, Typography } from "@mui/joy";
 import { Track, TrackType } from "./config/track";
 import { useState } from "react";
 import Tracks from "./tracks";
@@ -25,10 +25,10 @@ interface CircosViewProps {
 }
 
 const CircosView = (props: CircosViewProps) => {
-   const canvasRef = useRef<HTMLDivElement>(null);
-   const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
-   const [connectedViews, setConnectedViews] = useState<string[]>([]);
-  const [minFilterScore, setMinFilterScore] = useState(20);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
+  const [connectedViews, setConnectedViews] = useState<string[]>([]);
+  const [minFilterScore, setMinFilterScore] = useState(0);
 
    const maxScore = d3.max(props.trackFiles, (d) => {
        if (d.data) {
@@ -229,6 +229,31 @@ const CircosView = (props: CircosViewProps) => {
                 >
                   Filter score:
                 </Typography>
+                <Input
+                  type="number"
+                  value={minFilterScore}
+                  onChange={(event) => {
+                    setMinFilterScore(parseInt(event.target.value));
+                    setSelectedTracks((prevTracks) => {
+                      return prevTracks.map((track) => {
+                        if (track.trackType === TrackType.Chord) {
+                          return {
+                            ...track,
+                            config: {
+                              ...track.config,
+                              minFilterScore: parseInt(event.target.value),
+                            },
+                          };
+                        }
+                        return track;
+                      });
+                    });
+                  }}
+                  sx={{
+                    width: "5%",
+                    marginLeft: "10px",
+                  }}
+                  ></Input>
                 <Slider
                   // defaultValue={[20, maxScore]}
                   value={minFilterScore}
