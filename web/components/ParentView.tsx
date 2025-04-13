@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   IconButton,
@@ -8,14 +8,18 @@ import {
   MenuItem,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
+import CloseIcon from "@mui/icons-material/Close";
 
 interface ParentViewProps {
   children?: React.ReactNode;
   viewConfig?: any;
   userActions?: Record<string, (...args: any[]) => void>;
+  index?: number;
+  crossViewActionHandler?: any;
+  ref?: React.Ref<any>;
 }
 
-const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {} }) => {
+const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {}, index, crossViewActionHandler, ref }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
 
@@ -32,19 +36,34 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
     handleMenuClose();
   };
 
+  const handleViewClose = () => {
+    crossViewActionHandler(
+     "delete_view",
+     {
+        viewId: viewConfig?.id,
+        index: index,
+      },
+    );
+  }
+
+  useEffect(() => {
+    console.log(viewConfig);
+  }, []);
+
   return (
     <Box
       sx={{
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
-        width: "calc(100% - 5px)",
+        width: viewConfig.config.isMinimised ? "calc(50% - 5px)" : "calc(100% - 5px)",
         borderRadius: "3px",
         margin: "2.5px",
         flexDirection: "column",
         backgroundColor: "white",
         border: "4px solid darkblue",
       }}
+      ref={ref}
     >
       <Box
         sx={{
@@ -53,6 +72,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
           width: "100%",
           height: "2em",
           backgroundColor: "darkblue",
+          px: 1,
         }}
       >
         <IconButton
@@ -65,17 +85,15 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
         >
           <MenuIcon />
         </IconButton>
-        <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleMenuClose}
-        >
+
+        <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
           {Object.keys(userActions).map((key) => (
             <MenuItem key={key} onClick={() => handleActionClick(key)}>
               {key}
             </MenuItem>
           ))}
         </Menu>
+
         <Typography
           sx={{
             color: "white",
@@ -86,15 +104,29 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
         >
           <strong>{viewConfig?.title}</strong>
         </Typography>
+
+        <Box sx={{ ml: "auto" }}>
+          <IconButton
+            onClick={handleViewClose}
+            sx={{
+              color: "white",
+              height: "2em",
+              "&:hover": { background: "none", color: "white" },
+              padding: "0px",
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </Box>
 
       <Box
         sx={{
           backgroundColor: "white",
           borderRadius: "3px",
-          width: "650px",
+          width: "100%",
           minHeight: "200px",
-          padding: "5px",
+          // padding: "5px",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",

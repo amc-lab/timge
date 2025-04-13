@@ -1,12 +1,6 @@
 "use client";
 import React, { useEffect } from "react";
 import "@fontsource/roboto";
-// import {
-  // createViewState,
-  // JBrowseLinearGenomeView,
-// } from "@jbrowse/react-linear-genome-view";
-import assembly from "./assembly";
-import tracks_ from "./tracks";
 import Header from "@/components/Header";
 import { v4 as uuidv4 } from "uuid";
 import CircosView from "./circos/CircosView";
@@ -14,8 +8,10 @@ import { useState } from "react";
 import TrackUploadForm from "@/components/TrackUploadForm";
 import { State } from "./types/state";
 import { ViewType } from "./types/viewTypes";
-import { defaultChordConfig } from "./circos/config/defaultConfigs";
 import MapView from "./map/MapView";
+import LinearView from "./linear/LinearView";
+import { Box } from "@mui/joy";
+import { Hash } from "crypto";
 
 interface FileEntry {
   name: string;
@@ -38,10 +34,6 @@ function getDefaultState(): State {
 }
 
 export default function Page() {
-  // const viewState = createViewState({
-  //   assembly,
-  //   tracks: tracks_,
-  // });
 
   const fileFormatMapping = {
     "fasta": "karyotype",
@@ -109,6 +101,11 @@ export default function Page() {
   const [tracks, setTracks] = useState([]);
   const [genomeFormOpen, setGenomeFormOpen] = useState(false);
   const [spaceState, setSpaceState] = useState<State>(() => loadState());
+  // Mapping from view ID to linked view ID
+  const [connections, setConnections] = useState<Map<string, string[]>>(new Map());
+  // Maintains dependency properties for each view
+  const [dependencies, setDependencies] = useState<Map<string, any>>(new Map());
+  const [createdViews, setCreatedViews] = useState<Set<string>>(new Set());
 
   // Update the space state in local storage whenever it changes
   useEffect(() => {
@@ -178,7 +175,14 @@ export default function Page() {
   }
   , [files]);
 
+  useEffect(() => {
+    console.log("Connections:", connections);
+    console.log("Dependencies:", dependencies);
+    console.log("Created Views:", createdViews);
+  }, [connections, dependencies, createdViews]);
+
   const addLinearGenomeView = () => {
+    const id = `view-${spaceState.views.length + 1}`;
     const newView = {
       viewType: "LinearGenomeView",
     }
@@ -191,28 +195,100 @@ export default function Page() {
           type: ViewType.Linear,
           title: `Linear Genome View ${spaceState.views.length + 1}`,
           description: "Standard linear genome view",
+          uuid: spaceState.UUID,
+          config: {
+            isMinimised: false,
+          }
         },
       ],
     });
+    setCreatedViews((prev) => new Set(prev).add(id));
+    setDependencies((prev) => new Map(prev).set(id, {}));
+    setConnections((prev) => new Map(prev).set(id, []));
   }
 
   const addCircosView = () => {
+    const id = `view-${spaceState.views.length + 1}`;
     setSpaceState({
       ...spaceState,
       views: [
         ...spaceState.views,
         {
-          id: `view-${spaceState.views.length + 1}`,
+          id: id,
           type: ViewType.Circos,
           title: `Circos View ${spaceState.views.length + 1}`,
           description: "Circular genome view",
           visible_tracks: [],
+          uuid: spaceState.UUID,
+          config: {
+            isMinimised: false,
+          },
         },
       ],
     });
+    setDependencies((prev) => new Map(prev).set(id, {}));
+    setConnections((prev) => new Map(prev).set(id, []));
+    setCreatedViews((prev) => new Set(prev).add(id));
   }
 
   const addMapView = () => {
+    const id = `view-${spaceState.views.length + 1}`;
+    setSpaceState({
+      ...spaceState,
+      views: [
+        ...spaceState.views,
+        {
+          id: id,
+          type: ViewType.Map,
+          title: `Map View ${spaceState.views.length + 1}`,
+          description: "Map view",
+          uuid: spaceState.UUID,
+          config: {
+            reference: "",
+            track: "",
+            segmentA: "",
+            segmentB: "",
+            resolution: 5,
+            isMinimised: false,
+          },
+        },
+      ],
+    });
+    setDependencies((prev) => new Map(prev).set(id, {}));
+    setConnections((prev) => new Map(prev).set(id, []));
+    setCreatedViews((prev) => new Set(prev).add(id));
+  }
+
+  const addConnection = (viewId: string, linkedViewId: string) => {
+    setConnections((prev) => {
+      const newConnections = new Map(prev);
+      newConnections.set(viewId, [...(newConnections.get(viewId) || []), linkedViewId]);
+      return newConnections;
+    });
+  }
+
+  const removeConnection = (viewId: string) => {
+    const dependents = connections.get(viewId);
+    if (dependents) {
+      dependents.forEach((dependentId) => {
+        setDependencies((prev) => {
+          const newDependencies = new Map(prev);
+          newDependencies.set(dependentId, {});
+          return newDependencies;
+        }
+        );
+      }
+      );
+    }
+
+    setConnections((prev) => {
+      const newConnections = new Map(prev);
+      newConnections.delete(viewId);
+      return newConnections;
+    });
+  }
+
+  const addCustomMapView = (mapConfig) => {
     setSpaceState({
       ...spaceState,
       views: [
@@ -222,9 +298,84 @@ export default function Page() {
           type: ViewType.Map,
           title: `Map View ${spaceState.views.length + 1}`,
           description: "Map view",
+          uuid: spaceState.UUID,
+          config: mapConfig,
         },
       ],
     });
+  }
+
+  const crossViewActionHandler = (action: string, data: any) => {
+    if (action === "generate_heatmap") {
+      if (!data || !data.track || !data.reference || !data.segmentA || !data.segmentB || !data.resolution) {
+        console.error("Invalid or missing data for generate_heatmap action");
+        return;
+      }
+      console.log("Generating heatmap with data:", data);
+      addCustomMapView({
+        reference: data.reference,
+        track: data.track,
+        segmentA: data.segmentA,
+        segmentB: data.segmentB,
+        resolution: data.resolution,
+      });
+    }
+    else if (action === "delete_view") {
+      const viewId = data.viewId;
+      if (viewId) {
+        setSpaceState((prevState) => ({
+          ...prevState,
+          views: prevState.views.filter((view) => view.id !== viewId),
+        }));
+        setConnections((prev) => {
+          const newConnections = new Map(prev);
+          newConnections.delete(viewId);
+          return newConnections;
+        });
+        setDependencies((prev) => {
+          const newDependencies = new Map(prev);
+          newDependencies.delete(viewId);
+          return newDependencies;
+        });
+        setCreatedViews((prev) => {
+          const newCreatedViews = new Set(prev);
+          newCreatedViews.delete(viewId);
+          return newCreatedViews;
+        }
+        );
+      }
+    }
+    else if (action === "add_connection") {
+      const { source, target } = data;
+      if (source && target) {
+        addConnection(source, target);
+      }
+    }
+    else if (action === "remove_connection") {
+      const { viewId } = data;
+      if (viewId) {
+        removeConnection(viewId);
+      }
+    }
+    else if (action === "propagate_dependencies") {
+      const { viewId, dependencies } = data;
+      console.log("Propagating dependencies for view:", viewId, "with dependencies:", dependencies);
+      const dependents = connections.get(viewId);
+      console.log("Dependents:", dependents);
+      if (dependents) {
+        dependents.forEach((dependentId) => {
+          console.log("Setting dependencies for dependent view:", dependentId);
+          setDependencies((prev) => {
+            const newDependencies = new Map(prev);
+            newDependencies.set(dependentId, dependencies);
+            return newDependencies;
+          });
+        });
+      }
+    }
+    else {
+      console.log("Unknown action:", action);
+    }
   }
 
   // When importing a state, set the space state to the imported state and fetch the tracks from the backend
@@ -302,21 +453,25 @@ export default function Page() {
       exportState={exportState}
       resetState={() => {
         // make a request to the backend to delete the files
-        const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-        fetch(`${host}/api/timge/delete_tracks/?uuid=${spaceState.UUID}`, {
-          method: "DELETE",
-        })
-        .then((response) => response.json())
-        .then((data) => {
-          if (data.status === "success") {
-            console.log("Tracks deleted successfully");
-          } else {
-            console.error("Error deleting tracks:", data.message);
-          }
-        })
+        // const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+        // fetch(`${host}/api/timge/delete_tracks/?uuid=${spaceState.UUID}`, {
+        //   method: "DELETE",
+        // })
+        // .then((response) => response.json())
+        // .then((data) => {
+        //   if (data.status === "success") {
+        //     console.log("Tracks deleted successfully");
+        //   } else {
+        //     console.error("Error deleting tracks:", data.message);
+        //   }
+        // })
         localStorage.removeItem(STATE_KEY);
         setTracks([]);
         setSpaceState(getDefaultState());
+        setConnections(new Map());
+        setDependencies(new Map());
+        setCreatedViews(new Set());
+        setFiles([]);
       }}
     />
     
@@ -361,22 +516,61 @@ export default function Page() {
         );
       }}
     />
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: "wrap",
+        alignItems: "flex-start",
+      }}
+      >
       {
         spaceState.views.map((view, index) => {
           if (view.type === "linear") {
-            return;
-            // return <JBrowseLinearGenomeView key={index} viewState={viewState} />
+            return <LinearView 
+                      key={index} 
+                      trackFiles={tracks} 
+                      viewConfig={view} 
+                      handleViewUpdate={updateViewState} 
+                      index={index} 
+                      crossViewActionHandler={crossViewActionHandler} 
+                      dependencies={dependencies.get(view.id)}
+                      addConnection={addConnection}
+                      removeConnection={removeConnection}
+                      createdViews={createdViews}
+                    />  
           }
           else if (view.type === "circos") {
-            console.log("View", view);
-            console.log("Tracks", tracks);
-            return <CircosView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} />
+            return <CircosView 
+                      key={index}
+                      trackFiles={tracks}
+                      viewConfig={view}
+                      handleViewUpdate={updateViewState} 
+                      index={index} 
+                      crossViewActionHandler={crossViewActionHandler} 
+                      dependencies={dependencies.get(view.id)}
+                      addConnection={addConnection}
+                      removeConnection={removeConnection}
+                      createdViews={createdViews}
+                    />
           }
           else if (view.type === "map") {
-            return <MapView key={index} trackFiles={tracks} viewConfig={view} handleViewUpdate={updateViewState} index={index} />
+            return <MapView 
+                      key={index} 
+                      trackFiles={tracks} 
+                      viewConfig={view}
+                      handleViewUpdate={updateViewState} 
+                      index={index} 
+                      crossViewActionHandler={crossViewActionHandler} 
+                      dependencies={dependencies.get(view.id)}
+                      addConnection={addConnection}
+                      removeConnection={removeConnection}
+                      createdViews={createdViews}
+                    />
           }
         })
       }
+    </Box>
     </>;
 
 }

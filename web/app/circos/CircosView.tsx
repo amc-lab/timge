@@ -1,5 +1,5 @@
 "use client"
-import { Box, Button, IconButton } from "@mui/joy";
+import { Box, Button, Card, IconButton, Input, Option, Select, Slider, TextField, Typography } from "@mui/joy";
 import { Track, TrackType } from "./config/track";
 import { useState } from "react";
 import Tracks from "./tracks";
@@ -15,12 +15,27 @@ interface CircosViewProps {
     trackFiles: any[];
     viewConfig: View;
     handleViewUpdate: (index, viewState: View) => void;
+    crossViewActionHandler?: any;
     index: number;
+    dependencies?: any;
+    addConnection?: any;
+    removeConnection?: any;
+    connections?: string[];
+    createdViews: Set<any>;
 }
 
 const CircosView = (props: CircosViewProps) => {
-   const canvasRef = useRef<HTMLDivElement>(null);
-   const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
+  const [connectedViews, setConnectedViews] = useState<string[]>([]);
+  const [minFilterScore, setMinFilterScore] = useState(0);
+
+   const maxScore = d3.max(props.trackFiles, (d) => {
+       if (d.data) {
+           return d3.max(d.data, (d) => d.score);
+       }
+       return 0;
+   });
 
     console.log("CircosView props", props.trackFiles);
 
@@ -49,6 +64,7 @@ const CircosView = (props: CircosViewProps) => {
         }
         let updatedTracks: Track[] = [];
         props.trackFiles.forEach((trackFile) => {
+          console.log("Track file", trackFile);
             if (trackFile.name.endsWith(".bed") || trackFile.name.endsWith(".bedgraph")) {
                 updatedTracks.push({
                     trackType: TrackType.Line,
@@ -60,7 +76,7 @@ const CircosView = (props: CircosViewProps) => {
                     },
                     name: trackFile.name,
                 });
-            } else if (trackFile.name.endsWith(".fa")) {
+            } else if (trackFile.name.endsWith(".fa") || trackFile.name.endsWith(".fasta")) {
                 updatedTracks.push({
                     trackType: TrackType.Karyotype,
                     config: defaultAssemblyConfig,
@@ -83,7 +99,11 @@ const CircosView = (props: CircosViewProps) => {
                     name: trackFile.name,
                 });
             }
+            else {
+              return;
+            }
         });
+        console.log("Updated tracks", updatedTracks);
         setTracks(updatedTracks);
     }
     , [props.trackFiles]);
@@ -109,20 +129,22 @@ const CircosView = (props: CircosViewProps) => {
     return (
         <ParentView
           viewConfig={props.viewConfig}
+          index={props.index}
+          crossViewActionHandler={props.crossViewActionHandler}
           userActions={{
             "Select Tracks": () => {
               setIsTrackSelectorOpen(true);
             },
-            "Download SVG": () => {
-              const svg = d3.select(canvasRef.current).select("svg");
-              const serializer = new XMLSerializer();
-              const svgString = serializer.serializeToString(svg.node());
-              const blob = new Blob([svgString], { type: "image/svg+xml" });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = "circus.svg";
-              a.click();
+            "Download PNG": () => {
+              const d3ToPng = require('d3-svg-to-png');
+              d3ToPng(canvasRef.current, 'output', {
+                scale: 1,
+                format: 'png',
+                quality: 1,
+                download: true,
+                ignore: '.ignored',
+                background: 'white'
+              });
             },
             "Clear": () => {
                 props.handleViewUpdate(props.index, {
@@ -130,6 +152,15 @@ const CircosView = (props: CircosViewProps) => {
                     visible_tracks: [],
                 });
             },
+            [props.viewConfig.config.isMinimised ? "Maximise" : "Minimise"]: () => {
+              props.handleViewUpdate(props.index, {
+                ...props.viewConfig,
+                config: {
+                  ...props.viewConfig.config,
+                  isMinimised: !props.viewConfig.config.isMinimised,
+                },
+              });
+            }
           }}
         >
           {isTrackSelectorOpen ? (
@@ -173,9 +204,140 @@ const CircosView = (props: CircosViewProps) => {
               </Button>
             </Box>
           ) : (
-            <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
-              <Tracks tracks={selectedTracks} />
-            </div>
+            <Box
+              sx={{
+                width: "100%",
+                justifyContent: "center",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+              }}
+            >
+              <Card
+                sx={{
+                  width: "100%",
+                  borderRadius: "none",
+                  flexDirection: "row",
+                  justifyContent: "center",
+                  alignItems: "center",
+                }}
+              >
+                <Typography
+                  sx={{
+                    fontSize: "1em",
+                  }}
+                >
+                  Filter score:
+                </Typography>
+                <Input
+                  type="number"
+                  value={minFilterScore}
+                  onChange={(event) => {
+                    setMinFilterScore(parseInt(event.target.value));
+                    setSelectedTracks((prevTracks) => {
+                      return prevTracks.map((track) => {
+                        if (track.trackType === TrackType.Chord) {
+                          return {
+                            ...track,
+                            config: {
+                              ...track.config,
+                              minFilterScore: parseInt(event.target.value),
+                            },
+                          };
+                        }
+                        return track;
+                      });
+                    });
+                  }}
+                  sx={{
+                    width: "5%",
+                    marginLeft: "10px",
+                  }}
+                  ></Input>
+                <Slider
+                  // defaultValue={[20, maxScore]}
+                  value={minFilterScore}
+                  min={0}
+                  max={maxScore}
+                  step={1}
+                  valueLabelDisplay="auto"
+                  sx={{
+                    width: "10%",
+                  }}
+                  onChange={(event, newValue) => {
+                    setMinFilterScore(newValue as number);
+                    setSelectedTracks((prevTracks) => {
+                      return prevTracks.map((track) => {
+                        if (track.trackType === TrackType.Chord) {
+                          return {
+                            ...track,
+                            config: {
+                              ...track.config,
+                              minFilterScore: newValue as number,
+                              // maxFilterScore: newValue[1],
+                            },
+                          };
+                        }
+                        return track;
+                      });
+                    });
+                  }}
+                  ></Slider>
+                  <Typography
+                    sx={{
+                      fontSize: "1em",
+                      marginLeft: "10px",
+                    }}
+                  >
+                    Connect to:
+                  </Typography>
+                  <Select
+                    placeholder="Select views"
+                    multiple
+                    value={connectedViews}
+                    onChange={(event, value) => {
+                      setConnectedViews(value);
+                      for (let i = 0; i < value.length; i++) {
+                        if (props.crossViewActionHandler) {
+                          props.crossViewActionHandler("add_connection", {
+                            source: props.viewConfig.id,
+                            target: value[i],
+                          });
+                        }
+                      }
+                    }
+                    }
+      
+                  >
+                    {props.createdViews &&
+                      Array.from(props.createdViews).filter(
+                        (view_id) => view_id !== props.viewConfig.id
+                      )
+                        .map((view_id) => {
+                        return (
+                          <Option
+                            key={view_id}
+                            value={view_id}
+                          >
+                            {view_id}
+                          </Option>
+                        );
+                      }
+                    )}
+                  </Select>
+              </Card>
+              <Box
+                sx={{
+                  width: "650px",
+                  paddingTop: "25px",
+                  paddingBottom: "25px",
+                }}
+                >
+              <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
+                <Tracks id={props.viewConfig.id} tracks={selectedTracks} crossViewActionHandler={props.crossViewActionHandler} />
+              </div>
+              </Box>
+            </Box>
           )}
         </ParentView>
       );

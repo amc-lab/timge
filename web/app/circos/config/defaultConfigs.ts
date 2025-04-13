@@ -18,6 +18,8 @@ export const defaultChordConfig = {
   color: "blue",
   useStroke: true,
   outerRadius: defaultAssemblyConfig.segmentInnerRadius,
+  minFilterScore: 0,
+  maxFilterScore: 1000,
 };
 
 export const defaultBarConfig = {

@@ -1,5 +1,7 @@
+"use client";
 import { useEffect } from "react";
 import { Chord, ChordConfig, GlobalConfig } from "@/app/types/genomes";
+import { useState } from "react";
 import * as d3 from "d3";
 
 interface ChordProps {
@@ -10,15 +12,14 @@ interface ChordProps {
   };
   config: ChordConfig;
   segments: Array<any>;
+  selectedSegments?: string[];
   idx: number;
 }
 
-const Chords = ({ data, config, segments, idx }: ChordProps) => {
+const Chords = ({ data, config, segments, selectedSegments, idx }: ChordProps) => {
   const canvasRef = data.divRef;
   const chords = data.chords;
   const globalConfig = data.globalConfig;
-  console.log(segments);
-  console.log(chords);
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -48,9 +49,27 @@ const Chords = ({ data, config, segments, idx }: ChordProps) => {
     const chord_padding = config.chordPadding;
     const chord_radius = radius - chord_padding;
 
+    const minFilterScore = config.minFilterScore;
+    const maxFilterScore = config.maxFilterScore;
+    const filteredChords = chords.filter((d) => d.score >= minFilterScore && d.score <= maxFilterScore);
+    filteredChords.sort((a, b) => b.score - a.score);
+
+    const maxScore = d3.max(filteredChords, (d) => d.score);
+    const minScore = d3.min(filteredChords, (d) => d.score);
+
+    const colourScale = d3
+      .scaleSequential()
+      .domain([minScore, maxScore])
+      .interpolator(d3.interpolateOrRd);
+
+    const opacityScale = d3
+      .scaleLinear()
+      .domain([minScore, maxScore])
+      .range([config.opacity, 1]);
+
     group
       .selectAll("path")
-      .data(chords)
+      .data(filteredChords)
       .join("path")
       .attr(
         "d",
@@ -119,20 +138,27 @@ const Chords = ({ data, config, segments, idx }: ChordProps) => {
           })),
       )
       .attr("fill", (d) => {
-        const sourceSegment = segments.find(
-          (segment) => segment.chromosome === d.source_chromosome,
-        );
-        return sourceSegment?.colour || "gray";
+        return colourScale(d.score);
       })
-      .attr("opacity", config.opacity)
+      .attr("opacity", (d) => {
+        if (selectedSegments?.length > 0 && ! selectedSegments.includes(d.source_chromosome)) {
+          return 0.1;
+        }
+        return config.opacity;
+      })
       .attr("stroke", `${config.useStroke ? "black" : "none"}`)
       .on("mouseover", function () {
         d3.select(this).attr("opacity", 1);
       })
       .on("mouseout", function () {
-        d3.select(this).attr("opacity", config.opacity);
+        d3.select(this).attr("opacity", (d) => {
+          if (selectedSegments?.length > 0 && ! selectedSegments.includes(d.source_chromosome)) {
+            return 0.2;
+          }
+          return config.opacity;
+        })
       });
-  }, [canvasRef, chords, config, globalConfig, segments]);
+  }, [canvasRef, chords, config, globalConfig, segments, selectedSegments]);
 
   return null;
 };

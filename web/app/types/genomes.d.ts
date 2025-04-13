@@ -14,6 +14,7 @@ export interface Chord {
   target_start: number;
   target_end: number;
   color?: string;
+  score?: number;
 }
 
 export interface BarData {
@@ -31,7 +32,7 @@ export interface RingData {
 }
 
 export interface LineData {
-  chromosome: string;
+  chrom: string;
   chromStart: number;
   chromEnd: number;
   value: number;
@@ -57,6 +58,8 @@ interface ChordConfig {
   colour?: string;
   useStroke: boolean;
   outerRadius: number;
+  minFilterScore: number;
+  maxFilterScore: number;
 }
 
 interface BarConfig {

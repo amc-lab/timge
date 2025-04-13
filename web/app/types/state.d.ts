@@ -8,6 +8,7 @@ export interface View {
     description: string;
     config?: any;
     visible_tracks?: string[];
+    uuid?: string;
 }
 
 export interface State {
@@ -15,6 +16,9 @@ export interface State {
     // dateCreated: string;
     // dateModified: string;
     isUserLoggedIn: boolean;
+    // connections: Map<string, string[]>;
+    // dependencies: Map<string, any>;
+    // createdViews: Set<string>;
     UUID: string?;
     // dataFilesRootDir: string;
     dataFiles: string[]; 

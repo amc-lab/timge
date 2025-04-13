@@ -40,7 +40,9 @@ const Line = ({ data, config, segments, idx }: LineProps) => {
             .attr("transform", `translate(${globalConfig.canvasWidth / 2}, ${globalConfig.canvasHeight / 2})`);
     
         segments.forEach((segment) => {
-            const segmentValues = values.filter(d => d.chromosome === segment.chrom);
+            console.log(segment, segment.chrom);
+            const segmentValues = values.filter(d => d.chrom === segment.chromosome);
+            console.log(segmentValues);
             const max = d3.max(segmentValues, d => d.value);
             const min = d3.min(segmentValues, d => d.value);
             console.log(segmentValues);
