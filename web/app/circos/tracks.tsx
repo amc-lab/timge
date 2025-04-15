@@ -119,10 +119,6 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
   const onCustomAction = (action: string, data: any) => {
     console.log("Custom action triggered:", action, data);
     if (action === "generate_heatmap") {
-      // crossViewActionHandler(
-      //   "generate_heatmap",
-      //   data,
-      // );
       crossViewActionHandler(
         "propagate_dependencies",
         {

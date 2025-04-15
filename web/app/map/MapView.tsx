@@ -1,9 +1,10 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { View } from "../types/state";
 import ParentView from "@/components/ParentView";
 import { Box, Button, Card, Checkbox, CircularProgress, Dropdown, LinearProgress, Option, Select, Typography } from "@mui/joy";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { View } from "@/store/features/views/types";
 
 interface MapViewProps {
   trackFiles: any[];
@@ -14,7 +15,7 @@ interface MapViewProps {
   dependencies: any;
   addConnection?: any;
   removeConnection?: any;
-  createdViews: Set<any>;
+  // createdViews: Set<any>;
 }
 
 const MapView = (props: MapViewProps) => {
@@ -30,12 +31,13 @@ const MapView = (props: MapViewProps) => {
   const [loading, setLoading] = useState(false);
 
   const heatmapRef = useRef(null);
+  const space = useAppSelector((state) => state.space);
 
   useEffect(() => {
     const fetchData = async () => {
       const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
       const queryParams = new URLSearchParams({
-        uuid: props.viewConfig.uuid,
+        uuid: space.uuid,
         file_name: track,
         genome_path: reference,
       }).toString();
@@ -245,7 +247,7 @@ const MapView = (props: MapViewProps) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        uuid: props.viewConfig.uuid,
+        uuid: space.uuid,
         file_name: track,
         genome_path: reference,
         resolution: resolution,
@@ -283,7 +285,6 @@ const MapView = (props: MapViewProps) => {
     <ParentView 
       viewConfig={props.viewConfig}
       index={props.index}
-      crossViewActionHandler={props.crossViewActionHandler} 
       userActions={{
         "Download PNG": () => {
               const d3ToPng = require('d3-svg-to-png');

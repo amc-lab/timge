@@ -8,6 +8,7 @@ on:
       - feature/36-setup-skeleton-for-landing-page
       - feature/40-setup-exportable-state-representation-for-workspace
       - feature/42-create-heatmap-view
+      - migrate/44-migrate-to-redux-for-state-management
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest

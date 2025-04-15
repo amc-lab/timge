@@ -9,19 +9,23 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { deleteView, deleteConnection, deleteDependency } from "@/store/features/space/spaceSlice";
 
 interface ParentViewProps {
   children?: React.ReactNode;
   viewConfig?: any;
   userActions?: Record<string, (...args: any[]) => void>;
   index?: number;
-  crossViewActionHandler?: any;
   ref?: React.Ref<any>;
 }
 
-const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {}, index, crossViewActionHandler, ref }) => {
+const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {}, index, ref }) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+
+  const dispatch = useAppDispatch();
+  const space = useAppSelector((state) => state.space);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -37,13 +41,12 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
   };
 
   const handleViewClose = () => {
-    crossViewActionHandler(
-     "delete_view",
-     {
-        viewId: viewConfig?.id,
-        index: index,
-      },
-    );
+    const uuid = viewConfig.uuid;
+    if (uuid) {
+      dispatch(deleteView(uuid));
+      dispatch(deleteConnection(uuid));
+      dispatch(deleteDependency(uuid));
+    }
   }
 
   useEffect(() => {

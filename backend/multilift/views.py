@@ -101,7 +101,6 @@ def format_circos(request):
     track_types = json.loads(request.POST.get("track_types"))
     data_files = request.FILES.getlist("data_files")
     data = []
-
     for i in range(len(track_types)):
         data.append(format_genome(data_files[i], track_types[i]))
 

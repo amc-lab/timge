@@ -36,7 +36,7 @@ const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, addM
             <nav>
                 <ul className="flex space-x-4 items-center">
                     <li>
-                        <DropdownButton label="TIMGE" link="/" />
+                        <DropdownButton label="vRISE" link="/" />
                     </li>
                     <li>
                         <DropdownMenu 

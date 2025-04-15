@@ -258,6 +258,8 @@ def get_segments(request):
     directory = os.path.join(TRACK_ROOT_DIR, uuid)
     reference_path = os.path.join(directory, genome_path)
 
+    print("Directory:", directory)
+    print("Reference path:", reference_path)
     if not os.path.exists(directory):
         return JsonResponse({"status": "error", "message": "Directory not found."})
 

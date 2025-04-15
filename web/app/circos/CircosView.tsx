@@ -9,7 +9,9 @@ import MenuIcon from "@mui/icons-material/Menu";
 import * as d3 from "d3";
 import ParentView from "@/components/ParentView";
 import TrackSelector from "./components/TrackSelector";
-import { View } from "../types/state";
+import { View } from "@/store/features/views/types";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { setConnection } from "@/store/features/space/spaceSlice";
 
 interface CircosViewProps {
     trackFiles: any[];
@@ -21,10 +23,12 @@ interface CircosViewProps {
     addConnection?: any;
     removeConnection?: any;
     connections?: string[];
-    createdViews: Set<any>;
 }
 
 const CircosView = (props: CircosViewProps) => {
+  const space = useAppSelector((state) => state.space);
+  const dispatch = useAppDispatch();
+
   const canvasRef = useRef<HTMLDivElement>(null);
   const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
   const [connectedViews, setConnectedViews] = useState<string[]>([]);
@@ -130,7 +134,6 @@ const CircosView = (props: CircosViewProps) => {
         <ParentView
           viewConfig={props.viewConfig}
           index={props.index}
-          crossViewActionHandler={props.crossViewActionHandler}
           userActions={{
             "Select Tracks": () => {
               setIsTrackSelectorOpen(true);
@@ -298,28 +301,35 @@ const CircosView = (props: CircosViewProps) => {
                     onChange={(event, value) => {
                       setConnectedViews(value);
                       for (let i = 0; i < value.length; i++) {
-                        if (props.crossViewActionHandler) {
-                          props.crossViewActionHandler("add_connection", {
-                            source: props.viewConfig.id,
-                            target: value[i],
-                          });
-                        }
+                        // if (props.crossViewActionHandler) {
+                          // console.log("Adding connection", value[i]);
+                          // props.crossViewActionHandler("add_connection", {
+                          //   source: props.viewConfig.uuid,
+                          //   target: value[i],
+                          // });
+                          const source = props.viewConfig.uuid;
+                          const target = value[i];
+                          dispatch(setConnection(
+                            { 
+                              key: source, value: [...(space.connections[source] || []), target] 
+                            }));
+                        // }
                       }
                     }
                     }
       
                   >
-                    {props.createdViews &&
-                      Array.from(props.createdViews).filter(
-                        (view_id) => view_id !== props.viewConfig.id
+                    {space.views &&
+                      space.views.filter(
+                        (view) => view.uuid !== props.viewConfig.uuid
                       )
-                        .map((view_id) => {
+                        .map((view) => {
                         return (
                           <Option
-                            key={view_id}
-                            value={view_id}
+                            key={view.uuid}
+                            value={view.uuid}
                           >
-                            {view_id}
+                            {view.title}
                           </Option>
                         );
                       }
@@ -334,7 +344,7 @@ const CircosView = (props: CircosViewProps) => {
                 }}
                 >
               <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
-                <Tracks id={props.viewConfig.id} tracks={selectedTracks} crossViewActionHandler={props.crossViewActionHandler} />
+                <Tracks id={props.viewConfig.uuid} tracks={selectedTracks} crossViewActionHandler={props.crossViewActionHandler} />
               </div>
               </Box>
             </Box>
