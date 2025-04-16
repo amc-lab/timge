@@ -55,7 +55,17 @@ const spaceSlice = createSlice({
     },
     deleteConnection: (state, action: PayloadAction<string>) => {
       delete state.connections[action.payload];
-    }
+    },
+    setTitle: (state, action: PayloadAction<string>) => {
+      state.title = action.payload;
+    },
+    setViewTitle: (state, action: PayloadAction<{ uuid: string, title: string }>) => {
+      const { uuid, title } = action.payload;
+      const view = state.views.find(v => v.uuid === uuid);
+      if (view) {
+        view.title = title;
+      }
+    },
   },
 });
 
@@ -71,6 +81,8 @@ export const {
   setConnection,
   deleteConnection,
   deleteDependency,
+  setTitle,
+  setViewTitle,
 } = spaceSlice.actions;
 
 export const selectSpace = (state: { space: State }) => state.space;

@@ -11,6 +11,8 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { deleteView, deleteConnection, deleteDependency } from "@/store/features/space/spaceSlice";
+import EditableLabel from "./EditableLabel";
+import { setViewTitle } from "@/store/features/space/spaceSlice";
 
 interface ParentViewProps {
   children?: React.ReactNode;
@@ -21,11 +23,19 @@ interface ParentViewProps {
 }
 
 const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {}, index, ref }) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-
   const dispatch = useAppDispatch();
   const space = useAppSelector((state) => state.space);
+  
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [isTitleEditing, setIsTitleEditing] = useState(false);
+
+  const handleTitleChange = (val: string) => {
+    if (viewConfig) {
+      dispatch(setViewTitle({ uuid: viewConfig.uuid, title: val }));
+    }
+  };
+  
+  const open = Boolean(anchorEl);
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -48,6 +58,10 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
       dispatch(deleteDependency(uuid));
     }
   }
+
+  useEffect(() => {
+    console.log("isTitleEditing changed:", isTitleEditing);
+  }, [isTitleEditing]);
 
   useEffect(() => {
     console.log(viewConfig);
@@ -75,7 +89,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
           width: "100%",
           height: "2em",
           backgroundColor: "darkblue",
-          px: 1,
+          borderBottom: "4px solid darkblue",
         }}
       >
         <IconButton
@@ -95,18 +109,19 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
               {key}
             </MenuItem>
           ))}
+          <MenuItem onClick={() => setIsTitleEditing(true)}>Rename View</MenuItem>
         </Menu>
 
-        <Typography
-          sx={{
-            color: "white",
-            fontSize: "0.9em",
-            fontWeight: "bold",
-            marginLeft: "10px",
+        <EditableLabel
+          value={viewConfig?.title}
+          isEditing={isTitleEditing}
+          onChange={(val) => handleTitleChange(val)}
+          onSave={() => {
+            dispatch(setViewTitle({ uuid: viewConfig.uuid, title: viewConfig.title }));
+            setIsTitleEditing(false);
+            handleMenuClose();
           }}
-        >
-          <strong>{viewConfig?.title}</strong>
-        </Typography>
+        />
 
         <Box sx={{ ml: "auto" }}>
           <IconButton
