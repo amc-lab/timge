@@ -14,15 +14,17 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { Track } from "../config/track";
 
 interface TrackSelectorProps {
-  tracks: Track[];
-  trackFiles: any[];
+  // tracks: Track[];
+  // trackFiles: any[];
+  files: any[];
   onClose: () => void;
   onConfirm: (selectedTracks: Track[]) => void;
 }
 
 const TrackSelector: React.FC<TrackSelectorProps> = ({
-  tracks,
-  trackFiles,
+  // tracks,
+  // trackFiles,
+  files,
   onClose,
   onConfirm,
 }) => {
@@ -97,7 +99,7 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({
             backgroundColor: "#f9f9f9",
           }}
         >
-          {tracks.map((track, index) => (
+          {files.map((track, index) => (
             <Box
               key={index}
               sx={{
@@ -110,7 +112,8 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({
                 checked={selectedTracks.includes(track)}
                 onChange={() => toggleTrack(track)}
               />
-              <Typography>{trackFiles[index]?.name || `Track ${index + 1}`}</Typography>
+              <Typography>{track.name}</Typography>
+              {/* <Typography>{trackFiles[index]?.name || `Track ${index + 1}`}</Typography> */}
             </Box>
           ))}
         </Box>
@@ -144,7 +147,8 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({
                 boxShadow: "sm",
               }}
             >
-              <Typography>{trackFiles[tracks.indexOf(track)]?.name || index}</Typography>
+              <Typography>{track.name}</Typography>
+              {/* <Typography>{trackFiles[tracks.indexOf(track)]?.name || index}</Typography> */}
               <Box sx={{ display: "flex", gap: 1 }}>
                 <IconButton onClick={() => handleMove(index, -1)}>
                   <ArrowUpwardIcon />

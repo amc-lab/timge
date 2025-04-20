@@ -10,4 +10,5 @@ urlpatterns = [
     path("heatmap/", views.generate_heatmap, name="generate_heatmap"),
     path("get_segments/", views.get_segments, name="get_segments"),
     path("generate_fai/", views.generate_fai, name="generate_fai"),
+    path("get_files_in_path/", views.get_files_in_path, name="get_files"),
 ]

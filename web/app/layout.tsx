@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Multilift",
+  title: "vRISE",
 };
 
 export default function RootLayout({

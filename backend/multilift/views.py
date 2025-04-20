@@ -9,6 +9,7 @@ from libraries.multilift import (
 )
 from multilift.parser import format_genome
 import json
+import os
 
 
 @csrf_exempt
@@ -86,6 +87,27 @@ def karyotype(request):
     return JsonResponse(data, safe=False)
 
 
+# @csrf_exempt
+# @require_http_methods(["POST"])
+# def format_circos(request):
+#     """
+#     Args:
+#     - track_types: list of track types
+#     - data_files: list of data files
+
+#     Returns:
+#     - List of dictionaries containing the circos data
+#     """
+
+#     track_types = json.loads(request.POST.get("track_types"))
+#     data_files = request.FILES.getlist("data_files")
+#     data = []
+#     for i in range(len(track_types)):
+#         data.append(format_genome(data_files[i], track_types[i]))
+
+#     return JsonResponse(data, safe=False)
+
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def format_circos(request):
@@ -99,7 +121,9 @@ def format_circos(request):
     """
 
     track_types = json.loads(request.POST.get("track_types"))
-    data_files = request.FILES.getlist("data_files")
+    track_paths = json.loads(request.POST.get("track_paths"))
+    data_files = [open(os.path.join(track_path), "rb") for track_path in track_paths]
+
     data = []
     for i in range(len(track_types)):
         data.append(format_genome(data_files[i], track_types[i]))

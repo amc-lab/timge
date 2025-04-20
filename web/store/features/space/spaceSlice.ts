@@ -13,6 +13,9 @@ export const getDefaultState = (): State => ({
   connections: {},
   dependencies: {},
   dataFiles: [], // Array of file paths or URLs
+  config: {
+    "expanded_sidebar": true,
+  },
 });
 
 const spaceSlice = createSlice({
@@ -66,6 +69,12 @@ const spaceSlice = createSlice({
         view.title = title;
       }
     },
+    setSidebarExpanded: (state, action: PayloadAction<boolean>) => {
+      state.config = {
+        ...state.config,
+        expanded_sidebar: action.payload,
+      };
+    }
   },
 });
 
@@ -83,6 +92,7 @@ export const {
   deleteDependency,
   setTitle,
   setViewTitle,
+  setSidebarExpanded
 } = spaceSlice.actions;
 
 export const selectSpace = (state: { space: State }) => state.space;

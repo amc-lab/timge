@@ -23,20 +23,19 @@ import {
   deleteDependency,
 } from "@/store/features/space/spaceSlice";
 import { addLinearGenomeView, addCircosView, addMapView, addCustomMapView } from "./utils/viewUtils";
+import FileViewerPanel from "@/components/FileViewerPanel";
+import Sidebar from "@/components/Sidebar";
 
-interface TrackEntry {
+interface FileEntry {
   name: string;
-  data: any;
-  type: string;
   size: number;
-  trackType: string;
 }
 
 export default function Page() {
 
   const dispatch = useAppDispatch();
   const space = useAppSelector(selectSpace);
-  const [tracks, setTracks] = useState<TrackEntry[]>([]);
+  const [files, setFiles] = useState<FileEntry[]>([]);
   const [genomeFormOpen, setGenomeFormOpen] = useState(false);
 
   const fileFormatMapping = {
@@ -49,21 +48,17 @@ export default function Page() {
 
   const getTrackFiles = () => {
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/timge/get_tracks/?uuid=${space.uuid}`, {
+    fetch(`${host}/api/timge/get_files_in_path/?uuid=${space.uuid}`, {
       method: "GET",
     })
       .then((response) => response.json())
       .then((data) => {
         if (data.status === "success") {
-          const trackFiles = data.track_files.map((file) => ({
+          const trackFiles = data.files.map((file) => ({
             name: file.name,
-            data: file.content,
-            type: file.type,
             size: file.size,
-            trackType: fileFormatMapping[file.name.split('.').pop()],
           }));
-
-          generate_circos_files(trackFiles);
+          setFiles(trackFiles);
         } else {
           console.error("Error fetching tracks:", data.message);
         }
@@ -73,8 +68,12 @@ export default function Page() {
       });
   };
 
+  const triggerFileRefresh = () => {
+    getTrackFiles();
+  }
+
   const deleteTrack = (trackName: string) => {
-    setTracks(tracks.filter((track) => track.name !== trackName));
+    setFiles(files.filter((file) => file.name !== trackName));
     dispatch(setDataFiles(space.dataFiles.filter((file) => file !== trackName)));
 
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
@@ -96,10 +95,27 @@ export default function Page() {
   }, [space]);
 
   useEffect(() => {
-    if (space?.uuid) {
-      getTrackFiles();
-    }
-  }, [space.uuid]);
+    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+    fetch(`${host}/api/timge/get_files_in_path/?uuid=${space.uuid}`, {
+      method: "GET",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === "success") {
+          const trackFiles = data.files.map((file) => ({
+            name: file.name,
+            size: file.size,
+          }));
+          setFiles(trackFiles);
+        } else {
+          console.error("Error fetching tracks:", data.message);
+        }
+      })
+      .catch((err) => {
+        console.error("Request failed:", err);
+      });
+  }
+  , [space.uuid]);
 
   const uploadTrackFiles = async(files: File[]) => {
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
@@ -123,39 +139,10 @@ export default function Page() {
         size: file.size,
         trackType: fileFormatMapping[file.name.split('.').pop()],
       }));
-      generate_circos_files(trackFiles);
+      getTrackFiles();
     })
     .catch((error) => {
       console.error("Error uploading files", error);
-    });
-  }
-
-  const generate_circos_files = (files: any) => {
-    let circosFiles = [];
-
-    const formData = new FormData();
-    formData.append("track_types", JSON.stringify(files.map((file) => fileFormatMapping[file.name.split(".").pop()])));
-    files.forEach((file) => {
-      formData.append("data_files", new Blob([file.data]), file.name);
-    });
-
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/multilift/circos/`, {
-      method: "POST",
-      body: formData,
-    })
-    .then((response) => response.json())
-    .then((data) => {
-      for (let i = 0; i < data.length; i++) {
-        circosFiles.push({
-          data: data[i],
-          name: files[i].name,
-          trackType: fileFormatMapping[files[i].name.split(".").pop()],
-        });
-      }      
-    })
-    .then(() => {
-      setTracks([...tracks, ...circosFiles]);
     });
   }
 
@@ -270,7 +257,7 @@ export default function Page() {
       exportState={exportState}
       resetState={() => {
         localStorage.removeItem(STATE_KEY);
-        setTracks([]);
+        setFiles([]);
         dispatch(resetSpace());
       }}
     />
@@ -278,7 +265,7 @@ export default function Page() {
     <TrackUploadForm 
       isOpen={genomeFormOpen} 
       onClose={() => setGenomeFormOpen(false)} 
-      tracks={tracks}
+      tracks={files}
       onDeleteTrack={deleteTrack}
       onTrackUpload={(data_files: File[]) => {
         uploadTrackFiles(data_files);
@@ -288,53 +275,81 @@ export default function Page() {
       sx={{
         display: "flex",
         flexDirection: "row",
-        flexWrap: "wrap",
-        alignItems: "flex-start",
+        width: "100%",
+        height: "100%",
       }}
-      >
+    >
       {
-        space.views.map((view, index) => {
-          if (view.type === "linear") {
-            return <LinearView 
-                      key={index} 
-                      trackFiles={tracks} 
-                      viewConfig={view} 
-                      handleViewUpdate={updateViewState} 
-                      index={index} 
-                      crossViewActionHandler={crossViewActionHandler} 
-                      dependencies={space.dependencies[view.uuid]}
-                      addConnection={addConnection}
-                      removeConnection={removeConnection}
-                    />  
-          }
-          else if (view.type === "circos") {
-            return <CircosView 
-                      key={index}
-                      trackFiles={tracks}
-                      viewConfig={view}
-                      handleViewUpdate={updateViewState} 
-                      index={index} 
-                      crossViewActionHandler={crossViewActionHandler} 
-                      dependencies={space.dependencies[view.uuid]}
-                      addConnection={addConnection}
-                      removeConnection={removeConnection}
-                    />
-          }
-          else if (view.type === "map") {
-            return <MapView 
-                      key={index} 
-                      trackFiles={tracks} 
-                      viewConfig={view}
-                      handleViewUpdate={updateViewState} 
-                      index={index} 
-                      crossViewActionHandler={crossViewActionHandler} 
-                      dependencies={space.dependencies[view.uuid]}
-                      addConnection={addConnection}
-                      removeConnection={removeConnection}
-                    />
-          }
-        })
+        space.config?.expanded_sidebar ? (
+          <FileViewerPanel
+          files={files}
+          triggerFileRefresh={triggerFileRefresh}
+        />
+        ) : <Sidebar />
       }
+
+      <Box
+        sx={{
+          width: space.config?.expanded_sidebar ? "82.5%" : "95%",
+          height: "100%",
+          backgroundColor: "white",
+          padding: "5px",
+          overflowY: "auto",
+        }}
+        >
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "row",
+          flexWrap: "wrap",
+          alignItems: "flex-start",
+        }}
+        >
+        {
+          space.views.map((view, index) => {
+            if (view.type === "linear") {
+              return <LinearView 
+                        key={index} 
+                        trackFiles={files} 
+                        viewConfig={view} 
+                        handleViewUpdate={updateViewState} 
+                        index={index} 
+                        crossViewActionHandler={crossViewActionHandler} 
+                        dependencies={space.dependencies[view.uuid]}
+                        addConnection={addConnection}
+                        removeConnection={removeConnection}
+                      />  
+            }
+            else if (view.type === "circos") {
+              return <CircosView 
+                        key={index}
+                        viewConfig={view}
+                        handleViewUpdate={updateViewState} 
+                        index={index} 
+                        crossViewActionHandler={crossViewActionHandler} 
+                        dependencies={space.dependencies[view.uuid]}
+                        addConnection={addConnection}
+                        removeConnection={removeConnection}
+                        files={files}
+                      />
+            }
+            else if (view.type === "map") {
+              return <MapView 
+                        key={index} 
+                        trackFiles={files} 
+                        viewConfig={view}
+                        handleViewUpdate={updateViewState} 
+                        index={index} 
+                        crossViewActionHandler={crossViewActionHandler} 
+                        dependencies={space.dependencies[view.uuid]}
+                        addConnection={addConnection}
+                        removeConnection={removeConnection}
+                      />
+            }
+          })
+        }
+        </Box>
+      </Box>
     </Box>
     </>;
 

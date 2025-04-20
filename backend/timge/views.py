@@ -274,3 +274,42 @@ def get_segments(request):
         )
 
     return JsonResponse({"status": "success", "segments": segments})
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_files_in_path(request):
+    """
+    Retrieves the files in a given directory.
+    Args:
+    - request: The HTTP request containing the uuid.
+    Returns:
+    - JsonResponse: A response containing the list of files.
+    """
+    uuid = request.GET.get("uuid")
+    if not uuid:
+        return JsonResponse({"status": "error", "message": "Missing UUID."}, status=400)
+
+    directory = os.path.join(TRACK_ROOT_DIR, uuid)
+    if not os.path.exists(directory):
+        return JsonResponse({"status": "success", "files": []})
+
+    files = []
+    for file_name in os.listdir(directory):
+        file_path = os.path.join(directory, file_name)
+        if not os.path.isfile(file_path):
+            continue
+        try:
+            size = os.path.getsize(file_path)
+            # mime_type, _ = mimetypes.guess_type(file_path)
+            files.append(
+                {
+                    "name": file_name,
+                    # "type": mime_type or "text/plain",
+                    "size": size,
+                }
+            )
+        except Exception as e:
+            continue
+
+    return JsonResponse({"status": "success", "files": files})
