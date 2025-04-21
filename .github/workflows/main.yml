@@ -25,6 +25,7 @@ jobs:
         echo "Building frontend Docker image"
         docker build \
           --build-arg NEXT_PUBLIC_DJANGO_HOST=${{ secrets.NEXT_PUBLIC_DJANGO_HOST }} \
+          --build-arg NEXT_PUBLIC_FILE_HOST=${{ secrets.NEXT_PUBLIC_FILE_HOST }} \
           -t ${{ secrets.DOCKER_IMAGE_WEB }} \
           ./web
 

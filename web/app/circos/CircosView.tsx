@@ -47,12 +47,13 @@ const CircosView = (props: CircosViewProps) => {
 
   const generate_circos_files = (files: any) => {
     console.log("Generating circos files", files);
+    const FILE_HOST = process.env.NEXT_PUBLIC_FILE_HOST;
     let circosFiles = [];
 
     const formData = new FormData();
     formData.append("track_types", JSON.stringify(files.map((file) => fileFormatMapping[file.split(".").pop()])));
-    formData.append("track_paths", JSON.stringify(files.map((file) => "/Users/mithun/Documents/Imperial/Year 4/FYP/uploaded_data/" + space.uuid + "/" + file)));
-
+    formData.append("track_paths", JSON.stringify(files.map((file) => FILE_HOST + space.uuid + "/" + file)));
+    
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
     fetch(`${host}/api/multilift/circos/`, {
       method: "POST",
