@@ -10,6 +10,11 @@ from libraries.multilift import (
 from multilift.parser import format_genome
 import json
 import os
+from django.conf import settings
+from io import BytesIO
+import zipfile
+
+TRACK_ROOT_DIR = settings.TRACK_ROOT_DIR
 
 
 @csrf_exempt
@@ -55,6 +60,7 @@ def run_multilift(request):
     multilift_genomes = json.loads(request.POST.get("multilift_genomes"))
     sequences = json.loads(request.POST.get("sequences"))
     aligner = request.POST.get("aligner")
+    uuid = request.POST.get("uuid")
 
     multilift_sequences = generate_multilift_sequences(genomes, genome_files, sequences)
     print(multilift_sequences)
@@ -67,6 +73,19 @@ def run_multilift(request):
         multilift_genomes,
         aligner,
     )
+    if uuid:
+        path = os.path.join(TRACK_ROOT_DIR, uuid)
+        os.makedirs(path, exist_ok=True)
+
+        # Extract zip contents instead of saving the zip file
+        res.seek(0)
+        with zipfile.ZipFile(BytesIO(res.read())) as zip_file:
+            zip_file.extractall(path)
+
+        return JsonResponse(
+            {"status": "success", "message": "Files extracted successfully"}, status=200
+        )
+
     response = FileResponse(res, as_attachment=True, filename="multilift.zip")
     return response
 

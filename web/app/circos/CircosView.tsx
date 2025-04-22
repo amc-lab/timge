@@ -213,12 +213,11 @@ const CircosView = (props: CircosViewProps) => {
         >
           {isTrackSelectorOpen ? (
             <TrackSelector
-              files={props.files}
               onClose={handleTrackSelectorClose}
               onConfirm={(selectedTracks) => {
                 props.handleViewUpdate(props.index, {
                   ...props.viewConfig,
-                  visible_tracks: selectedTracks.map((track) => track.name),
+                  visible_tracks: selectedTracks.map((track) => track.path),
                 });
                 setIsTrackSelectorOpen(false);
               }}

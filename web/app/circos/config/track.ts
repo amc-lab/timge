@@ -12,4 +12,5 @@ export interface Track {
   data: any;
   config: any;
   name?: string;
+  path?: string;
 }

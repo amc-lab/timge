@@ -25,9 +25,12 @@ import {
 import { addLinearGenomeView, addCircosView, addMapView, addCustomMapView } from "./utils/viewUtils";
 import FileViewerPanel from "@/components/FileViewerPanel";
 import Sidebar from "@/components/Sidebar";
+import Multilift from "./multilift/Multilift";
+import { getTrackFiles } from "./utils/fileUtils";
 
 interface FileEntry {
   name: string;
+  type: string;
   size: number;
 }
 
@@ -46,30 +49,64 @@ export default function Page() {
     "fa": "karyotype",
   }
 
-  const getTrackFiles = () => {
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/timge/get_files_in_path/?uuid=${space.uuid}`, {
-      method: "GET",
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.status === "success") {
-          const trackFiles = data.files.map((file) => ({
-            name: file.name,
-            size: file.size,
-          }));
-          setFiles(trackFiles);
-        } else {
-          console.error("Error fetching tracks:", data.message);
-        }
-      })
-      .catch((err) => {
-        console.error("Request failed:", err);
-      });
-  };
+  // const getTrackFiles = () => {
+  //   const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+  //   fetch(`${host}/api/timge/get_files_in_path/?uuid=${space.uuid}&path=${space.config.working_directory}`, {
+  //     method: "GET",
+  //   })
+  //     .then((response) => response.json())
+  //     .then((data) => {
+  //       if (data.status === "success") {
+  //         const trackFiles = data.entries.map((file) => ({
+  //           name: file.name,
+  //           type: file.type,
+  //           size: file.size,
+  //         }));
+  //         setFiles(trackFiles);
+  //       } else {
+  //         console.error("Error fetching tracks:", data.message);
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       console.error("Request failed:", err);
+  //     });
+  // };
+
+  // const getTrackFiles = () => {
+  //   const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+  //   fetch(`${host}/api/timge/get_files_in_path/`, {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //     },
+  //     body: JSON.stringify({
+  //       uuid: space.uuid,
+  //       path: space.config.working_directory,
+  //     }),
+  //   })
+  //     .then((response) => response.json())
+  //     .then((data) => {
+  //       if (data.status === "success") {
+  //         const trackFiles = data.entries.map((file) => ({
+  //           name: file.name,
+  //           type: file.type,
+  //           size: file.size,
+  //         }));
+  //         setFiles(trackFiles);
+  //       } else {
+  //         console.error("Error fetching tracks:", data.message);
+  //       }
+  //     })
+  //     .catch((err) => {
+  //       console.error("Request failed:", err);
+  //     });
+  // };
+  
 
   const triggerFileRefresh = () => {
-    getTrackFiles();
+    getTrackFiles(space, false).then((trackFiles) => {
+      setFiles(trackFiles);
+    });
   }
 
   const deleteTrack = (trackName: string) => {
@@ -96,14 +133,23 @@ export default function Page() {
 
   useEffect(() => {
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/timge/get_files_in_path/?uuid=${space.uuid}`, {
-      method: "GET",
+    
+    fetch(`${host}/api/timge/get_files_in_path/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        uuid: space.uuid,
+        path: space.config.working_directory,
+      }),
     })
       .then((response) => response.json())
       .then((data) => {
         if (data.status === "success") {
-          const trackFiles = data.files.map((file) => ({
+          const trackFiles = data.entries.map((file) => ({
             name: file.name,
+            type: file.type,
             size: file.size,
           }));
           setFiles(trackFiles);
@@ -114,8 +160,7 @@ export default function Page() {
       .catch((err) => {
         console.error("Request failed:", err);
       });
-  }
-  , [space.uuid]);
+  }, [space.uuid]);
 
   const uploadTrackFiles = async(files: File[]) => {
     const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
@@ -139,7 +184,9 @@ export default function Page() {
         size: file.size,
         trackType: fileFormatMapping[file.name.split('.').pop()],
       }));
-      getTrackFiles();
+      getTrackFiles(space, false).then((_files) => {
+        setFiles(_files);
+      });
     })
     .catch((error) => {
       console.error("Error uploading files", error);
@@ -271,6 +318,11 @@ export default function Page() {
         uploadTrackFiles(data_files);
       }}
     />
+    { space.config?.multilift_form_open &&
+      <Multilift
+        triggerFileRefresh={triggerFileRefresh}
+      />
+    }
     <Box
       sx={{
         display: "flex",
@@ -282,8 +334,6 @@ export default function Page() {
       {
         space.config?.expanded_sidebar ? (
           <FileViewerPanel
-          files={files}
-          triggerFileRefresh={triggerFileRefresh}
         />
         ) : <Sidebar />
       }

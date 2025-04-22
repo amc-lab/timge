@@ -15,6 +15,8 @@ export const getDefaultState = (): State => ({
   dataFiles: [], // Array of file paths or URLs
   config: {
     "expanded_sidebar": true,
+    "multilift_form_open": false,
+    "working_directory": [],
   },
 });
 
@@ -74,6 +76,18 @@ const spaceSlice = createSlice({
         ...state.config,
         expanded_sidebar: action.payload,
       };
+    },
+    setMultiliftFormOpen: (state, action: PayloadAction<boolean>) => {
+      state.config = {
+        ...state.config,
+        multilift_form_open: action.payload,
+      };
+    },
+    setWorkingDirectory: (state, action: PayloadAction<string[]>) => {
+      state.config = {
+        ...state.config,
+        working_directory: action.payload,
+      };
     }
   },
 });
@@ -92,7 +106,9 @@ export const {
   deleteDependency,
   setTitle,
   setViewTitle,
-  setSidebarExpanded
+  setSidebarExpanded,
+  setMultiliftFormOpen,
+  setWorkingDirectory,
 } = spaceSlice.actions;
 
 export const selectSpace = (state: { space: State }) => state.space;

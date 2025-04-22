@@ -277,39 +277,109 @@ def get_segments(request):
 
 
 @csrf_exempt
-@require_http_methods(["GET"])
+@require_http_methods(["POST"])
 def get_files_in_path(request):
     """
-    Retrieves the files in a given directory.
+    Retrieves the immediate files and folders in a given directory.
     Args:
     - request: The HTTP request containing the uuid.
     Returns:
-    - JsonResponse: A response containing the list of files.
+    - JsonResponse: A response containing the list of entries.
     """
-    uuid = request.GET.get("uuid")
+    try:
+        data = json.loads(request.body)
+        uuid = data.get("uuid")
+        path = data.get("path", "")
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+
     if not uuid:
         return JsonResponse({"status": "error", "message": "Missing UUID."}, status=400)
 
-    directory = os.path.join(TRACK_ROOT_DIR, uuid)
-    if not os.path.exists(directory):
-        return JsonResponse({"status": "success", "files": []})
+    if path is not None and path != "" and path != "undefined":
+        path = "/".join(path)
+        print("Path:", path)
+        directory = os.path.join(TRACK_ROOT_DIR, uuid, path)
+    else:
+        directory = os.path.join(TRACK_ROOT_DIR, uuid)
 
-    files = []
-    for file_name in os.listdir(directory):
-        file_path = os.path.join(directory, file_name)
-        if not os.path.isfile(file_path):
-            continue
-        try:
-            size = os.path.getsize(file_path)
-            # mime_type, _ = mimetypes.guess_type(file_path)
-            files.append(
+    if not os.path.exists(directory):
+        return JsonResponse({"status": "success", "entries": []})
+
+    entries = []
+    for entry_name in os.listdir(directory):
+        entry_path = os.path.join(directory, entry_name)
+
+        if os.path.isdir(entry_path):
+            entries.append(
                 {
-                    "name": file_name,
-                    # "type": mime_type or "text/plain",
-                    "size": size,
+                    "name": entry_name,
+                    "type": "directory",
                 }
             )
-        except Exception as e:
-            continue
+        elif os.path.isfile(entry_path):
+            try:
+                size = os.path.getsize(entry_path)
+                entries.append(
+                    {
+                        "name": entry_name,
+                        "type": "file",
+                        "size": size,
+                    }
+                )
+            except Exception as e:
+                continue
 
-    return JsonResponse({"status": "success", "files": files})
+    return JsonResponse({"status": "success", "entries": entries})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def get_files_hierarchical(request):
+    """
+    Recursively retrieves all files and folders under a given directory.
+    Returns a full hierarchical tree.
+    """
+    try:
+        data = json.loads(request.body)
+        uuid = data.get("uuid")
+        path = data.get("path", "")
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+
+    if not uuid:
+        return JsonResponse({"status": "error", "message": "Missing UUID."}, status=400)
+
+    if path and isinstance(path, list):
+        base_path = os.path.join(TRACK_ROOT_DIR, uuid, *path)
+    else:
+        base_path = os.path.join(TRACK_ROOT_DIR, uuid)
+
+    if not os.path.exists(base_path):
+        return JsonResponse({"status": "success", "entries": []})
+
+    def build_tree(directory):
+        tree = []
+        try:
+            for entry in os.listdir(directory):
+                entry_path = os.path.join(directory, entry)
+                if os.path.isdir(entry_path):
+                    tree.append(
+                        {
+                            "name": entry,
+                            "type": "directory",
+                            "children": build_tree(entry_path),
+                        }
+                    )
+                elif os.path.isfile(entry_path):
+                    try:
+                        size = os.path.getsize(entry_path)
+                        tree.append({"name": entry, "type": "file", "size": size})
+                    except Exception:
+                        continue
+        except Exception:
+            pass
+        return tree
+
+    entries = build_tree(base_path)
+    return JsonResponse({"status": "success", "entries": entries})

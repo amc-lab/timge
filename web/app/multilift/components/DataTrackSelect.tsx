@@ -42,6 +42,13 @@ const DataTrackSelect = (props: DataTrackSelectProps) => {
                 }
                 setSelectedValues(value);
             }}
+            slotProps={{
+                listbox: {
+                  sx: {
+                    zIndex: 1400,
+                  },
+                },
+              }}
         >
             {dataTracks.map((dataTrack) => (
                 <Option key={dataTrack.name} value={dataTrack}>

@@ -2,28 +2,25 @@
 import React, { useEffect, useState } from 'react';
 import { useDropzone } from "react-dropzone";
 import {Card, LinearProgress} from "@mui/material";
-import { Box, Typography, IconButton } from '@mui/joy';
+import { Box, Typography, IconButton, Breadcrumbs } from '@mui/joy';
 import CloseIcon from '@mui/icons-material/Close';
 import { useAppDispatch } from "@/store/hooks";
 import { useAppSelector } from "@/store/hooks";
-import { setSidebarExpanded } from '@/store/features/space/spaceSlice';
-import { uploadTrackFiles } from '@/app/utils/fileUtils';
+import { setSidebarExpanded, setWorkingDirectory } from '@/store/features/space/spaceSlice';
+import { getTrackFiles, uploadTrackFiles } from '@/app/utils/fileUtils';
+import FolderIcon from '@mui/icons-material/Folder';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 
-interface FileViewerPanelProps {
-    files: any[];
-    triggerFileRefresh: () => void;
-}
-
-const FileViewerPanel = ({ files, triggerFileRefresh }: FileViewerPanelProps) => {
+const FileViewerPanel = () => {
     const dispatch = useAppDispatch();
     const space = useAppSelector((state) => state.space);
+    const [files, setFiles] = useState<any[]>([]);
 
     const handleFileDrop = async (acceptedFiles: File[]) => {
         setIsUploading(true);
         if (acceptedFiles.length > 0) {
         await uploadTrackFiles(space, Array.from(acceptedFiles));
         await new Promise(resolve => setTimeout(resolve, 1000));
-        triggerFileRefresh();
         }
     };
 
@@ -37,8 +34,19 @@ const FileViewerPanel = ({ files, triggerFileRefresh }: FileViewerPanelProps) =>
 
     useEffect(() => {
         setIsUploading(false);
-        console.log(files);
     }, [files]);
+
+    useEffect(() => {
+        getTrackFiles(space, true)
+            .then((files) => {
+                console.log("Files fetched successfully", files);
+                setFiles(files);
+            })
+            .catch((error) => {
+                console.error("Error fetching files:", error);
+            });
+    }
+    , [space.config.working_directory]);
 
     return (
     <Card
@@ -104,54 +112,119 @@ const FileViewerPanel = ({ files, triggerFileRefresh }: FileViewerPanelProps) =>
                     </IconButton>
                 </Box>
 
-                {files.map((file, index) => (
-                    <Box
-                        key={index}
-                        sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            paddingY: "1em",
-                            borderBottom: "1px solid #ccc",
-                            fontSize: "0.8em",
-                            ":hover": {
-                                backgroundColor: "#ECF0F1",
-                            },
-                            cursor: "pointer",
-                        }}
-                    >
-                        <Box sx={{ width: "60%" }}>
-                            <Typography
-                                sx={{
-                                    // color: "black",
-                                    fontSize: "1em",
-                                    marginLeft: "5px",
-                                    textOverflow: "ellipsis",
-                                    whiteSpace: "nowrap",
-                                    overflow: "hidden",
-                                }}
-                            >
-                                {file.name}
-                            </Typography>
-                        </Box>
-                        <Box
+                {/* <Breadcrumbs
+                    aria-label="breadcrumb"
+                    sx={{
+                        marginTop: "1em",
+                        marginBottom: "1em",
+                        fontSize: "0.8em",
+                    }}
+                >
+                    {directory.map((item: string) => (
+                        <Typography key={item} sx={{ color: "black" }}>
+                            {item}
+                        </Typography>
+                    ))}
+                </Breadcrumbs> */}
+                {space.config.working_directory.length > 0 && (
+                <Box
+                    sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        paddingY: "1em",
+                        borderBottom: "1px solid #ccc",
+                        fontSize: "0.8em",
+                        ":hover": {
+                            backgroundColor: "#ECF0F1",
+                        },
+                        cursor: "pointer",
+                    }}
+                    onClick={() => {
+                        dispatch(setWorkingDirectory(space.config.working_directory.slice(0, -1)));
+                    }}
+                >
+                    <Box sx={{ 
+                        display: "flex", 
+                        alignItems: "center",
+                        width: "100%",
+                        justifyContent: "center",
+                    }}>
+                        <Typography
                             sx={{
-                                marginLeft: "auto",
-                                display: "flex",
-                                alignItems: "center",
+                                fontSize: "1em",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
                             }}
                         >
-                            <Typography
-                                sx={{
-                                    color: "black",
-                                    fontSize: "1em",
-                                    marginLeft: "10px",
-                                }}
-                            >
-                                {(file.size / (1024 * 1024)).toFixed(2)} MB
-                            </Typography>
-                        </Box>
+                            ...
+                        </Typography>
                     </Box>
-                ))}
+                </Box>
+                )}
+
+                {files.map((file, index) => {
+                    const isDir = file.type === "directory";
+                    return (
+                        <Box
+                            key={index}
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                paddingY: "1em",
+                                borderBottom: "1px solid #ccc",
+                                fontSize: "0.8em",
+                                ":hover": {
+                                    backgroundColor: "#ECF0F1",
+                                },
+                                cursor: "pointer",
+                            }}
+                            onClick={() => {
+                                if (isDir) {
+                                    dispatch(setWorkingDirectory([...space.config.working_directory, file.name]));
+                                }
+                            }}
+                        >
+                            <Box sx={{ marginRight: "10px", display: "flex", alignItems: "center" }}>
+                                {isDir ? <FolderIcon fontSize='small' /> : <InsertDriveFileIcon fontSize='small' />}
+                            </Box>
+
+                            <Box sx={{ width: "60%" }}>
+                                <Typography
+                                    sx={{
+                                        fontSize: "1em",
+                                        textOverflow: "ellipsis",
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                    }}
+                                >
+                                    {file.name}
+                                </Typography>
+                            </Box>
+
+                            {/* File size (only for files) */}
+                            {!isDir && (
+                                <Box
+                                    sx={{
+                                        marginLeft: "auto",
+                                        display: "flex",
+                                        alignItems: "center",
+                                    }}
+                                >
+                                    <Typography
+                                        sx={{
+                                            color: "black",
+                                            fontSize: "1em",
+                                            marginLeft: "10px",
+                                        }}
+                                    >
+                                        {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                    </Typography>
+                                </Box>
+            )}
+        </Box>
+    );
+})}
             </Box>
         </Card>
     );

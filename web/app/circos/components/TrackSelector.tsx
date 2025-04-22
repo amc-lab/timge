@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Checkbox,
@@ -7,36 +7,179 @@ import {
   Sheet,
   Button,
   Divider,
-  Card,
 } from "@mui/joy";
+import { Collapse } from "@mui/material";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import { Track } from "../config/track";
+import FolderIcon from "@mui/icons-material/Folder";
+import DescriptionIcon from "@mui/icons-material/Description";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import { Track, TrackType } from "../config/track";
+import { defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig, defaultLineConfig } from "../config/defaultConfigs";
+import { useAppSelector } from "@/store/hooks";
+
+interface FileEntry {
+  name: string;
+  type: "file" | "directory";
+  size?: number;
+  children?: FileEntry[];
+}
 
 interface TrackSelectorProps {
-  // tracks: Track[];
-  // trackFiles: any[];
-  files: any[];
   onClose: () => void;
   onConfirm: (selectedTracks: Track[]) => void;
 }
 
 const TrackSelector: React.FC<TrackSelectorProps> = ({
-  // tracks,
-  // trackFiles,
-  files,
   onClose,
   onConfirm,
 }) => {
+  const [files, setFiles] = useState<FileEntry[]>([]);
   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const space = useAppSelector((state) => state.space);
+  const [trackMap, setTrackMap] = useState<Map<string, Track>>(new Map());
+
+  useEffect(() => {
+
+    const fetchFiles = async () => {
+      try {
+        const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+        const res = await fetch(`${host}/api/timge/get_files_hierarchical/`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            uuid: space.uuid,
+            path: false,
+          }),
+        });
+        const data = await res.json();
+    
+        if (data.status === "success") {
+          const tracks = new Map<string, Track>();
+    
+          const walk = (entries: FileEntry[], parentPath = ""): FileEntry[] => {
+            return entries.map((entry) => {
+              const fullPath = parentPath ? `${parentPath}/${entry.name}` : entry.name;
+    
+              if (entry.type === "directory") {
+                return {
+                  ...entry,
+                  children: entry.children ? walk(entry.children, fullPath) : [],
+                };
+              }
+    
+              const track = createTrackFromEntry(entry, fullPath);
+              if (track) {
+                tracks.set(entry.name, track);
+              }
+    
+              return entry;
+            });
+          };
+    
+          const transformed = walk(data.entries);
+          setFiles(transformed);
+          setTrackMap(tracks);
+        } else {
+          console.error("Fetch error:", data.message);
+        }
+      } catch (err) {
+        console.error("Request failed:", err);
+      }
+    };
+
+    fetchFiles();
+  }, [space]);
 
   const toggleTrack = (track: Track) => {
-    setSelectedTracks((prev) => {
-      if (prev.includes(track)) {
-        return prev.filter((t) => t !== track);
-      } else {
-        return [...prev, track];
+    setSelectedTracks((prev) =>
+      prev.includes(track)
+        ? prev.filter((t) => t !== track)
+        : [...prev, track]
+    );
+  };
+
+  const createTrackFromEntry = (entry: FileEntry, path: string): Track | null => {
+    const lower = entry.name.toLowerCase();
+  
+    if (lower.endsWith(".bed") || lower.endsWith(".bedgraph")) {
+      return {
+        name: entry.name,
+        trackType: TrackType.Line,
+        config: { ...defaultLineConfig, filePath: path },
+        data: {},
+        path: path,
+      };
+    } else if (lower.endsWith(".fa") || lower.endsWith(".fasta")) {
+      return {
+        name: entry.name,
+        trackType: TrackType.Karyotype,
+        config: { ...defaultAssemblyConfig, filePath: path },
+        data: {},
+        path: path,
+      };
+    } else if (lower.endsWith(".bedpe")) {
+      return {
+        name: entry.name,
+        trackType: TrackType.Chord,
+        config: { ...defaultChordConfig, filePath: path },
+        data: {},
+        path: path,
+      };
+    }
+  
+    return null;
+  };
+
+  const toggleFolder = (path: string) => {
+    const updated = new Set(expandedFolders);
+    updated.has(path) ? updated.delete(path) : updated.add(path);
+    setExpandedFolders(updated);
+  };
+
+  const renderTree = (entries: FileEntry[], parentPath = "") => {
+    console.log("Rendering tree with entries:", entries);
+    return entries.map((entry) => {
+      const fullPath = parentPath ? `${parentPath}/${entry.name}` : entry.name;
+
+      if (entry.type === "directory") {
+        return (
+          <Box key={fullPath} sx={{ ml: 2 }}>
+            <Box
+              sx={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+              onClick={() => toggleFolder(fullPath)}
+            >
+              <IconButton size="sm">
+                {expandedFolders.has(fullPath) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+              <FolderIcon />
+              <Typography sx={{ ml: 1 }}>{entry.name}</Typography>
+            </Box>
+            <Collapse in={expandedFolders.has(fullPath)}>
+              {entry.children && renderTree(entry.children, fullPath)}
+            </Collapse>
+          </Box>
+        );
       }
+
+      return (
+        <Box key={fullPath} sx={{ display: "flex", alignItems: "center", ml: 4 }}>
+        <Checkbox
+          checked={selectedTracks.some((track) => track.name === entry.name)}
+          disabled={!trackMap.has(entry.name)}
+          onChange={() => {
+            const track = trackMap.get(entry.name);
+            if (track) toggleTrack(track);
+          }}
+        />
+          <DescriptionIcon sx={{ml: 1}}/>
+          <Typography sx={{ ml: 1 }}>{entry.name}</Typography>
+        </Box>
+      );
     });
   };
 
@@ -83,45 +226,19 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({
         </Typography>
         <Divider sx={{ mb: 2 }} />
 
-        {/* Box 1: All tracks with checkboxes */}
-        <Typography mb={1}>
-          Available Tracks
-        </Typography>
         <Box
           sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 1,
-            mb: 3,
-            p: 2,
             border: "1px solid #ccc",
             borderRadius: "8px",
             backgroundColor: "#f9f9f9",
+            p: 2,
+            mb: 3,
           }}
         >
-          {files.map((track, index) => (
-            <Box
-              key={index}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-              }}
-            >
-              <Checkbox
-                checked={selectedTracks.includes(track)}
-                onChange={() => toggleTrack(track)}
-              />
-              <Typography>{track.name}</Typography>
-              {/* <Typography>{trackFiles[index]?.name || `Track ${index + 1}`}</Typography> */}
-            </Box>
-          ))}
+          {renderTree(files)}
         </Box>
 
-        {/* Box 2: Selected tracks with move buttons */}
-        <Typography mb={1}>
-          Selected Tracks (Reorderable)
-        </Typography>
+        <Typography mb={1}>Selected Tracks (Reorderable)</Typography>
         <Box
           sx={{
             display: "flex",
@@ -148,7 +265,6 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({
               }}
             >
               <Typography>{track.name}</Typography>
-              {/* <Typography>{trackFiles[tracks.indexOf(track)]?.name || index}</Typography> */}
               <Box sx={{ display: "flex", gap: 1 }}>
                 <IconButton onClick={() => handleMove(index, -1)}>
                   <ArrowUpwardIcon />
