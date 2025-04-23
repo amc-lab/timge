@@ -2,6 +2,7 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { State } from './types';
 import { v4 as uuidv4 } from 'uuid';
 import { loadState } from '@/app/utils/stateUtils';
+import { deepMergeDefaults } from '@/app/utils/stateUtils';
 
 export const getDefaultState = (): State => ({
   title: 'Untitled',
@@ -24,7 +25,7 @@ const spaceSlice = createSlice({
   name: 'space',
   initialState: loadState(),
   reducers: {
-    setSpace: (state, action: PayloadAction<State>) => action.payload,
+    setSpace: (state, action: PayloadAction<State>) => deepMergeDefaults(getDefaultState(), action.payload),
     resetSpace: () => getDefaultState(),
     addView: (state, action: PayloadAction<any>) => {
       state.views.push(action.payload);

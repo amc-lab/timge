@@ -383,3 +383,72 @@ def get_files_hierarchical(request):
 
     entries = build_tree(base_path)
     return JsonResponse({"status": "success", "entries": entries})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def folder_operation(request):
+    """
+    Handles folder operations such as creating or deleting folders.
+    Args:
+    - request: The HTTP request containing the operation type, uuid, and folder name.
+    Returns:
+    - JsonResponse: A response containing the status of the operation.
+    """
+    try:
+        data = json.loads(request.body)
+        uuid = data.get("uuid")
+        path = data.get("path", "")
+        folder_name = data.get("folder_name")
+        operation = data.get("operation")
+    except Exception as e:
+        return JsonResponse({"status": "error", "message": "Invalid JSON"}, status=400)
+
+    if not uuid or not folder_name or not operation:
+        return JsonResponse(
+            {"status": "error", "message": "Missing uuid, folder_name, or operation."},
+            status=400,
+        )
+
+    if path and isinstance(path, list):
+        base_path = os.path.join(TRACK_ROOT_DIR, uuid, *path)
+    else:
+        base_path = os.path.join(TRACK_ROOT_DIR, uuid)
+
+    if not os.path.exists(base_path):
+        return JsonResponse({"status": "error", "message": "Directory not found."})
+
+    folder_path = os.path.join(base_path, folder_name)
+
+    if operation == "create":
+        try:
+            os.makedirs(folder_path)
+            return JsonResponse({"status": "success", "message": "Folder created."})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)})
+
+    elif operation == "delete":
+        try:
+            if os.path.exists(folder_path):
+                os.rmdir(folder_path)
+                return JsonResponse({"status": "success", "message": "Folder deleted."})
+            else:
+                return JsonResponse({"status": "error", "message": "Folder not found."})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)})
+
+    elif operation == "rename":
+        new_folder_name = data.get("new_folder_name")
+        if not new_folder_name:
+            return JsonResponse(
+                {"status": "error", "message": "Missing new folder name."},
+                status=400,
+            )
+        new_folder_path = os.path.join(base_path, new_folder_name)
+        try:
+            os.rename(folder_path, new_folder_path)
+            return JsonResponse({"status": "success", "message": "Folder renamed."})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)})
+
+    return JsonResponse({"status": "error", "message": "Invalid operation."})

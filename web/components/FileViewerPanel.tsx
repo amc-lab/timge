@@ -10,6 +10,7 @@ import { setSidebarExpanded, setWorkingDirectory } from '@/store/features/space/
 import { getTrackFiles, uploadTrackFiles } from '@/app/utils/fileUtils';
 import FolderIcon from '@mui/icons-material/Folder';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import ContextMenu from './FileViewerPanelContextMenu';
 
 const FileViewerPanel = () => {
     const dispatch = useAppDispatch();
@@ -48,6 +49,25 @@ const FileViewerPanel = () => {
     }
     , [space.config.working_directory]);
 
+    const [menuState, setMenuState] = useState({
+        visible: false,
+        x: 0,
+        y: 0,
+      });
+
+      const handleRightClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        setMenuState({
+          visible: true,
+          x: e.clientX,
+          y: e.clientY,
+        });
+      };
+    
+      const handleClose = () => {
+        setMenuState((prev) => ({ ...prev, visible: false }));
+      };
+
     return (
     <Card
         component="div"
@@ -64,7 +84,23 @@ const FileViewerPanel = () => {
             transition: "background-color 0.2s ease-in-out",
             padding: "1em",
         }}
+        onContextMenu={handleRightClick}
     >
+        <ContextMenu
+            visible={menuState.visible}
+            x={menuState.x}
+            y={menuState.y}
+            onClose={handleClose}
+            onCreateFolder={() => {
+                console.log("Create folder clicked");
+            }}
+            onDelete={() => {
+                console.log("Delete clicked");
+            }}
+            onRename={() => {
+                console.log("Rename clicked");
+            }}
+        />
         {isUploading && (
             <LinearProgress
                 sx={{
@@ -218,7 +254,7 @@ const FileViewerPanel = () => {
                                             marginLeft: "10px",
                                         }}
                                     >
-                                        {(file.size / (1024 * 1024)).toFixed(2)} MB
+                                        {(file.size / (1000 * 1000)).toFixed(2)} MB
                                     </Typography>
                                 </Box>
             )}

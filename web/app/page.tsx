@@ -49,60 +49,6 @@ export default function Page() {
     "fa": "karyotype",
   }
 
-  // const getTrackFiles = () => {
-  //   const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-  //   fetch(`${host}/api/timge/get_files_in_path/?uuid=${space.uuid}&path=${space.config.working_directory}`, {
-  //     method: "GET",
-  //   })
-  //     .then((response) => response.json())
-  //     .then((data) => {
-  //       if (data.status === "success") {
-  //         const trackFiles = data.entries.map((file) => ({
-  //           name: file.name,
-  //           type: file.type,
-  //           size: file.size,
-  //         }));
-  //         setFiles(trackFiles);
-  //       } else {
-  //         console.error("Error fetching tracks:", data.message);
-  //       }
-  //     })
-  //     .catch((err) => {
-  //       console.error("Request failed:", err);
-  //     });
-  // };
-
-  // const getTrackFiles = () => {
-  //   const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-  //   fetch(`${host}/api/timge/get_files_in_path/`, {
-  //     method: "POST",
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //     },
-  //     body: JSON.stringify({
-  //       uuid: space.uuid,
-  //       path: space.config.working_directory,
-  //     }),
-  //   })
-  //     .then((response) => response.json())
-  //     .then((data) => {
-  //       if (data.status === "success") {
-  //         const trackFiles = data.entries.map((file) => ({
-  //           name: file.name,
-  //           type: file.type,
-  //           size: file.size,
-  //         }));
-  //         setFiles(trackFiles);
-  //       } else {
-  //         console.error("Error fetching tracks:", data.message);
-  //       }
-  //     })
-  //     .catch((err) => {
-  //       console.error("Request failed:", err);
-  //     });
-  // };
-  
-
   const triggerFileRefresh = () => {
     getTrackFiles(space, false).then((trackFiles) => {
       setFiles(trackFiles);
