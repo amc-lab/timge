@@ -12,7 +12,7 @@ import FolderIcon from '@mui/icons-material/Folder';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import ContextMenu from './FileViewerPanelContextMenu';
 
-const FileViewerPanel = () => {
+const FileViewerPanel = ({refreshView, setRefreshView}) => {
     const dispatch = useAppDispatch();
     const space = useAppSelector((state) => state.space);
     const [files, setFiles] = useState<any[]>([]);
@@ -36,6 +36,22 @@ const FileViewerPanel = () => {
     useEffect(() => {
         setIsUploading(false);
     }, [files]);
+
+    useEffect(() => {
+        if (!refreshView) {
+            return;
+        }
+        getTrackFiles(space, true)
+            .then((files) => {
+                console.log("Files fetched successfully", files);
+                setFiles(files);
+            })
+            .catch((error) => {
+                console.error("Error fetching files:", error);
+            });
+        setRefreshView(false);
+    }
+    , [refreshView]);
 
     useEffect(() => {
         getTrackFiles(space, true)

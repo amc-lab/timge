@@ -14,8 +14,48 @@ import numpy as np
 import os
 from django.http import JsonResponse
 from timge.utils.heatmap import generate_contact_map, generate_contact_map_bedpe
+import gzip
+import io
+from io import BytesIO
 
 TRACK_ROOT_DIR = settings.TRACK_ROOT_DIR
+
+# @csrf_exempt
+# @require_http_methods(["POST"])
+# def upload_tracks(request):
+#     """
+#     Handles the upload of track files to the server.
+#     Args:
+#     - request: The HTTP request containing the track files.
+#     Returns:
+#     - JsonResponse: A response containing the status of the upload.
+#     """
+#     if request.method == "POST":
+#         track_files = request.FILES.getlist("track_files")
+#         uuid = request.POST.get("uuid")
+
+#         # make directory for the uuid
+#         print("Track root dir:", TRACK_ROOT_DIR)
+#         directory = os.path.join(TRACK_ROOT_DIR, uuid)
+#         if not os.path.exists(directory):
+#             os.makedirs(directory)
+#         # save the files to the directory
+#         for track_file in track_files:
+#             print(f"Saving file: {track_file.name} to {directory}")
+#             with open(os.path.join(directory, track_file.name), "wb+") as destination:
+#                 for chunk in track_file.chunks():
+#                     destination.write(chunk)
+#         # return the directory path
+#         return JsonResponse({"status": "success", "directory": directory})
+#     return JsonResponse({"status": "error", "message": "Invalid request method."})
+
+import os
+import gzip
+import tarfile
+from io import BytesIO
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.http import JsonResponse
 
 
 @csrf_exempt
@@ -23,10 +63,7 @@ TRACK_ROOT_DIR = settings.TRACK_ROOT_DIR
 def upload_tracks(request):
     """
     Handles the upload of track files to the server.
-    Args:
-    - request: The HTTP request containing the track files.
-    Returns:
-    - JsonResponse: A response containing the status of the upload.
+    Extracts .gz and .tar.gz files if detected, otherwise saves as-is.
     """
     if request.method == "POST":
         track_files = request.FILES.getlist("track_files")
@@ -37,14 +74,44 @@ def upload_tracks(request):
         directory = os.path.join(TRACK_ROOT_DIR, uuid)
         if not os.path.exists(directory):
             os.makedirs(directory)
-        # save the files to the directory
+
         for track_file in track_files:
-            print(f"Saving file: {track_file.name} to {directory}")
-            with open(os.path.join(directory, track_file.name), "wb+") as destination:
-                for chunk in track_file.chunks():
-                    destination.write(chunk)
-        # return the directory path
+            file_name = track_file.name
+            file_path = os.path.join(directory, file_name)
+            file_data = track_file.read()
+            file_like = BytesIO(file_data)
+
+            try:
+                if file_name.endswith((".tar.gz", ".tgz")):
+                    print(f"Extracting tar.gz file: {file_name}")
+                    with tarfile.open(fileobj=file_like, mode="r:gz") as tar:
+                        tar.extractall(path=directory)
+                        print(f"Extracted contents of {file_name} to {directory}")
+
+                elif file_name.endswith(".gz") or file_data[:2] == b"\x1f\x8b":
+                    print(f"Decompressing gzip file: {file_name}")
+                    with gzip.open(file_like, "rb") as gz:
+                        extracted_data = gz.read()
+                        base_name = os.path.splitext(file_name)[0]
+                        extracted_path = os.path.join(directory, base_name)
+                        with open(extracted_path, "wb") as f_out:
+                            f_out.write(extracted_data)
+                        print(f"Saved decompressed file to: {extracted_path}")
+
+                else:
+                    print(f"Saving regular file: {file_name}")
+                    with open(file_path, "wb") as f_out:
+                        f_out.write(file_data)
+            except Exception as e:
+                return JsonResponse(
+                    {
+                        "status": "error",
+                        "message": f"Failed to process file {file_name}: {str(e)}",
+                    }
+                )
+
         return JsonResponse({"status": "success", "directory": directory})
+
     return JsonResponse({"status": "error", "message": "Invalid request method."})
 
 

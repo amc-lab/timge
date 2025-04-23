@@ -55,6 +55,8 @@ export default function Page() {
     });
   }
 
+  const [refreshFileViewer, setRefreshFileViewer] = useState(false);
+
   const deleteTrack = (trackName: string) => {
     setFiles(files.filter((file) => file.name !== trackName));
     dispatch(setDataFiles(space.dataFiles.filter((file) => file !== trackName)));
@@ -262,6 +264,7 @@ export default function Page() {
       onDeleteTrack={deleteTrack}
       onTrackUpload={(data_files: File[]) => {
         uploadTrackFiles(data_files);
+        setRefreshFileViewer(true);
       }}
     />
     { space.config?.multilift_form_open &&
@@ -280,6 +283,8 @@ export default function Page() {
       {
         space.config?.expanded_sidebar ? (
           <FileViewerPanel
+            refreshView={refreshFileViewer}
+            setRefreshView={setRefreshFileViewer}
         />
         ) : <Sidebar />
       }
