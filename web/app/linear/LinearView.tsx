@@ -5,7 +5,7 @@ import {
 } from "@jbrowse/react-linear-genome-view";
 import { Box, Select, Option, Typography, Button } from "@mui/joy";
 import ParentView from "@/components/ParentView";
-import { View } from "../types/state";
+import { View } from "@/store/features/views/types";
 
 interface LinearViewProps {
   trackFiles: any[];
@@ -16,7 +16,7 @@ interface LinearViewProps {
   dependencies?: any;
   addConnection?: any;
   removeConnection?: any;
-  createdViews: Set<any>;
+  // createdViews: Set<any>;
 }
 
 const LinearView = (props: LinearViewProps) => {
@@ -176,7 +176,6 @@ const LinearView = (props: LinearViewProps) => {
         <ParentView
           viewConfig={props.viewConfig}
           index={props.index}
-          crossViewActionHandler={props.crossViewActionHandler}
           >
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
