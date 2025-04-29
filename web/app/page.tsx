@@ -27,6 +27,10 @@ import FileViewerPanel from "@/components/FileViewerPanel";
 import Sidebar from "@/components/Sidebar";
 import Multilift from "./multilift/Multilift";
 import { getTrackFiles } from "./utils/fileUtils";
+import { fetchFiles } from "@/store/features/files/fileSlice";
+import { File } from "@/store/features/files/types";
+import LinearProgress from '@mui/material/LinearProgress';
+import { setLoading } from "@/store/features/site/siteSlice";
 
 interface FileEntry {
   name: string;
@@ -38,9 +42,27 @@ export default function Page() {
 
   const dispatch = useAppDispatch();
   const space = useAppSelector(selectSpace);
-  const [files, setFiles] = useState<FileEntry[]>([]);
+  // const [files, setFiles] = useState<FileEntry[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [genomeFormOpen, setGenomeFormOpen] = useState(false);
+  const _files = useAppSelector((state) => state.files);
+  const isLoading = useAppSelector((state) => state.site.isLoading);
 
+  useEffect(() => {
+    if (space.uuid) {
+      const fetchData = async () => {
+        const _files = await dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
+        return _files;
+      };
+      fetchData().then((result) => {
+        if (result.meta.requestStatus === "fulfilled") {
+          const files = result.payload as File[];
+          setFiles(files);
+        }
+      });
+    }
+  }, [space.uuid]);
+  
   const fileFormatMapping = {
     "fasta": "karyotype",
     "bed": "line",
@@ -69,6 +91,7 @@ export default function Page() {
     .then((data) => {
       if (data.status === "success") {
         console.log("Track deleted successfully");
+        dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
       } else {
         console.error("Error deleting track:", data.message);
       }
@@ -125,16 +148,17 @@ export default function Page() {
     .then((response) => response.json())
     .then((data) => {
       console.log("Files uploaded successfully", data);
-      const trackFiles = files.map((file) => ({
-        name: file.name,
-        data: file,
-        type: file.type,
-        size: file.size,
-        trackType: fileFormatMapping[file.name.split('.').pop()],
-      }));
-      getTrackFiles(space, false).then((_files) => {
-        setFiles(_files);
-      });
+      dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
+      // const trackFiles = files.map((file) => ({
+      //   name: file.name,
+      //   data: file,
+      //   type: file.type,
+      //   size: file.size,
+      //   trackType: fileFormatMapping[file.name.split('.').pop()],
+      // }));
+      // getTrackFiles(space, false).then((_files) => {
+      //   setFiles(_files);
+      // });
     })
     .catch((error) => {
       console.error("Error uploading files", error);
@@ -243,6 +267,18 @@ export default function Page() {
   }
 
   return <>
+  {isLoading &&
+  <LinearProgress
+    sx={{
+      width: "100%",
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 2000,
+    }}
+    ></LinearProgress>
+  }
     <Header 
       addLinearGenomeView={() => addLinearGenomeView(dispatch, space)}
       addCircosView={() => addCircosView(dispatch, space)}
@@ -265,6 +301,9 @@ export default function Page() {
       onTrackUpload={(data_files: File[]) => {
         uploadTrackFiles(data_files);
         setRefreshFileViewer(true);
+        setTimeout(() => {
+          dispatch(setLoading(false));
+        }, 1000);
       }}
     />
     { space.config?.multilift_form_open &&

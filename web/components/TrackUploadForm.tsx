@@ -6,9 +6,19 @@ import {
   Stack,
   Divider,
   Card,
+  IconButton,
+  Sheet,
 } from "@mui/joy";
-import React from "react";
+import { Collapse } from "@mui/material";
+import React, { useState } from "react";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import FolderIcon from "@mui/icons-material/Folder";
+import DescriptionIcon from "@mui/icons-material/Description";
 import DataTrackFileUploadBox from "./TrackFileUpload";
+import { useAppSelector } from "@/store/hooks";
+import { useAppDispatch } from "@/store/hooks";
+import { setLoading } from "@/store/features/site/siteSlice";
 
 function TrackUploadForm({
   isOpen,
@@ -17,7 +27,60 @@ function TrackUploadForm({
   onTrackUpload,
   onDeleteTrack,
 }) {
+  const _files = useAppSelector((state) => state.files);
+  const dispatch = useAppDispatch();
+  const [expandedFolders, setExpandedFolders] = useState(new Set());
+
   if (!isOpen) return null;
+
+  const toggleFolder = (path) => {
+    const updated = new Set(expandedFolders);
+    updated.has(path) ? updated.delete(path) : updated.add(path);
+    setExpandedFolders(updated);
+  };
+
+  const getFullPath = (track, parentPath = "") => {
+    return parentPath ? `${parentPath}/${track.name}` : track.name;
+  };
+
+  const renderTree = (entries, parentPath = "") => {
+    return entries.map((entry) => {
+      const fullPath = getFullPath(entry, parentPath);
+      if (entry.children) {
+        return (
+          <Box key={fullPath} sx={{ ml: 2 }}>
+            <Box
+              sx={{ display: "flex", alignItems: "center", cursor: "pointer" }}
+              onClick={() => toggleFolder(fullPath)}
+            >
+              <IconButton size="sm">
+                {expandedFolders.has(fullPath) ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+              </IconButton>
+              <FolderIcon />
+              <Typography sx={{ ml: 1 }}>{entry.name}</Typography>
+            </Box>
+            <Collapse in={expandedFolders.has(fullPath)}>
+              {renderTree(entry.children, fullPath)}
+            </Collapse>
+          </Box>
+        );
+      }
+      return (
+        <Box
+          key={fullPath}
+          sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", backgroundColor: "#f5f5f5", borderRadius: "8px", padding: "8px 12px", ml: 4, mt: 1 }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <DescriptionIcon />
+            <Typography sx={{ ml: 1 }}>{entry.name}</Typography>
+          </Box>
+          <Button size="sm" color="danger" onClick={() => onDeleteTrack(entry.path)}>
+            Delete
+          </Button>
+        </Box>
+      );
+    });
+  };
 
   return (
     <Box
@@ -71,47 +134,21 @@ function TrackUploadForm({
 
         <Card
           variant="outlined"
-          sx={{
-            padding: 2,
-            backgroundColor: "#f5f5f5",
-            borderRadius: "8px",
-            mb: 2,
-          }}
+          sx={{ padding: 2, backgroundColor: "#f5f5f5", borderRadius: "8px", mb: 2 }}
         >
           <Typography level="body-md">
             Upload your own tracks here.
           </Typography>
         </Card>
 
-        {tracks.length > 0 && (
+        {_files.length > 0 && (
           <Box sx={{ mt: 3, mb: 3 }}>
             <Typography level="title-md" sx={{ mb: 1 }}>
               Uploaded Tracks
             </Typography>
-            <Stack spacing={1}>
-              {tracks.map((track, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    backgroundColor: "#f5f5f5",
-                    borderRadius: "8px",
-                    padding: "8px 12px",
-                  }}
-                >
-                  <Typography>{track.name}</Typography>
-                  <Button
-                    size="sm"
-                    color="danger"
-                    onClick={() => onDeleteTrack(track.name)}
-                  >
-                    Delete
-                  </Button>
-                </Box>
-              ))}
-            </Stack>
+            <Sheet sx={{ p: 2, border: "1px solid #ccc", borderRadius: "8px", backgroundColor: "#f9f9f9" }}>
+              {renderTree(_files)}
+            </Sheet>
           </Box>
         )}
 
@@ -128,12 +165,7 @@ function TrackUploadForm({
         <Divider sx={{ mb: 2 }} />
         <Card
           variant="outlined"
-          sx={{
-            padding: 2,
-            backgroundColor: "#f5f5f5",
-            borderRadius: "8px",
-            mb: 2,
-          }}
+          sx={{ padding: 2, backgroundColor: "#f5f5f5", borderRadius: "8px", mb: 2 }}
         >
           <Typography level="body-md">
             Choose from the provided preset tracks.

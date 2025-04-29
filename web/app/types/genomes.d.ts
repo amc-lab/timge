@@ -38,6 +38,18 @@ export interface LineData {
   value: number;
 }
 
+export interface AnnotationData {
+  chrom: string;
+  chromStart: number;
+  chromEnd: number;
+  name: string;
+  score: number;
+  strand: string;
+  thickStart: number;
+  thickEnd: number;
+  itemRgb: string;
+}
+
 interface AssemblyConfig {
   segmentPadding: number;
   axisLabelFontSize: number;
@@ -91,9 +103,21 @@ interface LineConfig {
   hide: boolean;
 }
 
+interface AnnotationConfig {
+  innerRadius: number;
+  trackWidth: number;
+  trackPadding: number;
+  colour?: string;
+  hide: boolean;
+  textFontSize: number;
+  textPadding: number;
+}
+
 interface GlobalConfig {
   canvasWidth: number;
   canvasHeight: number;
+  linkSelectedOpacity: number;
+  linkUnselectedOpacity: number;
 }
 
 interface SegmentDetails {

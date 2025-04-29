@@ -3,7 +3,7 @@ import { Box, Button, Card, IconButton, Input, Option, Select, Slider, TextField
 import { Track, TrackType } from "./config/track";
 import { useState } from "react";
 import Tracks from "./tracks";
-import { defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig, defaultLineConfig } from "./config/defaultConfigs";
+import { defaultAnnotationConfig, defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig, defaultLineConfig } from "./config/defaultConfigs";
 import { useRef, useEffect } from "react";
 import MenuIcon from "@mui/icons-material/Menu";
 import * as d3 from "d3";
@@ -36,7 +36,7 @@ const CircosView = (props: CircosViewProps) => {
 
   const fileFormatMapping = {
     "fasta": "karyotype",
-    "bed": "line",
+    "bed": "annotation",
     "bedgraph": "line",
     "bedpe": "link",
     "fa": "karyotype",
@@ -116,7 +116,7 @@ const CircosView = (props: CircosViewProps) => {
   const helper = (files) => {
     let updatedTracks: Track[] = [];
     files.forEach((trackFile) => {
-        if (trackFile.name.endsWith(".bed") || trackFile.name.endsWith(".bedgraph")) {
+        if (trackFile.name.endsWith(".bedgraph")) {
             updatedTracks.push({
                 trackType: TrackType.Line,
                 config: defaultLineConfig,
@@ -144,6 +144,19 @@ const CircosView = (props: CircosViewProps) => {
                 config: defaultChordConfig,
                 data: {
                     chords: trackFile.data,
+                    globalConfig,
+                    divRef: canvasRef,
+                },
+                name: trackFile.name,
+            });
+        }
+        else if (trackFile.name.endsWith(".bed")) {
+            console.log("Annotation track", trackFile, globalConfig, canvasRef);
+            updatedTracks.push({
+                trackType: TrackType.Annotation,
+                config: defaultAnnotationConfig,
+                data: {
+                    annotations: trackFile.data,
                     globalConfig,
                     divRef: canvasRef,
                 },
@@ -334,6 +347,31 @@ const CircosView = (props: CircosViewProps) => {
                       marginLeft: "10px",
                     }}
                   >
+                    Link Transparency:
+                  </Typography>
+                  <Slider
+                    min={0}
+                    max={1}
+                    step={0.1}
+                    value={globalConfig.linkUnselectedOpacity}
+                    valueLabelDisplay="auto"
+                    sx={{
+                      width: "10%",
+                      marginLeft: "10px",
+                    }}
+                    onChange={(event, newValue) => {
+                      setGlobalConfig({
+                        ...globalConfig,
+                        linkUnselectedOpacity: newValue as number,
+                      });
+                    }}
+                  ></Slider>
+                  <Typography
+                    sx={{
+                      fontSize: "1em",
+                      marginLeft: "10px",
+                    }}
+                  >
                     Connect to:
                   </Typography>
                   <Select
@@ -386,7 +424,7 @@ const CircosView = (props: CircosViewProps) => {
                 }}
                 >
               <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
-                <Tracks id={props.viewConfig.uuid} tracks={selectedTracks} crossViewActionHandler={props.crossViewActionHandler} />
+                <Tracks id={props.viewConfig.uuid} tracks={selectedTracks} crossViewActionHandler={props.crossViewActionHandler} globalConfig={globalConfig} />
               </div>
               </Box>
             </Box>

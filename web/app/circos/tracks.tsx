@@ -7,14 +7,17 @@ import { Track, TrackType } from "./config/track";
 import Highlight from "./components/highlight"; // Ensure this is the correct path to your Highlight component
 import Ring from "./components/ring";
 import Line from "./components/line";
+import Annotation from "./components/annotation";
+import { AnnotationData as AnnotationType, GlobalConfig } from "../types/genomes";
 
 interface TracksProps {
   tracks: Array<Track>;
   crossViewActionHandler?: any;
   id?: string;
+  globalConfig?: GlobalConfig;
 }
 
-const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
+const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig }: TracksProps) => {
   const [segmentData, setSegmentData] = useState<any[]>([]);
   const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
   const [trackData, setTrackData] = useState<Array<Track>>([]);
@@ -103,6 +106,24 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
             },
           };
         }
+        else if (track.trackType === TrackType.Annotation) {
+          const annotationInnerRadius = minAvailableRadius;
+          console.log(findMaxOverlaps(track.data.annotations));
+          minAvailableRadius =
+            annotationInnerRadius +
+            findMaxOverlaps(track.data.annotations) * (
+            track.config.trackWidth +
+            track.config.trackPadding +
+            track.config.textFontSize + 
+            track.config.textPadding);
+          return {
+            ...track,
+            config: {
+              ...track.config,
+              innerRadius: annotationInnerRadius,
+            },
+          };
+        }
         setTotalRadius(minAvailableRadius);
         return track;
       })
@@ -110,6 +131,28 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
 
     setTrackData(updatedTracks);
   }, [tracks]);
+
+    const findMaxOverlaps = (annotations: AnnotationType[]): number => {
+      const intervals = [];
+      annotations.forEach((annotation) => {
+        intervals.push({ start: annotation.chromStart, end: annotation.chromEnd });
+      });
+      intervals.sort((a, b) => a.start);
+      let maxOverlaps = 1;
+      let currentOverlaps = 1;
+      let prevEnd = intervals[0].end;
+
+      for (let i = 1; i < intervals.length; i++) {
+        if (intervals[i].start < prevEnd) {
+          currentOverlaps++;
+          maxOverlaps = Math.max(maxOverlaps, currentOverlaps);
+        } else {
+          currentOverlaps = 1;
+        }
+        prevEnd = Math.max(prevEnd, intervals[i].end);
+      }
+      return maxOverlaps;
+    };
 
   const onSelectSegments = (selectedSegments: string[]) => {
     console.log("Selected segments:", selectedSegments);
@@ -169,6 +212,7 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
               segments={segmentData}
               selectedSegments={selectedSegments}
               idx={index}
+              globalConfig={globalConfig}
             />
           );
         }
@@ -193,6 +237,17 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
               idx={index}
             />
           )
+        }
+        else if (track.trackType === TrackType.Annotation) {
+          return (
+            <Annotation
+              key={index}
+              data={track.data}
+              config={track.config}
+              segments={segmentData}
+              idx={index}
+            />
+          );
         }
         else if (track.trackType === TrackType.Highlight) {
           return (

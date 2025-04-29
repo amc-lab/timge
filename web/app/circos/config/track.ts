@@ -5,6 +5,7 @@ export enum TrackType {
   Ring = "Ring",
   Line = "Line",
   Highlight = "Highlight",
+  Annotation = "Annotation",
 }
 
 export interface Track {

@@ -6,6 +6,8 @@ import {
 import { Box, Select, Option, Typography, Button } from "@mui/joy";
 import ParentView from "@/components/ParentView";
 import { View } from "@/store/features/views/types";
+import { useAppSelector } from "@/store/hooks";
+import TrackSelector from "./components/TrackSelector";
 
 interface LinearViewProps {
   trackFiles: any[];
@@ -24,8 +26,11 @@ const LinearView = (props: LinearViewProps) => {
   const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
   const [renderView, setRenderView] = useState(false);
   const [viewState, setViewState] = useState<any>(null);
+  const [openTrackSelector, setOpenTrackSelector] = useState(false);
 
-  const HOST = "https://timge.doc.ic.ac.uk/uploads/" + props.viewConfig.uuid + "/";
+  const space = useAppSelector((state) => state.space);
+
+  const HOST = "https://timge.doc.ic.ac.uk/uploads/" + space.uuid + "/";
   
 //   // Filter reference tracks (e.g., .fasta/.fa)
 //   const referenceTracks = props.trackFiles.filter((file) =>
@@ -172,79 +177,47 @@ const LinearView = (props: LinearViewProps) => {
       width: "100%",
     }}
     >
-      {(!reference || selectedTracks.length === 0 || !renderView) && (
-        <ParentView
+      <ParentView
           viewConfig={props.viewConfig}
           index={props.index}
-          >
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-                <Box
-                    sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        marginRight: 2,
-                    }}
-                >
-                    <Typography>Select a reference genome:</Typography>
-                    <Select
-                    value={reference}
-                    onChange={(event, value) => {
-                        setReference(value);
-                    }}
-                    sx={{ width: "200px" }}
-                    >
-                        {props.trackFiles
-                            .filter((file) => file.name.endsWith(".fa") || file.name.endsWith(".fasta"))
-                            .map((file, index) => (
-                                <Option key={index} value={file.name}>
-                                {file.name}
-                                </Option>
-                        ))}
-                    </Select>
-                </Box>
-                <Box
-                    sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        marginRight: 2,
-                    }}
-                >
-                    <Typography>Select tracks to display:</Typography>
-                    <Select
-                    value={selectedTracks}
-                    onChange={(event, value) => {
-                        setSelectedTracks(value);
-                    }}
-                    multiple
-                    sx={{ width: "200px"}}
-                    >
-                        {props.trackFiles
-                            .filter((file) => file.name.endsWith(".bedgraph"))
-                            .map((file, index) => (
-                                <Option key={index} value={file.name}>
-                                {file.name}
-                                </Option>
-                        ))}
-                    </Select>
-                </Box>
-                <Button
-                    variant="solid"
-                    color="primary"
-                    onClick={() => {
-                        generateFai().then((success) => {
-                          setRenderView(true);
-                        });
-                    }}
-                    >Submit</Button>
-                    </Box>
-            </Box>
+        >
+      {(!reference || selectedTracks.length === 0 || !renderView) && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+            height: "100%",
+            flexDirection: "column",
+            flexGrow: 1,
+            padding: 2,
+          }}
+        >
+          <p>No Tracks Selected</p>
+            <Button
+              variant="solid"
+              color="primary"
+              onClick={() => setOpenTrackSelector(true)}
+              sx={{
+                marginTop: "10px",
+              }}
+            >
+              Select Tracks
+            </Button>
+        </Box>
+      )}
 
-        </ParentView>
+      {openTrackSelector && (
+        <TrackSelector
+          onClose={() => setOpenTrackSelector(false)}
+          onConfirm={(referencePath, selectedTrackPaths) => {
+            setReference(referencePath);
+            setSelectedTracks(selectedTrackPaths);
+            setOpenTrackSelector(false);
+            setRenderView(true);
+          }}
+        />
       )}
 
       { renderView && reference && selectedTracks.length > 0 && viewState && (
@@ -252,6 +225,7 @@ const LinearView = (props: LinearViewProps) => {
           <JBrowseLinearGenomeView viewState={viewState} />
         </Box>
       )}
+    </ParentView>
     </Box>
   );
 };

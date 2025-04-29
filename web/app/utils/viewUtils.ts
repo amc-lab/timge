@@ -11,6 +11,7 @@ export const addLinearGenomeView = (dispatch, space) => {
       config: {
         isMinimised: false,
       },
+      visible_tracks: [],
     }
     dispatch(addView(linearView));
     dispatch(setDependency({ key: linearView.uuid, value: [] }));

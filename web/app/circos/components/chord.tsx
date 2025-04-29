@@ -14,14 +14,15 @@ interface ChordProps {
   segments: Array<any>;
   selectedSegments?: string[];
   idx: number;
+  globalConfig?: GlobalConfig;
 }
 
-const Chords = ({ data, config, segments, selectedSegments, idx }: ChordProps) => {
+const Chords = ({ data, config, segments, selectedSegments, idx, globalConfig }: ChordProps) => {
   const canvasRef = data.divRef;
   const chords = data.chords;
-  const globalConfig = data.globalConfig;
 
   useEffect(() => {
+    console.log(globalConfig)
     if (!canvasRef.current) return;
     let svg = d3.select(canvasRef.current).select("svg");
 
@@ -142,9 +143,9 @@ const Chords = ({ data, config, segments, selectedSegments, idx }: ChordProps) =
       })
       .attr("opacity", (d) => {
         if (selectedSegments?.length > 0 && ! selectedSegments.includes(d.source_chromosome)) {
-          return 0.1;
+          return globalConfig.linkUnselectedOpacity || 0;
         }
-        return config.opacity;
+        return globalConfig.linkSelectedOpacity || 0.6;
       })
       .attr("stroke", `${config.useStroke ? "black" : "none"}`)
       .on("mouseover", function () {
@@ -153,9 +154,9 @@ const Chords = ({ data, config, segments, selectedSegments, idx }: ChordProps) =
       .on("mouseout", function () {
         d3.select(this).attr("opacity", (d) => {
           if (selectedSegments?.length > 0 && ! selectedSegments.includes(d.source_chromosome)) {
-            return 0.2;
+            return globalConfig.linkUnselectedOpacity || 0;
           }
-          return config.opacity;
+          return globalConfig.linkSelectedOpacity || 0.6;
         })
       });
   }, [canvasRef, chords, config, globalConfig, segments, selectedSegments]);

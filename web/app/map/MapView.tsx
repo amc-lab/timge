@@ -16,7 +16,6 @@ interface MapViewProps {
   dependencies: any;
   addConnection?: any;
   removeConnection?: any;
-  // createdViews: Set<any>;
 }
 
 const MapView = (props: MapViewProps) => {
@@ -27,7 +26,7 @@ const MapView = (props: MapViewProps) => {
   const [resolution, setResolution] = useState(props.viewConfig.config.resolution);
   const [availableSegments, setAvailableSegments] = useState([]);
   const [showGridlines, setShowGridlines] = useState(false);
-  const [toggleColourScheme, setToggleColourScheme] = useState(true); // default to white-red
+  const [toggleColourScheme, setToggleColourScheme] = useState(props.viewConfig.config.toggleColourScheme || false);
   const [normalise, setNormalise] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -93,10 +92,11 @@ const MapView = (props: MapViewProps) => {
         segmentA: segmentA,
         segmentB: segmentB,
         resolution: resolution,
+        toggleColourScheme: toggleColourScheme,
       },
     });
   }
-  , [reference, track, segmentA, segmentB, resolution]);
+  , [reference, track, segmentA, segmentB, resolution, toggleColourScheme]);
 
   const zoomRef = useRef<d3.ZoomBehavior<Element, unknown> | null>(null);
 
@@ -327,11 +327,34 @@ const MapView = (props: MapViewProps) => {
       }}
     >
         {!(reference && track) ? (
-          <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <Button variant="outlined" onClick={() => setShowTrackPicker(true)}>
-              Select Tracks
-            </Button>
-          </Box>
+          // <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+          //   <Button variant="outlined" onClick={() => setShowTrackPicker(true)}>
+          //     Select Tracks
+          //   </Button>
+          // </Box>
+                      <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        width: "100%",
+                        height: "100%",
+                        flexDirection: "column",
+                        flexGrow: 1,
+                        padding: 2,
+                      }}
+                    >
+                      <p>No Tracks Selected</p>
+                      <Button
+                        color="primary"
+                        onClick={() => setShowTrackPicker(true)}
+                        sx={{
+                          marginTop: "10px",
+                        }}
+                      >
+                        Select Tracks
+                      </Button>
+                    </Box>
         ) : (
         <Box className="flex flex-col gap-6 w-full"
             sx={{

@@ -11,19 +11,41 @@ import { getTrackFiles, uploadTrackFiles } from '@/app/utils/fileUtils';
 import FolderIcon from '@mui/icons-material/Folder';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import ContextMenu from './FileViewerPanelContextMenu';
+import { fetchFiles } from '@/store/features/files/fileSlice';
 
 const FileViewerPanel = ({refreshView, setRefreshView}) => {
     const dispatch = useAppDispatch();
     const space = useAppSelector((state) => state.space);
-    const [files, setFiles] = useState<any[]>([]);
-
+    const _files = useAppSelector((state) => state.files);
+    const [workingDir, setWorkingDir] = useState([]);
     const handleFileDrop = async (acceptedFiles: File[]) => {
         setIsUploading(true);
         if (acceptedFiles.length > 0) {
-        await uploadTrackFiles(space, Array.from(acceptedFiles));
-        await new Promise(resolve => setTimeout(resolve, 1000));
+            await uploadTrackFiles(space, Array.from(acceptedFiles));
+            await new Promise(resolve => setTimeout(resolve, 1000));
         }
+        dispatch(fetchFiles({uuid: space.uuid, path: []}));
+        setIsUploading(false);
     };
+
+    const getDirectoryInWorkingDir = () => {
+        let _dir = _files;
+        for (let i = 0; i < space.config.working_directory.length; i++) {
+            const foundDir = _dir.find((file) => file.name === space.config.working_directory[i]);
+            if (foundDir && foundDir.children) {
+                _dir = foundDir.children;
+            } else {
+                return _files;
+            }
+        }
+        return _dir;
+    }
+
+    useEffect(() => {
+        setWorkingDir(getDirectoryInWorkingDir());
+        setIsUploading(false);
+    }
+    , [_files, space.config.working_directory]);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: handleFileDrop,
@@ -32,39 +54,6 @@ const FileViewerPanel = ({refreshView, setRefreshView}) => {
     });
 
     const [isUploading, setIsUploading] = useState(true);
-
-    useEffect(() => {
-        setIsUploading(false);
-    }, [files]);
-
-    useEffect(() => {
-        if (!refreshView) {
-            return;
-        }
-        getTrackFiles(space, true)
-            .then((files) => {
-                console.log("Files fetched successfully", files);
-                setFiles(files);
-            })
-            .catch((error) => {
-                console.error("Error fetching files:", error);
-            });
-        setRefreshView(false);
-    }
-    , [refreshView]);
-
-    useEffect(() => {
-        getTrackFiles(space, true)
-            .then((files) => {
-                console.log("Files fetched successfully", files);
-                setFiles(files);
-            })
-            .catch((error) => {
-                console.error("Error fetching files:", error);
-            });
-    }
-    , [space.config.working_directory]);
-
     const [menuState, setMenuState] = useState({
         visible: false,
         x: 0,
@@ -215,8 +204,8 @@ const FileViewerPanel = ({refreshView, setRefreshView}) => {
                 </Box>
                 )}
 
-                {files.map((file, index) => {
-                    const isDir = file.type === "directory";
+                {workingDir.map((file, index) => {
+                    const isDir = file.isDirectory;
                     return (
                         <Box
                             key={index}
