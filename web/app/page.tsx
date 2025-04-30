@@ -28,7 +28,7 @@ import Sidebar from "@/components/Sidebar";
 import Multilift from "./multilift/Multilift";
 import { getTrackFiles } from "./utils/fileUtils";
 import { fetchFiles } from "@/store/features/files/fileSlice";
-import { File } from "@/store/features/files/types";
+import { File as FileType } from "@/store/features/files/types";
 import LinearProgress from '@mui/material/LinearProgress';
 import { setLoading } from "@/store/features/site/siteSlice";
 
@@ -43,7 +43,7 @@ export default function Page() {
   const dispatch = useAppDispatch();
   const space = useAppSelector(selectSpace);
   // const [files, setFiles] = useState<FileEntry[]>([]);
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<FileType[]>([]);
   const [genomeFormOpen, setGenomeFormOpen] = useState(false);
   const _files = useAppSelector((state) => state.files);
   const isLoading = useAppSelector((state) => state.site.isLoading);
@@ -56,7 +56,7 @@ export default function Page() {
       };
       fetchData().then((result) => {
         if (result.meta.requestStatus === "fulfilled") {
-          const files = result.payload as File[];
+          const files = result.payload as FileType[];
           setFiles(files);
         }
       });
@@ -149,16 +149,6 @@ export default function Page() {
     .then((data) => {
       console.log("Files uploaded successfully", data);
       dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
-      // const trackFiles = files.map((file) => ({
-      //   name: file.name,
-      //   data: file,
-      //   type: file.type,
-      //   size: file.size,
-      //   trackType: fileFormatMapping[file.name.split('.').pop()],
-      // }));
-      // getTrackFiles(space, false).then((_files) => {
-      //   setFiles(_files);
-      // });
     })
     .catch((error) => {
       console.error("Error uploading files", error);
