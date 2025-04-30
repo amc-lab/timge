@@ -30,8 +30,8 @@ const LinearView = (props: LinearViewProps) => {
 
   const space = useAppSelector((state) => state.space);
 
-  // const HOST = "https://timge.doc.ic.ac.uk/uploads/" + space.uuid + "/";
-  const HOST = "http://localhost:3000/";
+  const HOST = "https://timge.doc.ic.ac.uk/uploads/" + space.uuid + "/";
+  
   useEffect(() => {
     console.log("ViewState updated:", viewState);
     // const { displayedRegions, bpPerPx, offsetPx } = viewState;
