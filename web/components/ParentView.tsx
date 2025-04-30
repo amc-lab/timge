@@ -71,7 +71,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
     <Box
       sx={{
         display: "flex",
-        justifyContent: "center",
+        // justifyContent: "center",
         alignItems: "center",
         width: viewConfig.config.isMinimised ? "calc(50% - 5px)" : "calc(100% - 5px)",
         borderRadius: "3px",
@@ -104,12 +104,12 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
         </IconButton>
 
         <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
+          <MenuItem onClick={() => setIsTitleEditing(true)}>Rename View</MenuItem>
           {Object.keys(userActions).map((key) => (
             <MenuItem key={key} onClick={() => handleActionClick(key)}>
               {key}
             </MenuItem>
           ))}
-          <MenuItem onClick={() => setIsTitleEditing(true)}>Rename View</MenuItem>
         </Menu>
 
         <EditableLabel

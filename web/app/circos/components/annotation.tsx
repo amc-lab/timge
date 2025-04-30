@@ -100,6 +100,7 @@ const Annotation = ({ data, config, segments, idx }: AnnotationProps) => {
 
                 arcGroup.append("text")
                 .text(d => d.name)
+                .attr("font-family", "Arial")
                 .attr("font-size", textFontSize)
                 .attr("fill", d => d.itemRgb ? `rgb(${d.itemRgb})` : "black")
                 .attr("text-anchor", "middle")

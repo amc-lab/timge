@@ -19,14 +19,19 @@ const FileViewerPanel = ({refreshView, setRefreshView}) => {
     const _files = useAppSelector((state) => state.files);
     const [workingDir, setWorkingDir] = useState([]);
     const handleFileDrop = async (acceptedFiles: File[]) => {
+        if (acceptedFiles.length === 0) return;
+      
         setIsUploading(true);
-        if (acceptedFiles.length > 0) {
-            await uploadTrackFiles(space, Array.from(acceptedFiles));
-            await new Promise(resolve => setTimeout(resolve, 1000));
+      
+        try {
+          await uploadTrackFiles(space, acceptedFiles);
+        } catch (error) {
+          console.error("Error handling file drop:", error);
+        } finally {
+            dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
+            setIsUploading(false);
         }
-        dispatch(fetchFiles({uuid: space.uuid, path: []}));
-        setIsUploading(false);
-    };
+      };      
 
     const getDirectoryInWorkingDir = () => {
         let _dir = _files;
@@ -227,7 +232,7 @@ const FileViewerPanel = ({refreshView, setRefreshView}) => {
                             }}
                         >
                             <Box sx={{ marginRight: "10px", display: "flex", alignItems: "center" }}>
-                                {isDir ? <FolderIcon fontSize='small' /> : <InsertDriveFileIcon fontSize='small' />}
+                                {isDir ? <FolderIcon fontSize='small' sx={{ml: 0.5}} /> : <InsertDriveFileIcon fontSize='small' sx={{ml: 0.5}} />}
                             </Box>
 
                             <Box sx={{ width: "60%" }}>

@@ -89,7 +89,25 @@ const spaceSlice = createSlice({
         ...state.config,
         working_directory: action.payload,
       };
-    }
+    },
+    updateViewConfig: (state, action: PayloadAction<{ uuid: string, config: any }>) => {
+      const { uuid, config } = action.payload;
+      const view = state.views.find(v => v.uuid === uuid);
+      if (view) {
+        view.config = {
+          ...view.config,
+          ...config,
+        };
+      }
+    },
+    getViewConfig: (state, action: PayloadAction<{uuid: string}>) => {
+      const { uuid } = action.payload;
+      const view = state.views.find(v => v.uuid === uuid);
+      if (view) {
+        return view.config;
+      }
+      return null;
+    },
   },
 });
 
@@ -110,6 +128,8 @@ export const {
   setSidebarExpanded,
   setMultiliftFormOpen,
   setWorkingDirectory,
+  updateViewConfig,
+  getViewConfig,
 } = spaceSlice.actions;
 
 export const selectSpace = (state: { space: State }) => state.space;

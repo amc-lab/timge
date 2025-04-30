@@ -138,8 +138,8 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({ onClose, onConfirm }) => 
                 checked={selectedTracks.has(fullPath)}
                 onChange={() => handleTrackToggle(fullPath)}
               />
-              <DescriptionIcon />
-              <Typography sx={{ ml: 1 }}>{entry.name}</Typography>
+              <DescriptionIcon sx={{ml : 1}} />
+              <Typography sx={{ ml: 0.5 }}>{entry.name}</Typography>
             </>
           )}
         </Box>

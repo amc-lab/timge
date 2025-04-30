@@ -183,6 +183,7 @@ const Segment = ({ data, onSegmentsCreated, onSelectSegments, onCustomAction, co
         })
         .attr("text-anchor", "middle")
         .attr("alignment-baseline", "middle")
+        .attr("font-family", "Arial")
         .attr("font-size", `10`)
         .attr("fill", "black")
         .text((d: { index: number }) => segments[d.index].chromosome);
@@ -272,6 +273,7 @@ const Segment = ({ data, onSegmentsCreated, onSelectSegments, onCustomAction, co
               .append("text")
               .attr("x", 2 * config.tickLength + config.tickTextPadding)
               .attr("dy", "0.35em")
+              .attr("font-family", "Arial")
               .attr("font-size", `${config.axisLabelFontSize}`)
               .attr("transform", (d: { angle: number }) =>
                 d.angle > Math.PI

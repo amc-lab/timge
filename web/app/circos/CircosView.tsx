@@ -207,6 +207,20 @@ const CircosView = (props: CircosViewProps) => {
                 background: 'white'
               });
             },
+            "Export SVG": () => {
+              const svg = d3.select(canvasRef.current).select("svg");
+              const serializer = new XMLSerializer();
+              const svgString = serializer.serializeToString(svg.node());
+              const blob = new Blob([svgString], { type: "image/svg+xml" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = props.viewConfig.title + ".svg";
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            },
             "Clear": () => {
                 props.handleViewUpdate(props.index, {
                     ...props.viewConfig,

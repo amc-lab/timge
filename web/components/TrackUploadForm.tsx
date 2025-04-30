@@ -19,6 +19,7 @@ import DataTrackFileUploadBox from "./TrackFileUpload";
 import { useAppSelector } from "@/store/hooks";
 import { useAppDispatch } from "@/store/hooks";
 import { setLoading } from "@/store/features/site/siteSlice";
+import DeleteIcon from '@mui/icons-material/Delete';
 
 function TrackUploadForm({
   isOpen,
@@ -74,9 +75,9 @@ function TrackUploadForm({
             <DescriptionIcon />
             <Typography sx={{ ml: 1 }}>{entry.name}</Typography>
           </Box>
-          <Button size="sm" color="danger" onClick={() => onDeleteTrack(entry.path)}>
-            Delete
-          </Button>
+            <IconButton size="sm" color="danger" onClick={() => onDeleteTrack(entry.path)}>
+              <DeleteIcon />
+            </IconButton>
         </Box>
       );
     });

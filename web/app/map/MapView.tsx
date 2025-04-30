@@ -6,6 +6,8 @@ import { Box, Button, Card, Checkbox, CircularProgress, Dropdown, LinearProgress
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { View } from "@/store/features/views/types";
 import TrackSelector from "./components/TrackSelector";
+import CanvasHeatmap from "./components/CanvasHeatmap";
+import { getViewConfig, updateViewConfig } from "@/store/features/space/spaceSlice";
 
 interface MapViewProps {
   trackFiles: any[];
@@ -19,19 +21,29 @@ interface MapViewProps {
 }
 
 const MapView = (props: MapViewProps) => {
+  console.log(props.viewConfig);
   const [reference, setReference] = useState(props.viewConfig.config.reference);
   const [track, setTrack] = useState(props.viewConfig.config.track);
-  const [segmentA, setSegmentA] = useState(props.viewConfig.config.segmentA);
-  const [segmentB, setSegmentB] = useState(props.viewConfig.config.segmentB);
+  // const [segmentA, setSegmentA] = useState(props.viewConfig.config.segmentA);
+  // const [segmentB, setSegmentB] = useState(props.viewConfig.config.segmentB);
   const [resolution, setResolution] = useState(props.viewConfig.config.resolution);
   const [availableSegments, setAvailableSegments] = useState([]);
   const [showGridlines, setShowGridlines] = useState(false);
   const [toggleColourScheme, setToggleColourScheme] = useState(props.viewConfig.config.toggleColourScheme || false);
   const [normalise, setNormalise] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [matrix, setMatrix] = useState<number[][]>([]);
 
   const heatmapRef = useRef(null);
   const space = useAppSelector((state) => state.space);
+  const dispatch = useAppDispatch();
+
+  const segmentA = space.views[props.index].config.segmentA || props.viewConfig.config.segmentA;
+  const segmentB = space.views[props.index].config.segmentB || props.viewConfig.config.segmentB;
+
+  const [renderedSegmentA, setRenderedSegmentA] = useState(segmentA);
+  const [renderedSegmentB, setRenderedSegmentB] = useState(segmentB);
+  const [renderedResolution, setRenderedResolution] = useState(resolution);
 
   const [showTrackPicker, setShowTrackPicker] = useState(false);
 
@@ -100,155 +112,6 @@ const MapView = (props: MapViewProps) => {
 
   const zoomRef = useRef<d3.ZoomBehavior<Element, unknown> | null>(null);
 
-  const drawHeatmap = (matrix: number[][], segmentA: string, segmentB: string) => {
-    setLoading(true);
-    const svg = d3.select(heatmapRef.current);
-    svg.selectAll("*").remove();
-
-    const maxWidth = window.innerWidth * 0.8 * (props.viewConfig.config.isMinimised ? 0.5 : 1) - 150;
-    const maxHeight = window.innerHeight * 0.8;
-  
-    const numRows = matrix.length;
-    const numCols = matrix[0].length;
-  
-    const cellSize = Math.min(maxWidth / numRows, maxHeight / numCols);
-  
-    const margin = { top: 20, right: 80, bottom: 70, left: 70 };
-    const width = numRows * cellSize;
-    const height = numCols * cellSize;
-  
-    svg
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .attr("viewBox", [0, 0, width + margin.left + margin.right, height + margin.top + margin.bottom]);
-  
-    const g = svg.append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
-  
-    const flatValues = matrix.flat();
-    const colorScale = d3.scaleSequential()
-      .domain([0, d3.max(flatValues)!])
-      .interpolator(toggleColourScheme ? d3.interpolateOrRd : d3.interpolateGnBu);
-  
-    const xScale = d3.scaleLinear()
-      .domain([0, numRows])
-      .range([0, width]);
-  
-    const yScale = d3.scaleLinear()
-      .domain([0, numCols])
-      .range([height, 0]);
-  
-    const xAxis = d3.axisBottom(xScale)
-      .ticks(Math.min(numRows, 10))
-      .tickFormat(d => `${d * resolution}`);
-  
-    const yAxis = d3.axisLeft(yScale)
-      .ticks(Math.min(numCols, 10))
-      .tickFormat(d => `${d * resolution}`);
-  
-    const gx = svg.append("g")
-      .attr("transform", `translate(${margin.left}, ${height + margin.top})`)
-      .attr("class", "x-axis")
-      .call(xAxis);
-  
-    const gy = svg.append("g")
-      .attr("transform", `translate(${margin.left}, ${margin.top})`)
-      .attr("class", "y-axis")
-      .call(yAxis);
-  
-    const heatmap = g.append("g").attr("class", "heatmap");
-  
-    heatmap.selectAll("g")
-      .data(matrix)
-      .join("g")
-      .attr("transform", (_, i) => `translate(${(numRows - 1 - i) * cellSize}, 0)`)
-      .selectAll("rect")
-      .data((d, i) => d.map((val, j) => ({ val, j })))
-      .join("rect")
-      .attr("y", d => (d.j) * cellSize)
-      .attr("width", cellSize)
-      .attr("height", cellSize)
-      .attr("fill", d => colorScale(d.val))
-      .attr("stroke", showGridlines ? "#ccc" : "none");
-  
-    svg.append("text")
-      .attr("x", margin.left + width / 2)
-      .attr("y", height + margin.top + 35)
-      .attr("text-anchor", "middle")
-      .attr("font-size", "12px")
-      .text(segmentA);
-  
-    svg.append("text")
-      .attr("transform", `rotate(-90)`)
-      .attr("x", -margin.top - height / 2)
-      .attr("y", 12)
-      .attr("text-anchor", "middle")
-      .attr("font-size", "12px")
-      .text(segmentB);
-  
-    const legendHeight = 200;
-    const legendWidth = 15;
-  
-    const legendScale = d3.scaleLinear()
-      .domain(colorScale.domain())
-      .range([legendHeight, 0]);
-  
-    const legendAxis = d3.axisRight(legendScale)
-      .ticks(5);
-  
-    const legend = svg.append("g")
-      .attr("class", "legend")
-      .attr("transform", `translate(${margin.left + width + 20}, ${margin.top})`);
-  
-    const legendGradientId = "legend-gradient";
-    setLoading(false);
-  
-    svg.select("defs").remove();
-    const defs = svg.append("defs");
-    const linearGradient = defs.append("linearGradient")
-      .attr("id", legendGradientId)
-      .attr("x1", "0%")
-      .attr("y1", "100%")
-      .attr("x2", "0%")
-      .attr("y2", "0%");
-  
-    const numStops = 10;
-    const step = 1 / (numStops - 1);
-  
-    d3.range(numStops).forEach(i => {
-      linearGradient.append("stop")
-        .attr("offset", `${i * step * 100}%`)
-        .attr("stop-color", colorScale(colorScale.domain()[0] + i * step * (colorScale.domain()[1] - colorScale.domain()[0])));
-    });
-  
-    legend.append("rect")
-      .attr("width", legendWidth)
-      .attr("height", legendHeight)
-      .style("fill", `url(#${legendGradientId})`);
-  
-    legend.append("g")
-      .attr("transform", `translate(${legendWidth}, 0)`)
-      .call(legendAxis);
-    
-    svg.style("shape-rendering", "crispEdges");
-
-    zoomRef.current = d3.zoom()
-      .scaleExtent([1, 10])
-      .translateExtent([[-100, -100], [width + 100, height + 100]])
-      .on("zoom", zoomed);
-  
-    svg.call(zoomRef.current);
-  
-    function zoomed({ transform }) {
-      heatmap.attr("transform", transform);
-      const zx = transform.rescaleX(xScale);
-      const zy = transform.rescaleY(yScale);
-      gx.call(xAxis.scale(zx));
-      gy.call(yAxis.scale(zy));
-    }
-
-  };
-
   const clearHeatmap = () => {
     const svg = d3.select(heatmapRef.current);
     svg.selectAll("*").remove();
@@ -276,7 +139,10 @@ const MapView = (props: MapViewProps) => {
       .then(response => response.json())
       .then(data => {
         if (data.status === "success") {
-          drawHeatmap(data.matrix, _segmentA ? _segmentA : segmentA, _segmentB ? _segmentB : segmentB);
+          setMatrix(data.matrix);
+          setRenderedSegmentA(_segmentA ? _segmentA : segmentA); 
+          setRenderedSegmentB(_segmentB ? _segmentB : segmentB);
+          setRenderedResolution(resolution);
         } else {
           console.error("Failed to generate heatmap", data.message);
         }
@@ -290,8 +156,6 @@ const MapView = (props: MapViewProps) => {
         const _segmentA = props.dependencies.segmentA;
         const _segmentB = props.dependencies.segmentB;
         console.log("Dependencies changed", _segmentA, _segmentB);
-        setSegmentA(props.dependencies.segmentA);
-        setSegmentB(props.dependencies.segmentB);
         renderHeatmap(_segmentA, _segmentB);
       }
     }
@@ -380,16 +244,23 @@ const MapView = (props: MapViewProps) => {
                     </Typography>
                     <Select
                     onChange={(e, value) => {
-                        setSegmentA(value)
-                        props.handleViewUpdate(props.index, {
-                            ...props.viewConfig,
+                        // setSegmentA(value)
+                        dispatch(updateViewConfig({
+                            uuid: props.viewConfig.uuid,
                             config: {
                                 ...props.viewConfig.config,
                                 segmentA: value,
-                            },
-                        })
+                            }
+                        }))
+                        // props.handleViewUpdate(props.index, {
+                        //     ...props.viewConfig,
+                        //     config: {
+                        //         ...props.viewConfig.config,
+                        //         segmentA: value,
+                        //     },
+                        // })
                     }}
-                    value={segmentA}
+                    value={props.viewConfig.config.segmentA}
                     placeholder="Select segment A"
                     sx={{
                       boxShadow: "none",
@@ -407,16 +278,15 @@ const MapView = (props: MapViewProps) => {
                     </Typography>
                     <Select
                     onChange={(e, value) => {
-                        setSegmentB(value)
-                        props.handleViewUpdate(props.index, {
-                            ...props.viewConfig,
+                        dispatch(updateViewConfig({
+                            uuid: props.viewConfig.uuid,
                             config: {
                                 ...props.viewConfig.config,
                                 segmentB: value,
-                            },
-                        })
+                            }
+                        }))
                     }}
-                    value={segmentB}
+                    value={props.viewConfig.config.segmentB}
                     placeholder="Select segment B"
                     sx={{
                       boxShadow: "none",
@@ -449,7 +319,7 @@ const MapView = (props: MapViewProps) => {
                       boxShadow: "none",
                     }}
                     >
-                    {/* <Option value={1}>1</Option> */}
+                    <Option value={1}>1</Option>
                     <Option value={5}>5</Option>
                     <Option value={10}>10</Option>
                     <Option value={25}>25</Option>
@@ -521,19 +391,24 @@ const MapView = (props: MapViewProps) => {
                 padding: '10px',
               }}
             >
-              {loading && (
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
+               {
+              <Box
+                sx={{
+                  display: "flex",
+                  width: "100%",
+                  height: "100%",
+                }}
                 >
-                  <CircularProgress
-                  />
-                </Box>
-            )} {
-              <svg ref={heatmapRef}></svg>
+              <CanvasHeatmap
+                matrix={matrix}
+                segmentA={renderedSegmentA}
+                segmentB={renderedSegmentB}
+                resolution={renderedResolution}
+                toggleColourScheme={toggleColourScheme}
+                showGridlines={showGridlines}
+                isMinimised={props.viewConfig.config.isMinimised}
+              />
+              </Box>
             }
             </Box>
         </Box>

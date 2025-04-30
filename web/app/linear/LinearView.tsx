@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   createViewState,
   JBrowseLinearGenomeView,
@@ -30,7 +30,16 @@ const LinearView = (props: LinearViewProps) => {
 
   const space = useAppSelector((state) => state.space);
 
-  const HOST = "https://timge.doc.ic.ac.uk/uploads/" + space.uuid + "/";
+  // const HOST = "https://timge.doc.ic.ac.uk/uploads/" + space.uuid + "/";
+  const HOST = "http://localhost:3000/";
+  useEffect(() => {
+    console.log("ViewState updated:", viewState);
+    // const { displayedRegions, bpPerPx, offsetPx } = viewState;
+    // console.log("displayedRegions", displayedRegions);
+    // console.log("bpPerPx", bpPerPx);
+    // console.log("offsetPx", offsetPx);
+  }
+  , [viewState]);
   
 //   // Filter reference tracks (e.g., .fasta/.fa)
 //   const referenceTracks = props.trackFiles.filter((file) =>
@@ -222,7 +231,9 @@ const LinearView = (props: LinearViewProps) => {
 
       { renderView && reference && selectedTracks.length > 0 && viewState && (
         <Box sx={{ width: "100%" }}>
-          <JBrowseLinearGenomeView viewState={viewState} />
+          <JBrowseLinearGenomeView 
+          viewState={viewState} 
+          />
         </Box>
       )}
     </ParentView>

@@ -141,18 +141,34 @@ export default function Page() {
       formData.append("track_files", track);
     });
     formData.append("uuid", space.uuid);
-    fetch(`${host}/api/timge/upload_tracks/`, {
-      method: "POST",
-      body: formData,
-    })
-    .then((response) => response.json())
-    .then((data) => {
+    // fetch(`${host}/api/timge/upload_tracks/`, {
+    //   method: "POST",
+    //   body: formData,
+    // })
+    // .then((response) => response.json())
+    // .then((data) => {
+    //   console.log("Files uploaded successfully", data);
+    //   dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
+    // })
+    // .catch((error) => {
+    //   console.error("Error uploading files", error);
+    // });
+
+    try {
+      const response = await fetch(`${host}/api/timge/upload_tracks/`, {
+        method: "POST",
+        body: formData,
+      });
+  
+      const data = await response.json();
       console.log("Files uploaded successfully", data);
-      dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
-    })
-    .catch((error) => {
+  
+      await dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
+    } catch (error) {
       console.error("Error uploading files", error);
-    });
+    } finally {
+      dispatch(setLoading(false));
+    }
   }
 
   const addConnection = (viewId: string, linkedViewId: string) => {
@@ -291,9 +307,6 @@ export default function Page() {
       onTrackUpload={(data_files: File[]) => {
         uploadTrackFiles(data_files);
         setRefreshFileViewer(true);
-        setTimeout(() => {
-          dispatch(setLoading(false));
-        }, 1000);
       }}
     />
     { space.config?.multilift_form_open &&
