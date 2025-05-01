@@ -29,7 +29,7 @@ const CanvasHeatmap = ({
   const transformRef = useRef(d3.zoomIdentity);
 
   const margin = { top: 40, right: 70, bottom: 70, left: 70 };
-  const fixedWidth = isMinimised ? 500 : 800;
+  const fixedWidth = isMinimised ? 400 : 800;
 
   useEffect(() => {
     if (!matrix || matrix.length === 0) return;
@@ -39,7 +39,7 @@ const CanvasHeatmap = ({
     const svg = d3.select(svgRef.current);
     const gx = d3.select(gxRef.current);
     const gy = d3.select(gyRef.current);
-    svg.selectAll("defs").remove(); // clear any old defs
+    svg.selectAll("defs").remove();
 
     const numRows = matrix.length;
     const numCols = matrix[0].length;

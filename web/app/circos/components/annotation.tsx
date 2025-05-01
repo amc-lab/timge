@@ -98,6 +98,44 @@ const Annotation = ({ data, config, segments, idx }: AnnotationProps) => {
                 .attr("stroke", "white")
                 .attr("stroke-width", 0.5);
 
+                const arrowSpacing = 20;
+                arcGroup.each(function(d, i) {
+                    const currentInnerRadius = innerRadius + levels[i] * levelStep;
+                    const currentOuterRadius = currentInnerRadius + trackWidth;
+                    const midRadius = (currentInnerRadius + currentOuterRadius) / 2;
+                
+                    const startAngle = angleScale(d.chromStart);
+                    const endAngle = angleScale(d.chromEnd);
+                
+                    const arcLength = midRadius * Math.abs(endAngle - startAngle);
+                    const numArrows = Math.floor(arcLength / arrowSpacing);
+                
+                    const g = d3.select(this);
+                
+                    for (let j = 0; j < numArrows; j++) {
+                        const t = (j + 0.5) / numArrows;
+                        const angle = d.strand === "+" || d.strand === "."
+                            ? startAngle + t * (endAngle - startAngle)
+                            : endAngle - t * (endAngle - startAngle);
+                
+                        const x = midRadius * Math.cos(angle - Math.PI / 2);
+                        const y = midRadius * Math.sin(angle - Math.PI / 2);
+                
+                        const arrowSize = 6;
+                
+                        let angleDeg = angle * 180 / Math.PI + 90;
+                
+                        if (d.strand === "-") {
+                            angleDeg += 180;
+                        }
+                
+                        g.append("polygon")
+                            .attr("points", `${-arrowSize / 2},${arrowSize} ${arrowSize / 2},${arrowSize} 0,0`)
+                            .attr("fill", "white")
+                            .attr("transform", `translate(${x},${y}) rotate(${angleDeg})`);
+                    }
+                });
+
                 arcGroup.append("text")
                 .text(d => d.name)
                 .attr("font-family", "Arial")
@@ -114,6 +152,23 @@ const Annotation = ({ data, config, segments, idx }: AnnotationProps) => {
                     const x = labelRadius * Math.cos(midAngle - Math.PI / 2);
                     const y = labelRadius * Math.sin(midAngle - Math.PI / 2);
                     return `translate(${x},${y}) rotate(${(midAngle * 180 / Math.PI)})`;
+                })
+                .attr("display", (d, i) => {
+                    // if annotation is too close to the next one, hide it
+                    const nextAnnotation = sortedAnnotations[i + 1];
+                    if (nextAnnotation) {
+                        const nextStartAngle = angleScale(nextAnnotation.chromStart);
+                        const nextEndAngle = angleScale(nextAnnotation.chromEnd);
+                        const currentStartAngle = angleScale(d.chromStart);
+                        const currentEndAngle = angleScale(d.chromEnd);
+
+                        const nextMidAngle = (nextStartAngle + nextEndAngle) / 2;
+                        const currentMidAngle = (currentStartAngle + currentEndAngle) / 2;
+
+                        const angleDiff = Math.abs(nextMidAngle - currentMidAngle);
+                        return angleDiff < Math.PI / 20 ? "none" : "visible";
+                    }
+                    return "block";
                 });
             
         });
