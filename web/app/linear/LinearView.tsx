@@ -1,3 +1,4 @@
+"use client";
 import { useEffect, useRef, useState, StrictMode } from "react";
 import {
   createViewState,
