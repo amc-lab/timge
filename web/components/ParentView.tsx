@@ -52,6 +52,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
 
   const handleViewClose = () => {
     const uuid = viewConfig.uuid;
+    console.log("Closing view with UUID:", uuid);
     if (uuid) {
       dispatch(deleteView(uuid));
       dispatch(deleteConnection(uuid));

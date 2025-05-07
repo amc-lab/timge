@@ -154,7 +154,6 @@ const Annotation = ({ data, config, segments, idx }: AnnotationProps) => {
                     return `translate(${x},${y}) rotate(${(midAngle * 180 / Math.PI)})`;
                 })
                 .attr("display", (d, i) => {
-                    // if annotation is too close to the next one, hide it
                     const nextAnnotation = sortedAnnotations[i + 1];
                     if (nextAnnotation) {
                         const nextStartAngle = angleScale(nextAnnotation.chromStart);

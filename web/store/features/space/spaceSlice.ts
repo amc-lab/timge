@@ -100,6 +100,16 @@ const spaceSlice = createSlice({
         };
       }
     },
+    updateViewProps: (state, action: PayloadAction<{ uuid: string, updatedView: any }>) => {
+      const { uuid, updatedView } = action.payload;
+      const index = state.views.index(v => v.uuid == uuid);
+      if (index) {
+        state.views[index] = {
+          ...state.views[index],
+          ...updatedView,
+        };
+      }
+    },
     getViewConfig: (state, action: PayloadAction<{uuid: string}>) => {
       const { uuid } = action.payload;
       const view = state.views.find(v => v.uuid === uuid);
@@ -130,6 +140,7 @@ export const {
   setWorkingDirectory,
   updateViewConfig,
   getViewConfig,
+  updateViewProps
 } = spaceSlice.actions;
 
 export const selectSpace = (state: { space: State }) => state.space;

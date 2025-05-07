@@ -31,6 +31,7 @@ import { fetchFiles } from "@/store/features/files/fileSlice";
 import { File as FileType } from "@/store/features/files/types";
 import LinearProgress from '@mui/material/LinearProgress';
 import { setLoading } from "@/store/features/site/siteSlice";
+import IGVBrowser from "./linear/IGVBrowser";
 
 interface FileEntry {
   name: string;

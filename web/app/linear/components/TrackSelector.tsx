@@ -200,7 +200,7 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({ onClose, onConfirm }) => 
             onClick={() => {
               if (referencePath) onConfirm(referencePath, Array.from(selectedTracks));
             }}
-            disabled={!referencePath || selectedTracks.size === 0}
+            disabled={!referencePath}
           >
             Confirm Selection
           </Button>
