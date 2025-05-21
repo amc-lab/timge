@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, StrictMode } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   createViewState,
   JBrowseLinearGenomeView,
@@ -269,6 +269,7 @@ const LinearView = (props: LinearViewProps) => {
           <IGVBrowser
             reference={reference}
             trackFiles={selectedTracks}
+            viewConfig={props.viewConfig}
           />
         </Box>
       )}
