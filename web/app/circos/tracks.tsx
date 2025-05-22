@@ -180,6 +180,7 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig }: TracksProp
       {trackData.map((track, index) => {
         if (track.trackType === TrackType.Karyotype) {
           return (
+            <>
             <Segment
               key={index}
               data={track.data}
@@ -189,6 +190,23 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig }: TracksProp
               onCustomAction={onCustomAction}
               idx={id + index}
             />
+            {/* {
+              segmentData.length > 0 && (
+                <Highlight
+                  divRef={track.data.divRef}
+                  key={index + "highlight"}
+                  segmentStartIdx={0}
+                  segmentEndIdx={0}
+                  segmentStartPos={0}
+                  segmentEndPos={500}
+                  segments={segmentData}
+                  globalConfig={globalConfig}
+                  innerRadius={track.config.segmentInnerRadius}
+                  width={track.config.segmentTrackWidth}
+            />
+              )
+            } */}
+            </>
           );
         } else if (track.trackType === TrackType.Bar) {
           return (
@@ -249,21 +267,20 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig }: TracksProp
             />
           );
         }
-        else if (track.trackType === TrackType.Highlight) {
-          return (
-            <Highlight
-              key={index}
-              divRef={track.data.divRef}
-              segmentStartIdx={0}
-              segmentEndIdx={0}
-              segmentStartPos={2000}
-              segmentEndPos={5000}
-              totalRadius={totalRadius}
-              segments={segmentData}
-              globalConfig={track.data.globalConfig}
-            />
-          );
-        }
+        // else if (track.trackType === TrackType.Highlight) {
+        //   return (
+        //     <Highlight
+        //       key={index}
+        //       divRef={track.data.divRef}
+        //       segmentStartIdx={0}
+        //       segmentEndIdx={0}
+        //       segmentStartPos={2000}
+        //       segmentEndPos={5000}
+        //       segments={segmentData}
+        //       globalConfig={track.data.globalConfig}
+        //     />
+        //   );
+        // }
         return null;
       })}
     </>

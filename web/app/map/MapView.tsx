@@ -33,6 +33,7 @@ const MapView = (props: MapViewProps) => {
   const [normalise, setNormalise] = useState(false);
   const [loading, setLoading] = useState(false);
   const [matrix, setMatrix] = useState<number[][]>([]);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const heatmapRef = useRef(null);
   const space = useAppSelector((state) => state.space);
@@ -168,26 +169,18 @@ const MapView = (props: MapViewProps) => {
       index={props.index}
       userActions={{
         "Download PNG": () => {
-              const d3ToPng = require('d3-svg-to-png');
-              d3ToPng(heatmapRef.current, 'output', {
-                scale: 1,
-                format: 'png',
-                quality: 1,
-                download: true,
-                ignore: '.ignored',
-                background: 'white'
-              });
-            },
-            [props.viewConfig.config.isMinimised ? "Maximise" : "Minimise"]: () => {
-              clearHeatmap();
-              props.handleViewUpdate(props.index, {
-                ...props.viewConfig,
-                config: {
-                  ...props.viewConfig.config,
-                  isMinimised: !props.viewConfig.config.isMinimised,
-                },
-              });
-            }
+          const canvas = canvasRef.current;
+          if (!canvas) {
+            console.warn("Canvas not ready");
+            return;
+          }
+
+          const dataURL = canvas.toDataURL("image/png");
+          const link = document.createElement("a");
+          link.download = "heatmap.png";
+          link.href = dataURL;
+          link.click();
+        }
       }}
     >
         {!(reference && track) ? (
@@ -400,6 +393,9 @@ const MapView = (props: MapViewProps) => {
                 }}
                 >
               <CanvasHeatmap
+                setCanvasRef={(el) => {
+                  canvasRef.current = el;
+                }}
                 matrix={matrix}
                 segmentA={renderedSegmentA}
                 segmentB={renderedSegmentB}

@@ -62,6 +62,14 @@ const LinearView = (props: LinearViewProps) => {
 //       !file.endsWith(".fasta")
 //   );
 
+  const handleIGVBrowserClose = useRef<any>(null);
+
+  const handleIGVClose = (igvClose) => {
+    if (igvClose) {
+      handleIGVBrowserClose.current = igvClose;
+    }
+  }
+
   useEffect(() => {
     if (reference && selectedTracks.length > 0) {
     //   const assembly = {
@@ -214,6 +222,11 @@ const LinearView = (props: LinearViewProps) => {
               setOpenTrackSelector(true);
             }
           }}
+          closeAction={async() => {
+            if (handleIGVBrowserClose.current) {
+              await handleIGVBrowserClose.current();
+            }
+          }}
         >
       {(!reference) && (
         <Box
@@ -270,6 +283,7 @@ const LinearView = (props: LinearViewProps) => {
             reference={reference}
             trackFiles={selectedTracks}
             viewConfig={props.viewConfig}
+            provideIGVClose={handleIGVClose}
           />
         </Box>
       )}

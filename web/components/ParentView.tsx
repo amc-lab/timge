@@ -18,11 +18,12 @@ interface ParentViewProps {
   children?: React.ReactNode;
   viewConfig?: any;
   userActions?: Record<string, (...args: any[]) => void>;
+  closeAction?: () => void;
   index?: number;
   ref?: React.Ref<any>;
 }
 
-const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {}, index, ref }) => {
+const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {}, index, ref, closeAction }) => {
   const dispatch = useAppDispatch();
   const space = useAppSelector((state) => state.space);
   
@@ -126,7 +127,12 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
 
         <Box sx={{ ml: "auto" }}>
           <IconButton
-            onClick={handleViewClose}
+            onClick={() => {
+              if (closeAction) {
+                closeAction();
+              }
+              handleViewClose();
+            }}
             sx={{
               color: "white",
               height: "2em",

@@ -7,17 +7,18 @@ interface HighlightProps {
     segmentEndIdx: number;
     segmentStartPos: number;
     segmentEndPos: number;
-    totalRadius: number;
     divRef: any;
     segments: Array<any>;
     globalConfig: GlobalConfig;
+    innerRadius: number;
+    width: number;
 }
 
-const Highlight = ({ globalConfig, segments, segmentStartIdx, segmentEndIdx, segmentStartPos, segmentEndPos, totalRadius, divRef }: HighlightProps) => {
-    console.log(segmentStartIdx, segmentEndIdx, segmentStartPos, segmentEndPos, totalRadius, divRef);
+const Highlight = ({ globalConfig, segments, segmentStartIdx, segmentEndIdx, segmentStartPos, segmentEndPos, divRef, innerRadius, width }: HighlightProps) => {
+    console.log(segmentStartIdx, segmentEndIdx, segmentStartPos, segmentEndPos, divRef);
     useEffect(() => {
         console.log("Highlighting", segments);
-        if (!divRef.current || segments.length === 0) return;
+        if (!divRef || !divRef.current || segments.length === 0) return;
 
         let svg = d3.select(divRef.current).select("svg");
     
@@ -35,8 +36,8 @@ const Highlight = ({ globalConfig, segments, segmentStartIdx, segmentEndIdx, seg
             segmentEndPos / segments[segmentEndIdx].length * (segments[segmentEndIdx].endAngle - segments[segmentEndIdx].startAngle);
 
         const highlightArc = d3.arc()
-            .innerRadius(150)
-            .outerRadius(210)
+            .innerRadius(innerRadius - 5)
+            .outerRadius(innerRadius + width + 5)
             .startAngle(startAngle)
             .endAngle(endAngle);
 
@@ -45,7 +46,7 @@ const Highlight = ({ globalConfig, segments, segmentStartIdx, segmentEndIdx, seg
             .attr("fill", "blue")
             .attr("opacity", 0.1);
         
-    }, [segmentStartIdx, segmentEndIdx, segmentStartPos, segmentEndPos, totalRadius, divRef, segments]);
+    }, [segmentStartIdx, segmentEndIdx, segmentStartPos, segmentEndPos, divRef, segments]);
     
     return null;
 };

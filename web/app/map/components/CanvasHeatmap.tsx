@@ -9,6 +9,7 @@ interface CanvasHeatmapProps {
   toggleColourScheme: boolean;
   showGridlines: boolean;
   isMinimised: boolean;
+  setCanvasRef?: (el: HTMLCanvasElement | null) => void;
 }
 
 const CanvasHeatmap = ({
@@ -19,6 +20,7 @@ const CanvasHeatmap = ({
   toggleColourScheme,
   showGridlines,
   isMinimised,
+  setCanvasRef,
 }: CanvasHeatmapProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -33,6 +35,10 @@ const CanvasHeatmap = ({
 
   useEffect(() => {
     if (!matrix || matrix.length === 0) return;
+
+    if (setCanvasRef) {
+      setCanvasRef(canvasRef.current);
+    }
 
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
@@ -153,23 +159,30 @@ const CanvasHeatmap = ({
       const t = transformRef.current;
       ctx.translate(t.x + width * t.k, t.y);
       ctx.scale(-t.k, t.k);
-
+    
       for (let i = 0; i < numRows; i++) {
         for (let j = 0; j < numCols; j++) {
           ctx.fillStyle = colorScale(matrix[i][j])!;
-          ctx.fillRect(i * cellSize, j * cellSize, cellSize, cellSize);
+          const x = Math.floor(i * cellSize);
+          const y = Math.floor(j * cellSize);
+          const size = Math.ceil(cellSize);
+    
+          ctx.fillRect(x, y, size, size);
+    
+          // Only stroke if explicitly enabled
           if (showGridlines) {
-            ctx.strokeStyle = "#ccc";
-            ctx.strokeRect(i * cellSize, j * cellSize, cellSize, cellSize);
+            ctx.strokeStyle = "#000"; // or any color
+            ctx.strokeRect(x, y, size, size);
           }
         }
       }
-
+    
       ctx.restore();
     };
+    
 
     draw();
-  }, [matrix, toggleColourScheme, showGridlines, resolution, isMinimised, segmentA, segmentB]);
+  }, [canvasRef, matrix, toggleColourScheme, showGridlines, resolution, isMinimised, segmentA, segmentB]);
 
   return (
     <div
