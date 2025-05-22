@@ -6,6 +6,8 @@
       formData.append("track_files", track);
     });
     formData.append("uuid", space.uuid);
+    formData.append("path", space.config.working_directory);
+
 
     const response = await fetch(`${host}/api/timge/upload_tracks/`, {
       method: "POST",

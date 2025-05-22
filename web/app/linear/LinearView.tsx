@@ -283,7 +283,6 @@ const LinearView = (props: LinearViewProps) => {
             reference={reference}
             trackFiles={selectedTracks}
             viewConfig={props.viewConfig}
-            provideIGVClose={handleIGVClose}
           />
         </Box>
       )}

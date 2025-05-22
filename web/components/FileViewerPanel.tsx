@@ -121,7 +121,7 @@ const FileViewerPanel = ({refreshView, setRefreshView}) => {
                     zIndex: 1,
                 }}
             />)}
-        <input {...getInputProps()} />
+        <input {...getInputProps()} type='file' />
                 
             <Box
                 sx={{

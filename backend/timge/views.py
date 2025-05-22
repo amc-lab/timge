@@ -56,6 +56,19 @@ from io import BytesIO
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
+import zipfile
+
+
+import os
+import gzip
+import tarfile
+import zipfile
+import shutil
+import subprocess
+from io import BytesIO
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 
 @csrf_exempt
@@ -64,16 +77,20 @@ def upload_tracks(request):
     """
     Handles the upload of track files to the server.
     Extracts .gz and .tar.gz files if detected, otherwise saves as-is.
+    If a file ends in .fasta or .fa, runs samtools faidx on it.
     """
     if request.method == "POST":
         track_files = request.FILES.getlist("track_files")
         uuid = request.POST.get("uuid")
+        path = request.POST.get("path", [])
+
+        if path and isinstance(path, list):
+            path = "/".join(path)
 
         # make directory for the uuid
         print("Track root dir:", TRACK_ROOT_DIR)
-        directory = os.path.join(TRACK_ROOT_DIR, uuid)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        directory = os.path.join(TRACK_ROOT_DIR, uuid, path)
+        os.makedirs(directory, exist_ok=True)
 
         for track_file in track_files:
             file_name = track_file.name
@@ -98,10 +115,24 @@ def upload_tracks(request):
                             f_out.write(extracted_data)
                         print(f"Saved decompressed file to: {extracted_path}")
 
+                        # Check if decompressed file is FASTA
+                        if base_name.endswith((".fasta", ".fa")):
+                            run_samtools_faidx(extracted_path)
+
+                elif file_name.endswith(".zip"):
+                    with zipfile.ZipFile(file_like, "r") as zip_ref:
+                        zip_ref.extractall(directory)
+                        print(f"Extracted contents of {file_name} to {directory}")
+                        # You could optionally walk the extracted contents and call samtools on any .fa/.fasta files
+
                 else:
                     print(f"Saving regular file: {file_name}")
                     with open(file_path, "wb") as f_out:
                         f_out.write(file_data)
+
+                    if file_name.endswith((".fasta", ".fa")):
+                        run_samtools_faidx(file_path)
+
             except Exception as e:
                 return JsonResponse(
                     {
@@ -113,6 +144,25 @@ def upload_tracks(request):
         return JsonResponse({"status": "success", "directory": directory})
 
     return JsonResponse({"status": "error", "message": "Invalid request method."})
+
+
+def run_samtools_faidx(fasta_path):
+    """
+    Run samtools faidx on the given FASTA file to generate an index (.fai).
+    """
+    try:
+        print(f"Running samtools faidx on {fasta_path}")
+        result = subprocess.run(
+            ["samtools", "faidx", fasta_path],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        print(f"samtools faidx completed: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        print(f"samtools faidx failed: {e.stderr}")
+        raise Exception(f"samtools faidx failed for {fasta_path}: {e.stderr}")
 
 
 @csrf_exempt
