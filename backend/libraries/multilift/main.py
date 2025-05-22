@@ -3,6 +3,9 @@ import tarfile
 import zipfile
 import gzip
 import io
+import tempfile
+import os
+import pysam
 
 from Bio import AlignIO, SeqIO
 from Bio.Seq import Seq
@@ -187,15 +190,41 @@ def multilift(
                     )
                 )
 
+        with tempfile.TemporaryDirectory() as tmpdir:
+            consensus_path = os.path.join(tmpdir, "consensus.fa")
+            with open(consensus_path, "w") as consensus_file:
+                SeqIO.write(igv_genomes, consensus_file, "fasta")
+
+            pysam.faidx(consensus_path)
+
+            with open(consensus_path, "rb") as f:
+                add_to_archive(
+                    Arc,
+                    BytesIO(f.read()),
+                    f"genome/consensus.fa",
+                    uiobj_download_format,
+                )
+
+            # Read and archive consensus.fa.fai
+            fai_path = consensus_path + ".fai"
+            with open(fai_path, "rb") as f:
+                add_to_archive(
+                    Arc,
+                    BytesIO(f.read()),
+                    f"genome/consensus.fa.fai",
+                    uiobj_download_format,
+                )
+
         # Write consensus sequences
-        with StringIO() as F:
-            SeqIO.write(igv_genomes, F, "fasta")
-            add_to_archive(
-                Arc,
-                BytesIO(bytes(F.getvalue(), "utf-8")),
-                f"genome/consensus.fa",
-                uiobj_download_format,
-            )
+        # with StringIO() as F:
+        #     SeqIO.write(igv_genomes, F, "fasta")
+        #     add_to_archive(
+        #         Arc,
+        #         BytesIO(bytes(F.getvalue(), "utf-8")),
+        #         f"genome/consensus.fa",
+        #         uiobj_download_format,
+        #     )
+
         del igv_genomes
 
         # Write maf alignment

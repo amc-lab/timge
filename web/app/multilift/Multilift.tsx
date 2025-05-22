@@ -250,6 +250,8 @@ const Multilift: React.FC<MultiliftProps> = ({triggerFileRefresh}) => {
         dispatch(setLoading(false));
         dispatch(fetchFiles({uuid: space.uuid, path: []}));
       });
+
+      dispatch(setMultiliftFormOpen(false));
   }
 
 
