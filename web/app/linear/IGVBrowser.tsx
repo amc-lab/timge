@@ -15,7 +15,7 @@ const IGVBrowser = ({ reference, trackFiles, viewConfig }) => {
 
   const HOST =
     process.env.NEXT_PUBLIC_DJANGO_HOST !== "http://127.0.0.1:8000"
-      ? "https://timge.doc.ic.ac.uk/uploads/" + space.uuid + "/"
+      ? "https://vrise.doc.ic.ac.uk/uploads/" + space.uuid + "/"
       : "http://localhost:3000/";
 
   useEffect(() => {

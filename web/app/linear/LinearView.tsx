@@ -39,7 +39,7 @@ const LinearView = (props: LinearViewProps) => {
   const dispatch = useAppDispatch();
   
 
-  const HOST = "https://timge.doc.ic.ac.uk/uploads/" + space.uuid + "/";
+  const HOST = "https://vrise.doc.ic.ac.uk/uploads/" + space.uuid + "/";
   
   useEffect(() => {
     console.log("ViewState updated:", viewState);
