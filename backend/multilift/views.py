@@ -147,9 +147,12 @@ def format_circos(request):
     for track_path in track_paths:
         if track_path.startswith("http://") or track_path.startswith("https://"):
             with urllib.request.urlopen(track_path) as response:
-                data_files.append(BytesIO(response.read()))
+                f = BytesIO(response.read())
+                f.name = os.path.basename(track_path)
+                data_files.append(f)
         else:
-            data_files.append(open(os.path.join(track_path), "rb"))
+            f = open(os.path.join(track_path), "rb")
+            data_files.append(f)
 
     data = []
     for i in range(len(track_types)):
