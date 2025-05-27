@@ -176,7 +176,7 @@ const handleDownload = async (file: FileEntry) => {
       <input {...getInputProps()} type="file" />
 
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1, borderBottom: 1, borderColor: "divider" }}>
-        <Typography level="h6">File Viewer</Typography>
+        <Typography>File Viewer</Typography>
         <IconButton size="sm" variant="plain" onClick={() => dispatch(setSidebarExpanded(false))}>
           <CloseIcon />
         </IconButton>
