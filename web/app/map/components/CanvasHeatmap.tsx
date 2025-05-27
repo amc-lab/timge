@@ -1,19 +1,24 @@
 import React, { useRef, useEffect, useState } from "react";
 import * as d3 from "d3";
+import { View } from "@/store/features/views/types";
 
 interface CanvasHeatmapProps {
   matrix: number[][];
   segmentA: string;
   segmentB: string;
+  title?: string;
   resolution: number;
   toggleColourScheme: boolean;
   showGridlines: boolean;
   isMinimised: boolean;
   setCanvasRef?: (el: HTMLCanvasElement | null) => void;
+  setZoomRef?: (zoom: d3.ZoomBehavior<Element, unknown>, svgEl: SVGSVGElement | null) => void;
+  viewConfig?: View;
 }
 
 const CanvasHeatmap = ({
   matrix,
+  title,
   segmentA,
   segmentB,
   resolution,
@@ -21,6 +26,8 @@ const CanvasHeatmap = ({
   showGridlines,
   isMinimised,
   setCanvasRef,
+  setZoomRef,
+  viewConfig
 }: CanvasHeatmapProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -42,7 +49,9 @@ const CanvasHeatmap = ({
 
     const canvas = canvasRef.current!;
     const ctx = canvas.getContext("2d")!;
-    const svg = d3.select(svgRef.current);
+    ctx.imageSmoothingEnabled = false;
+    const svg = d3.select(svgRef.current)
+      .style("font-family", "Arial");
     const gx = d3.select(gxRef.current);
     const gy = d3.select(gyRef.current);
     svg.selectAll("defs").remove();
@@ -50,9 +59,11 @@ const CanvasHeatmap = ({
     const numRows = matrix.length;
     const numCols = matrix[0].length;
 
-    const cellSize = fixedWidth / numRows;
-    const width = fixedWidth;
-    const height = cellSize * numCols;
+    // const width = canvasRef.current.clientWidth;
+    const width = fixedWidth;<s></s>
+    // const cellSize = fixedWidth / numRows;
+    const cellSize = width / numRows; 
+    const height = cellSize * numCols;  
 
     canvas.width = width;
     canvas.height = height;
@@ -66,6 +77,23 @@ const CanvasHeatmap = ({
     const yScale = d3.scaleLinear().domain([0, numCols]).range([height, 0]);
     xScaleRef.current = xScale;
     yScaleRef.current = yScale;
+
+      // remove old title
+    svg.selectAll(".chart-title").remove();
+
+    // draw new title
+    if (title) {
+      svg.append("text")
+        .attr("class", "chart-title")
+        // center across the full SVG width
+        .attr("x", (width + margin.left + margin.right) / 2)
+        // place halfway through the top margin
+        .attr("y", margin.top / 2)
+        .attr("text-anchor", "middle")
+        .attr("font-size", "16px")
+        .attr("font-weight", "bold")
+        .text(title);
+    }
 
     gx.attr("transform", `translate(${margin.left},${margin.top + height})`)
       .call(d3.axisBottom(xScale).ticks(10).tickFormat(d => `${+d * resolution}`));
@@ -81,6 +109,7 @@ const CanvasHeatmap = ({
       .attr("y", height + margin.top + 50)
       .attr("text-anchor", "middle")
       .attr("font-size", "12px")
+      .attr("font-family", "Arial")
       .text(segmentA);
 
     svg.append("text")
@@ -90,6 +119,7 @@ const CanvasHeatmap = ({
       .attr("y", 15)
       .attr("text-anchor", "middle")
       .attr("font-size", "12px")
+      .attr("font-family", "Arial")
       .text(segmentB);
 
     const colorScale = d3.scaleSequential()
@@ -150,6 +180,10 @@ const CanvasHeatmap = ({
 
         draw();
       });
+    
+    if (setZoomRef) {
+      setZoomRef(zoom, svgRef.current);
+    }
 
     svg.call(zoom as any);
 

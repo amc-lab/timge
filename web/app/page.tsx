@@ -345,7 +345,7 @@ export default function Page() {
           display: "flex",
           flexDirection: "row",
           flexWrap: "wrap",
-          alignItems: "flex-start",
+          // alignItems: "flex-end"
         }}
         >
         {

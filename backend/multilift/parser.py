@@ -189,8 +189,8 @@ def format_line(line) -> list[dict]:
                 data.append(
                     {
                         "chrom": line.split("\t")[0],
-                        "chromStart": line.split("\t")[1],
-                        "chromEnd": line.split("\t")[2],
+                        "chromStart": int(line.split("\t")[1]),
+                        "chromEnd": int(line.split("\t")[2]),
                         "value": float(line.split("\t")[3]),
                     }
                 )

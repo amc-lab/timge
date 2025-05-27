@@ -89,12 +89,6 @@ const MapView = (props: MapViewProps) => {
     }
   }, [reference, track]);
 
-  // useEffect(() => {
-  //   if (props.viewConfig.config.segmentA && props.viewConfig.config.segmentB && props.viewConfig.config.resolution) {
-  //     renderHeatmap();
-  //   }
-  // }, []);
-
   useEffect(() => {
     props.handleViewUpdate(props.index, {
       ...props.viewConfig,
@@ -112,6 +106,8 @@ const MapView = (props: MapViewProps) => {
   , [reference, track, segmentA, segmentB, resolution, toggleColourScheme]);
 
   const zoomRef = useRef<d3.ZoomBehavior<Element, unknown> | null>(null);
+  const svgElRef = useRef<SVGSVGElement | null>(null);
+
 
   const clearHeatmap = () => {
     const svg = d3.select(heatmapRef.current);
@@ -151,6 +147,49 @@ const MapView = (props: MapViewProps) => {
     )
   }
 
+  const downloadPNG = () => {
+    const canvas = canvasRef.current;
+    const svgEl = svgElRef.current;
+    if (!canvas || !svgEl) {
+      console.warn("Canvas or SVG not ready");
+      return;
+    }
+    const serializer = new XMLSerializer();
+    let svgString = serializer.serializeToString(svgEl);
+    if (!svgString.includes('xmlns="http://www.w3.org/2000/svg"')) {
+      svgString = svgString.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      const width = svgEl.clientWidth;
+      const height = svgEl.clientHeight;
+      const tmpCanvas = document.createElement('canvas');
+      tmpCanvas.width = width;
+      tmpCanvas.height = height;
+      const ctx = tmpCanvas.getContext('2d');
+      if (!ctx) return;
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      const style = getComputedStyle(canvas);
+      const dx = parseInt(style.left, 10);
+      const dy = parseInt(style.top, 10);
+      ctx.drawImage(canvas, dx, dy);
+
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      const link = document.createElement('a');
+      link.download = 'heatmap.png';
+      link.href = tmpCanvas.toDataURL('image/png');
+      link.click();
+    };
+    img.onerror = () => console.error('Failed to load SVG image for PNG export');
+    img.src = url;
+  };
+
   useEffect(() => {
     if (reference && track) {
       if (props.dependencies) {
@@ -168,18 +207,15 @@ const MapView = (props: MapViewProps) => {
       viewConfig={props.viewConfig}
       index={props.index}
       userActions={{
-        "Download PNG": () => {
-          const canvas = canvasRef.current;
-          if (!canvas) {
-            console.warn("Canvas not ready");
-            return;
-          }
-
-          const dataURL = canvas.toDataURL("image/png");
-          const link = document.createElement("a");
-          link.download = "heatmap.png";
-          link.href = dataURL;
-          link.click();
+        "Download PNG": downloadPNG,
+        [props.viewConfig.config.isMinimised ? "Maximise" : "Minimise"]: () => {
+          props.handleViewUpdate(props.index, {
+            ...props.viewConfig,
+            config: {
+              ...props.viewConfig.config,
+              isMinimised: !props.viewConfig.config.isMinimised,
+            },
+          });
         }
       }}
     >
@@ -220,6 +256,8 @@ const MapView = (props: MapViewProps) => {
                 justifyContent: "center",
                 alignItems: "center",
                 width: "100%",
+                height: "100%",      
+                flexGrow: 1,  
             }}
         >
             <Card
@@ -237,7 +275,6 @@ const MapView = (props: MapViewProps) => {
                     </Typography>
                     <Select
                     onChange={(e, value) => {
-                        // setSegmentA(value)
                         dispatch(updateViewConfig({
                             uuid: props.viewConfig.uuid,
                             config: {
@@ -245,13 +282,6 @@ const MapView = (props: MapViewProps) => {
                                 segmentA: value,
                             }
                         }))
-                        // props.handleViewUpdate(props.index, {
-                        //     ...props.viewConfig,
-                        //     config: {
-                        //         ...props.viewConfig.config,
-                        //         segmentA: value,
-                        //     },
-                        // })
                     }}
                     value={props.viewConfig.config.segmentA}
                     placeholder="Select segment A"
@@ -360,13 +390,13 @@ const MapView = (props: MapViewProps) => {
                       variant="outlined"
                       color="neutral"
                       onClick={() => {
-                        if (zoomRef.current) {
-                          const svg = d3.select(heatmapRef.current);
-                          svg.transition()
+                        if (zoomRef.current && svgElRef.current) {
+                          d3.select(svgElRef.current)
+                            .transition()
                             .duration(500)
                             .call(zoomRef.current.transform, d3.zoomIdentity);
                         } else {
-                          console.warn("Zoom behavior not initialized yet");
+                          console.warn("Zoom or SVG not initialized");
                         }
                       }}
                     >
@@ -376,10 +406,11 @@ const MapView = (props: MapViewProps) => {
             </Card>
             <Box
               sx={{
-                maxWidth: '90vw',
-                maxHeight: '90vh',
-                overflow: 'auto',
-                // border: '1px solid #ccc',
+                height: '100%',
+                width: '100%',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
                 marginBottom: '20px',
                 padding: '10px',
               }}
@@ -390,12 +421,19 @@ const MapView = (props: MapViewProps) => {
                   display: "flex",
                   width: "100%",
                   height: "100%",
+                  justifyContent: "center",
+                  alignItems: "center",
                 }}
                 >
               <CanvasHeatmap
                 setCanvasRef={(el) => {
                   canvasRef.current = el;
                 }}
+                setZoomRef={(zoom, svgEl) => {
+                  zoomRef.current = zoom;
+                  svgElRef.current = svgEl;
+                }}
+                title={`${track.split("/").pop()} (${renderedResolution}nt)`}
                 matrix={matrix}
                 segmentA={renderedSegmentA}
                 segmentB={renderedSegmentB}

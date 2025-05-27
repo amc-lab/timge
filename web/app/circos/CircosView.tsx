@@ -82,22 +82,6 @@ const CircosView = (props: CircosViewProps) => {
     }
   }, [props.viewConfig.visible_tracks]);
 
-  // useEffect(() => {
-  //   if (props.files.length > 0) {
-  //     generate_circos_files(props.files);
-  //   }
-  // }
-  // , [props.files]);
-
-  //  const maxScore = d3.max(props.trackFiles, (d) => {
-  //      if (d.data) {
-  //          return d3.max(d.data, (d) => d.score);
-  //      }
-  //      return 0;
-  //  });
-
-  //   console.log("CircosView props", props.trackFiles);
-
      useEffect(() => {
        if (canvasRef.current) {
          const svg = d3.select(canvasRef.current).select("svg");
@@ -301,33 +285,7 @@ const CircosView = (props: CircosViewProps) => {
                 >
                   Filter score:
                 </Typography>
-                {/* <Input
-                  type="number"
-                  value={minFilterScore}
-                  onChange={(event) => {
-                    setMinFilterScore(parseInt(event.target.value));
-                    setSelectedTracks((prevTracks) => {
-                      return prevTracks.map((track) => {
-                        if (track.trackType === TrackType.Chord) {
-                          return {
-                            ...track,
-                            config: {
-                              ...track.config,
-                              minFilterScore: parseInt(event.target.value),
-                            },
-                          };
-                        }
-                        return track;
-                      });
-                    });
-                  }}
-                  sx={{
-                    width: "5%",
-                    marginLeft: "10px",
-                  }}
-                  ></Input> */}
                 <Slider
-                  // defaultValue={[20, maxScore]}
                   value={minFilterScore}
                   min={0}
                   max={1000}
@@ -395,19 +353,12 @@ const CircosView = (props: CircosViewProps) => {
                     onChange={(event, value) => {
                       setConnectedViews(value);
                       for (let i = 0; i < value.length; i++) {
-                        // if (props.crossViewActionHandler) {
-                          // console.log("Adding connection", value[i]);
-                          // props.crossViewActionHandler("add_connection", {
-                          //   source: props.viewConfig.uuid,
-                          //   target: value[i],
-                          // });
                           const source = props.viewConfig.uuid;
                           const target = value[i];
                           dispatch(setConnection(
                             { 
                               key: source, value: [...(space.connections[source] || []), target] 
                             }));
-                        // }
                       }
                     }
                     }

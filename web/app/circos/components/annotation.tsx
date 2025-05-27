@@ -21,13 +21,23 @@ const Annotation = ({ data, config, segments, idx }: AnnotationProps) => {
         if (!divRef.current || annotations.length === 0 || segments.length === 0 || config.hide) return;
 
         let svg = d3.select(divRef.current).select("svg");
+        // if (svg.empty()) {
+        //     d3.select(divRef.current).select("canvas").remove();
+        //     svg = d3
+        //         .select(divRef.current)
+        //         .append("svg")
+        //         .attr("width", globalConfig.canvasWidth)
+        //         .attr("height", globalConfig.canvasHeight);
+        // }
+
         if (svg.empty()) {
-            d3.select(divRef.current).select("canvas").remove();
-            svg = d3
-                .select(divRef.current)
-                .append("svg")
-                .attr("width", globalConfig.canvasWidth)
-                .attr("height", globalConfig.canvasHeight);
+            d3.select(divRef.current)
+            .append("svg")
+            .attr("viewBox", `0 0 ${globalConfig.canvasWidth} ${globalConfig.canvasHeight}`)
+            .attr("preserveAspectRatio", "xMidYMid meet")
+            .style("width", "100%")      // fill the container’s width
+            .style("height", "auto")     // height scaled to preserve aspect
+            .style("display", "block");  // remove inline-gap artifacts
         }
 
         const uniqueGroupClass = `group-${idx}`;

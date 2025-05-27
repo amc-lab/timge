@@ -16,4 +16,5 @@ urlpatterns = [
         views.get_files_hierarchical,
         name="get_files_hierarchical",
     ),
+    path("download/", views.download_path, name="download"),
 ]

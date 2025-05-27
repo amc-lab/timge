@@ -17,6 +17,7 @@ from timge.utils.heatmap import generate_contact_map, generate_contact_map_bedpe
 import gzip
 import io
 from io import BytesIO
+from django.http import HttpResponse, StreamingHttpResponse
 
 TRACK_ROOT_DIR = settings.TRACK_ROOT_DIR
 
@@ -86,6 +87,8 @@ def upload_tracks(request):
 
         if path and isinstance(path, list):
             path = "/".join(path)
+        else:
+            path = ""
 
         # make directory for the uuid
         print("Track root dir:", TRACK_ROOT_DIR)
@@ -569,3 +572,65 @@ def folder_operation(request):
             return JsonResponse({"status": "error", "message": str(e)})
 
     return JsonResponse({"status": "error", "message": "Invalid operation."})
+
+
+def stream_zip(target):
+    """
+    Walk `target` (file or folder), write it into an in-memory ZipFile,
+    and yield it in 8k chunks.
+    """
+    buf = BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        if os.path.isfile(target):
+            # Single file: use basename
+            zf.write(target, os.path.basename(target))
+        else:
+            # Directory: walk and zip with paths relative to the directory itself
+            for root, _, files in os.walk(target):
+                for fname in files:
+                    full_path = os.path.join(root, fname)
+                    # This makes “folder/subfolder/file.ext” inside the zip
+                    rel_path = os.path.relpath(full_path, start=target)
+                    zf.write(full_path, rel_path)
+
+    buf.seek(0)
+    while True:
+        chunk = buf.read(8192)
+        if not chunk:
+            break
+        yield chunk
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def download_path(request):
+    """
+    Streams back a ZIP containing either:
+      - one file (if `path` is a file) or
+      - the entire directory tree (if `path` is a folder).
+    """
+    uuid = request.GET.get("uuid")
+    relpath = request.GET.get("path", "").lstrip("/")
+    if not uuid:
+        return JsonResponse({"status": "error", "message": "Missing uuid"}, status=400)
+
+    base_dir = os.path.abspath(os.path.join(TRACK_ROOT_DIR, uuid))
+    target = os.path.abspath(os.path.join(base_dir, relpath))
+
+    # Security: prevent traversal outside of the uuid folder
+    if not target.startswith(base_dir + os.sep):
+        return JsonResponse({"status": "error", "message": "Invalid path"}, status=400)
+    if not os.path.exists(target):
+        return JsonResponse(
+            {"status": "error", "message": "File or directory not found"}, status=404
+        )
+
+    # Decide on a sensible download‐filename
+    if os.path.isdir(target):
+        download_name = os.path.basename(target) or uuid
+    else:
+        download_name = os.path.basename(target)
+
+    response = StreamingHttpResponse(stream_zip(target), content_type="application/zip")
+    response["Content-Disposition"] = f'attachment; filename="{download_name}.zip"'
+    return response

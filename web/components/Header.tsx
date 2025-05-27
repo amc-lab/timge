@@ -89,6 +89,9 @@ const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, addM
                         Multilift
                 </Button>
             </li>
+            <li>
+                <DropdownButton label="Docs" link="/docs" />
+            </li>
         </ul>
     </nav>
     <nav>

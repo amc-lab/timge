@@ -4,7 +4,6 @@ import Segment from "./components/segment";
 import Chords from "./components/chord";
 import Bar from "./components/bar";
 import { Track, TrackType } from "./config/track";
-import Highlight from "./components/highlight"; // Ensure this is the correct path to your Highlight component
 import Ring from "./components/ring";
 import Line from "./components/line";
 import Annotation from "./components/annotation";
@@ -253,6 +252,7 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig }: TracksProp
               config={track.config}
               segments={segmentData}
               idx={index}
+              trackName={track.name}
             />
           )
         }
