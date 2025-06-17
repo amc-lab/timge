@@ -3,7 +3,7 @@ import { Box, Button, Card, IconButton, Input, Option, Select, Slider, TextField
 import { Track, TrackType } from "./config/track";
 import { useState } from "react";
 import Tracks from "./tracks";
-import { defaultAnnotationConfig, defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig, defaultLineConfig } from "./config/defaultConfigs";
+import { defaultAnnotationConfig, defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig, defaultLineConfig, defaultHighlightConfig } from "./config/defaultConfigs";
 import { useRef, useEffect } from "react";
 import MenuIcon from "@mui/icons-material/Menu";
 import * as d3 from "d3";
@@ -11,7 +11,7 @@ import ParentView from "@/components/ParentView";
 import TrackSelector from "./components/TrackSelector";
 import { View } from "@/store/features/views/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { setConnection } from "@/store/features/space/spaceSlice";
+import { setConnection, setDependency } from "@/store/features/space/spaceSlice";
 
 interface CircosViewProps {
     viewConfig: View;
@@ -31,7 +31,15 @@ const CircosView = (props: CircosViewProps) => {
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
-  const [connectedViews, setConnectedViews] = useState<string[]>([]);
+  const [connectedViews, setConnectedViews] = useState<string[]>(() => {
+    const direct = space.connections[props.viewConfig.uuid] || [];
+    const reverse = Object.entries(space.connections)
+      .filter(([key, value]) =>
+        Array.isArray(value) && value.includes(props.viewConfig.uuid)
+      )
+      .map(([key]) => key);
+    return Array.from(new Set([...direct, ...reverse]));
+  });
   const [minFilterScore, setMinFilterScore] = useState(0);
 
   const fileFormatMapping = {
@@ -44,6 +52,17 @@ const CircosView = (props: CircosViewProps) => {
   
   const [tracks, setTracks] = useState<Track[]>([]);
   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
+
+  const shouldDisplayFilterScore = (tracks: Track[]) => {
+    return tracks.some((track) => track.trackType === TrackType.Chord);
+  };
+  const getMaxFilterScore = (tracks: Track[]) => {
+    const chordTracks = tracks.filter((track) => track.trackType === TrackType.Chord);
+    if (chordTracks.length > 0) {
+      return chordTracks[0].data.chords.reduce((max, chord) => Math.max(max, chord.score), 0) + 1;
+    }
+    return 1000;
+  };
 
   const generate_circos_files = (files: any) => {
     console.log("Generating circos files", files);
@@ -98,7 +117,17 @@ const CircosView = (props: CircosViewProps) => {
      }, [globalConfig]);
 
   const helper = (files) => {
-    let updatedTracks: Track[] = [];
+    let updatedTracks: Track[] = [
+      {
+        trackType: TrackType.Highlight,
+        config: defaultHighlightConfig,
+        data: {
+          globalConfig,
+          divRef: canvasRef,
+        },
+        name: "Highlight",
+      }
+    ];
     files.forEach((trackFile) => {
         if (trackFile.name.endsWith(".bedgraph")) {
             updatedTracks.push({
@@ -288,7 +317,7 @@ const CircosView = (props: CircosViewProps) => {
                 <Slider
                   value={minFilterScore}
                   min={0}
-                  max={1000}
+                  max={getMaxFilterScore(selectedTracks)}
                   step={1}
                   valueLabelDisplay="auto"
                   sx={{
@@ -351,18 +380,57 @@ const CircosView = (props: CircosViewProps) => {
                     multiple
                     value={connectedViews}
                     onChange={(event, value) => {
+                      // Find added and removed connections
+                      const prev = connectedViews;
+                      const added = value.filter((v) => !prev.includes(v));
+                      const removed = prev.filter((v) => !value.includes(v));
+
                       setConnectedViews(value);
-                      for (let i = 0; i < value.length; i++) {
-                          const source = props.viewConfig.uuid;
-                          const target = value[i];
-                          dispatch(setConnection(
-                            { 
-                              key: source, value: [...(space.connections[source] || []), target] 
-                            }));
+
+                      // Add new connections
+                      for (let i = 0; i < added.length; i++) {
+                        const source = props.viewConfig.uuid;
+                        const target = added[i];
+                        const targetView = space.views.find((view) => view.uuid === target);
+                        if (targetView?.type === "linear") {
+                          dispatch(setConnection({
+                            key: target,
+                            value: [...(space.connections[target] || []), source]
+                          }));
+                        } else {
+                          dispatch(setConnection({
+                            key: source,
+                            value: [...(space.connections[source] || []), target]
+                          }));
+                        }
                       }
-                    }
-                    }
-      
+
+                      // Remove deselected connections
+                      for (let i = 0; i < removed.length; i++) {
+                        const source = props.viewConfig.uuid;
+                        const target = removed[i];
+                        const targetView = space.views.find((view) => view.uuid === target);
+                        if (targetView?.type === "linear") {
+                          // Remove source from target's connections
+                          const updated = (space.connections[target] || []).filter((uuid) => uuid !== source);
+                          dispatch(setConnection({
+                            key: target,
+                            value: updated
+                          }));
+                          dispatch(setDependency({
+                            key: source,
+                            value: null
+                          }));
+                        } else {
+                          // Remove target from source's connections
+                          const updated = (space.connections[source] || []).filter((uuid) => uuid !== target);
+                          dispatch(setConnection({
+                            key: source,
+                            value: updated
+                          }));
+                        }
+                      }
+                    }}
                   >
                     {space.views &&
                       space.views.filter(
@@ -389,7 +457,13 @@ const CircosView = (props: CircosViewProps) => {
                 }}
                 >
               <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
-                <Tracks id={props.viewConfig.uuid} tracks={selectedTracks} crossViewActionHandler={props.crossViewActionHandler} globalConfig={globalConfig} />
+                <Tracks 
+                  id={props.viewConfig.uuid} 
+                  tracks={selectedTracks} 
+                  crossViewActionHandler={props.crossViewActionHandler} 
+                  globalConfig={globalConfig} 
+                  dependencies={props.dependencies}
+                  />
               </div>
               </Box>
             </Box>

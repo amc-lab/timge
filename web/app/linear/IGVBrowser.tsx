@@ -9,7 +9,7 @@ declare global {
     }
   }
 
-const IGVBrowser = ({ reference, trackFiles, viewConfig }) => {
+const IGVBrowser = ({ reference, trackFiles, viewConfig, crossViewActionHandler }) => {
   const space = useAppSelector((state) => state.space);
   const igvContainerRef = useRef(null);
 
@@ -17,6 +17,18 @@ const IGVBrowser = ({ reference, trackFiles, viewConfig }) => {
     process.env.NEXT_PUBLIC_DJANGO_HOST !== "http://127.0.0.1:8000"
       ? "https://vrise.doc.ic.ac.uk/uploads/" + space.uuid + "/"
       : "http://localhost:3000/";
+
+  const propagateLociUpdate = (loci) => {
+    const viewId = viewConfig.uuid;
+    console.log("Propagating loci update:", loci, "for viewId:", viewId);
+    crossViewActionHandler(
+      "propagate_loci",
+      {
+        viewId: viewId,
+        loci
+      }
+    );
+  };
 
   useEffect(() => {
     const loadScript = () => {
@@ -62,6 +74,18 @@ const IGVBrowser = ({ reference, trackFiles, viewConfig }) => {
 
       // @ts-ignore
       const browser = await window.igv.createBrowser(igvContainerRef.current, options);
+      browser.on("locuschange", (loci) => {
+        console.log("Locus changed:", loci[0]);
+        if (loci) {
+          const { chr, start, end } = loci[0];
+            const updatedLoci = {
+            chr,
+            start: Math.max(parseInt(start, 10), 0),
+            end: Math.max(parseInt(end, 10), 0),
+            };
+          propagateLociUpdate(updatedLoci);
+        }
+      });
     };
 
     initializeBrowser();

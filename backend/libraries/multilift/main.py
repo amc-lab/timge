@@ -12,6 +12,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Align import MultipleSeqAlignment
 
+# from library.liftover import annotate, Lifter, liftover
 from libraries.multilift.liftover import annotate, Lifter, liftover
 from libraries.multilift.msa import align, generate_consensus
 from libraries.multilift.utils import (

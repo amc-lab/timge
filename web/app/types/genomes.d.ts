@@ -64,6 +64,16 @@ interface AssemblyConfig {
   metricPrefix: string;
 }
 
+interface HighlightConfig {
+  // segmentStartIdx: number;
+  // segmentEndIdx: number;
+  // segmentStartPos: number;
+  // segmentEndPos: number;
+  showHighlight: boolean;
+  innerRadius: number;
+  width: number;
+}
+
 interface ChordConfig {
   chordPadding: number;
   opacity: number;

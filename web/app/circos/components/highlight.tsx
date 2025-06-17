@@ -1,29 +1,48 @@
 import { useEffect } from "react";
 import * as d3 from "d3";
-import { GlobalConfig } from "@/app/types/genomes";
+import { GlobalConfig, HighlightConfig } from "@/app/types/genomes";
 
 interface HighlightProps {
-    segmentStartIdx: number;
-    segmentEndIdx: number;
-    segmentStartPos: number;
-    segmentEndPos: number;
-    divRef: any;
+    // segmentStartIdx: number;
+    // segmentEndIdx: number;
+    // segmentStartPos: number;
+    // segmentEndPos: number;
+    // divRef: any;
+    // globalConfig: GlobalConfig;
+    // innerRadius: number;
+    // width: number;
+    data: {
+        globalConfig: GlobalConfig;
+        divRef: any;
+    }
+    config: HighlightConfig;
     segments: Array<any>;
-    globalConfig: GlobalConfig;
-    innerRadius: number;
-    width: number;
+    dependencies?: any;
 }
 
-const Highlight = ({ globalConfig, segments, segmentStartIdx, segmentEndIdx, segmentStartPos, segmentEndPos, divRef, innerRadius, width }: HighlightProps) => {
-    console.log(segmentStartIdx, segmentEndIdx, segmentStartPos, segmentEndPos, divRef);
+const Highlight = ({  data, config, segments, dependencies }: HighlightProps) => {
+    const { divRef, globalConfig } = data;
+
     useEffect(() => {
-        console.log("Highlighting", segments);
         if (!divRef || !divRef.current || segments.length === 0) return;
 
         let svg = d3.select(divRef.current).select("svg");
     
         const uniqueGroupClass = `highlight-group`;
         svg.selectAll(`g.${uniqueGroupClass}`).remove();
+
+        const { innerRadius, width } = config;
+        if (!dependencies) {
+            dependencies = { chr: undefined, start: undefined, end: undefined };
+        }
+
+        const { chr, start, end } = dependencies;
+        if (!chr || chr === "all" || start === undefined || end === undefined) return;
+
+        const segmentStartIdx = segments.findIndex(segment => segment.chromosome === chr);
+        const segmentEndIdx = segments.findIndex(segment => segment.chromosome === chr);
+        const segmentStartPos = start;
+        const segmentEndPos = end;      
     
         const group = svg
             .append("g")
@@ -46,7 +65,7 @@ const Highlight = ({ globalConfig, segments, segmentStartIdx, segmentEndIdx, seg
             .attr("fill", "blue")
             .attr("opacity", 0.1);
         
-    }, [segmentStartIdx, segmentEndIdx, segmentStartPos, segmentEndPos, divRef, segments]);
+    }, [config, divRef, segments, dependencies]);
     
     return null;
 };

@@ -15,9 +15,10 @@ interface ChordProps {
   selectedSegments?: string[];
   idx: number;
   globalConfig?: GlobalConfig;
+  dependencies?: any;
 }
 
-const Chords = ({ data, config, segments, selectedSegments, idx, globalConfig }: ChordProps) => {
+const Chords = ({ data, config, segments, selectedSegments, idx, globalConfig, dependencies }: ChordProps) => {
   const canvasRef = data.divRef;
   const chords = data.chords;
 
@@ -52,8 +53,39 @@ const Chords = ({ data, config, segments, selectedSegments, idx, globalConfig }:
 
     const minFilterScore = config.minFilterScore;
     const maxFilterScore = config.maxFilterScore;
-    const filteredChords = chords.filter((d) => d.score >= minFilterScore && d.score <= maxFilterScore);
+    let filteredChords = chords.filter((d) => d.score >= minFilterScore && d.score <= maxFilterScore);
     filteredChords.sort((a, b) => b.score - a.score);
+
+    if (!dependencies) {
+      dependencies = { chr: undefined, start: undefined, end: undefined };
+    }
+    const {chr, start, end} = dependencies;
+    if (chr && chr !== "all" && start !== undefined && end !== undefined) {
+      filteredChords = filteredChords.filter((d => {
+        const sourceSegment = segments.find(segment => segment.chromosome === d.source_chromosome);
+        const targetSegment = segments.find(segment => segment.chromosome === d.target_chromosome);
+        if (!sourceSegment || !targetSegment) return false;
+        const sourceStartAngle = sourceSegment.startAngle +
+          (d.source_start / sourceSegment.length) *
+          (sourceSegment.endAngle - sourceSegment.startAngle);
+        const sourceEndAngle = sourceSegment.startAngle +
+          (d.source_end / sourceSegment.length) *
+          (sourceSegment.endAngle - sourceSegment.startAngle);
+        const targetStartAngle = targetSegment.startAngle +
+          (d.target_start / targetSegment.length) *
+          (targetSegment.endAngle - targetSegment.startAngle);
+        const targetEndAngle = targetSegment.startAngle +
+          (d.target_end / targetSegment.length) *
+          (targetSegment.endAngle - targetSegment.startAngle);
+        return (
+          (d.source_chromosome === chr && d.source_start >= start && d.source_end <= end) ||
+          (d.target_chromosome === chr && d.target_start >= start && d.target_end <= end) ||
+          (d.source_chromosome === chr && d.target_chromosome === chr &&
+            ((d.source_start >= start && d.source_end <= end) ||
+              (d.target_start >= start && d.target_end <= end)))
+        );
+      }));
+    }
 
     const maxScore = d3.max(filteredChords, (d) => d.score);
     const minScore = d3.min(filteredChords, (d) => d.score);
@@ -159,7 +191,7 @@ const Chords = ({ data, config, segments, selectedSegments, idx, globalConfig }:
           return globalConfig.linkSelectedOpacity || 0.6;
         })
       });
-  }, [canvasRef, chords, config, globalConfig, segments, selectedSegments]);
+  }, [canvasRef, chords, config, globalConfig, segments, selectedSegments, dependencies]);
 
   return null;
 };

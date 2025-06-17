@@ -7,6 +7,7 @@ import { Track, TrackType } from "./config/track";
 import Ring from "./components/ring";
 import Line from "./components/line";
 import Annotation from "./components/annotation";
+import Highlight from "./components/highlight";
 import { AnnotationData as AnnotationType, GlobalConfig } from "../types/genomes";
 
 interface TracksProps {
@@ -14,9 +15,10 @@ interface TracksProps {
   crossViewActionHandler?: any;
   id?: string;
   globalConfig?: GlobalConfig;
+  dependencies?: any;
 }
 
-const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig }: TracksProps) => {
+const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig, dependencies }: TracksProps) => {
   const [segmentData, setSegmentData] = useState<any[]>([]);
   const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
   const [trackData, setTrackData] = useState<Array<Track>>([]);
@@ -36,8 +38,19 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig }: TracksProp
   }
   , [totalRadius]);
 
+  const setHighlightConfig = (tracks: Array<Track>, newHighlightConfig: any) => {
+    const highlightTrack = tracks.find(track => track.trackType === TrackType.Highlight);
+    if (highlightTrack) {
+      highlightTrack.config = {
+        ...highlightTrack.config,
+        ...newHighlightConfig
+      };
+    }
+  };
+
   useEffect(() => {
     let minAvailableRadius = 160;
+    let karyotypeWidth = 0;
 
     const updatedTracks = [...tracks]
       .reverse()
@@ -47,6 +60,10 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig }: TracksProp
           const trackWidth = track.config.segmentTrackWidth;
           minAvailableRadius =
             segmentInnerRadius + trackWidth + track.config.segmentGridPadding;
+          setHighlightConfig(tracks, {
+            innerRadius: segmentInnerRadius - 5,
+            width: trackWidth + 10,
+          });
           return {
             ...track,
             config: {
@@ -230,6 +247,7 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig }: TracksProp
               selectedSegments={selectedSegments}
               idx={index}
               globalConfig={globalConfig}
+              dependencies={dependencies}
             />
           );
         }
@@ -267,20 +285,17 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig }: TracksProp
             />
           );
         }
-        // else if (track.trackType === TrackType.Highlight) {
-        //   return (
-        //     <Highlight
-        //       key={index}
-        //       divRef={track.data.divRef}
-        //       segmentStartIdx={0}
-        //       segmentEndIdx={0}
-        //       segmentStartPos={2000}
-        //       segmentEndPos={5000}
-        //       segments={segmentData}
-        //       globalConfig={track.data.globalConfig}
-        //     />
-        //   );
-        // }
+        else if (track.trackType === TrackType.Highlight) {
+          return (
+            <Highlight
+              key={index}
+              segments={segmentData}
+              config={track.config}
+              data={track.data}
+              dependencies={dependencies}
+            />
+          );
+        }
         return null;
       })}
     </>

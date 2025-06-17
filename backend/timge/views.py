@@ -18,6 +18,11 @@ import gzip
 import io
 from io import BytesIO
 from django.http import HttpResponse, StreamingHttpResponse
+import tempfile
+from pathlib import Path
+import tempfile, zipfile
+from timge.utils.diffStructure.main import run_differential
+import pandas as pd
 
 TRACK_ROOT_DIR = settings.TRACK_ROOT_DIR
 
@@ -634,3 +639,223 @@ def download_path(request):
     response = StreamingHttpResponse(stream_zip(target), content_type="application/zip")
     response["Content-Disposition"] = f'attachment; filename="{download_name}.zip"'
     return response
+
+
+def csv_to_bedgraphs(input_csv, output_prefix=""):
+    """
+    Reads a CSV file with columns ['chrom', 'start_pos', 'end_pos', 'raw_pval', 'effect_size']
+    and writes a separate BEDGraph file for each chromosome. Each BEDGraph will have:
+        chrom  start_pos  end_pos  effect_size
+
+    Parameters:
+    - input_csv (str): Path to the input CSV file.
+    - output_prefix (str): Optional prefix or directory for output files.
+                           Each file will be named "<output_prefix><chrom>.bedgraph".
+
+    Example:
+        csv_to_bedgraphs("results.csv", output_prefix="bedgraphs/")
+    """
+    # Load the CSV into a DataFrame
+    df = pd.read_csv(input_csv)
+
+    # Ensure required columns are present
+    required_cols = {"chrom", "start_pos", "end_pos", "effect_size"}
+    if not required_cols.issubset(df.columns):
+        missing = required_cols - set(df.columns)
+        raise ValueError(f"Missing required columns: {missing}")
+
+    # Group by chromosome and write one bedgraph per group
+    for chrom, group in df.groupby("chrom"):
+        # Select only the start_pos, end_pos, and effect_size columns
+        bedgraph_df = group[["start_pos", "end_pos", "effect_size"]].copy()
+
+        # Sort by start_pos (BEDGraph files should be sorted)
+        bedgraph_df = bedgraph_df.sort_values("start_pos")
+
+        # Construct output filename
+        filename = f"{output_prefix}{chrom}.bedgraph"
+
+        # Write to file (no header, tab‐separated)
+        bedgraph_df.to_csv(filename, sep="\t", header=False, index=False)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def diff_structure(request):
+    print("Received request for differential structure analysis")
+    print("Request data:", request.POST, request.FILES)
+
+    # 1) parse condition names
+    conds = []
+    for key, value in request.POST.items():
+        if key.startswith("condition_") and key.endswith("_name"):
+            idx = int(key.split("_")[1])
+            while len(conds) <= idx:
+                conds.append({"name": None, "files": []})
+            conds[idx]["name"] = value
+
+    # 2) collect uploaded files
+    for key, f in request.FILES.items():
+        parts = key.split("_")
+        idx = int(parts[1])
+        if idx >= len(conds) or conds[idx]["name"] is None:
+            return JsonResponse(
+                {"error": f"Missing name for condition index {idx}"}, status=400
+            )
+        conds[idx]["files"].append(f)
+
+    # 3) write uploads to a temporary work directory
+    workdir = Path(tempfile.mkdtemp())
+    cond1_paths, cond2_paths = [], []
+    for idx, cond in enumerate(conds):
+        target_list = cond1_paths if idx == 0 else cond2_paths
+        for j, upload in enumerate(cond["files"]):
+            # sanitize filename
+            safe_name = "".join(c for c in cond["name"] if c.isalnum() or c in "-_")
+            fn = workdir / f"{safe_name}_rep{j}.txt"
+            with fn.open("wb") as out:
+                for chunk in upload.chunks():
+                    out.write(chunk)
+            target_list.append(str(fn))
+
+    # 4) run the HMM-based differential peak caller
+    out_csv = workdir / "diff_peaks.csv"
+    try:
+        run_differential(
+            cond1_paths,
+            cond2_paths,
+            str(out_csv),
+            n_states=2,
+            cov_type="diag",
+            pvalue_cutoff=0.05,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": "Differential analysis failed", "details": str(e)}, status=500
+        )
+
+    # 5) generate one BEDGraph per chromosome from diff_peaks.csv
+    #    Each bedgraph has columns: chrom, start_pos, end_pos, effect_size
+    df = pd.read_csv(out_csv)
+    required_cols = {"chrom", "start_pos", "end_pos", "adj_pval"}
+    missing = required_cols - set(df.columns)
+    if missing:
+        return JsonResponse(
+            {"error": f"diff_peaks.csv is missing required columns: {missing}"},
+            status=500,
+        )
+
+    bedgraph_paths = []
+    for chrom, group in df.groupby("chrom"):
+        bg_df = group[["chrom", "start_pos", "end_pos", "adj_pval"]].sort_values(
+            "start_pos"
+        )
+        bedgraph_file = workdir / f"{chrom}.bedgraph"
+        bg_df.to_csv(bedgraph_file, sep="\t", header=False, index=False)
+        bedgraph_paths.append(bedgraph_file)
+
+    # 6) zip results (both diff_peaks.csv and all BEDGraphs)
+    zip_path = workdir / "results.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.write(out_csv, arcname="diff_peaks.csv")
+        for bg in bedgraph_paths:
+            zf.write(bg, arcname=bg.name)
+
+    # 7) return the ZIP as the HTTP response
+    with zip_path.open("rb") as fh:
+        response = HttpResponse(fh.read(), content_type="application/zip")
+        response["Content-Disposition"] = (
+            'attachment; filename="diff_peaks_and_bedgraphs.zip"'
+        )
+        return response
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def diff_structure_test(request):
+    """
+    Test endpoint for differential structure analysis.
+    This is a mock implementation that simulates the process.
+    """
+    conds = []
+    for key, value in request.POST.items():
+        if key.startswith("condition_") and key.endswith("_name"):
+            idx = int(key.split("_")[1])
+            while len(conds) <= idx:
+                conds.append({"name": None, "files": []})
+            conds[idx]["name"] = value
+
+    # 2) collect uploaded files
+    for key, f in request.FILES.items():
+        parts = key.split("_")
+        idx = int(parts[1])
+        if idx >= len(conds) or conds[idx]["name"] is None:
+            return JsonResponse(
+                {"error": f"Missing name for condition index {idx}"}, status=400
+            )
+        conds[idx]["files"].append(f)
+
+    # 3) write uploads to a temporary work directory
+    workdir = Path(tempfile.mkdtemp())
+    cond1_paths, cond2_paths = [], []
+    for idx, cond in enumerate(conds):
+        target_list = cond1_paths if idx == 0 else cond2_paths
+        for j, upload in enumerate(cond["files"]):
+            # sanitize filename
+            safe_name = "".join(c for c in cond["name"] if c.isalnum() or c in "-_")
+            fn = workdir / f"{safe_name}_rep{j}.txt"
+            with fn.open("wb") as out:
+                for chunk in upload.chunks():
+                    out.write(chunk)
+            target_list.append(str(fn))
+
+    # 4) run the HMM-based differential peak caller
+    out_csv = workdir / "diff_peaks.csv"
+    try:
+        run_differential(
+            cond1_paths,
+            cond2_paths,
+            str(out_csv),
+            n_states=2,
+            cov_type="diag",
+            pvalue_cutoff=0.05,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": "Differential analysis failed", "details": str(e)}, status=500
+        )
+
+    # 5) generate one BEDGraph per chromosome from diff_peaks.csv
+    #    Each bedgraph has columns: chrom, start_pos, end_pos, effect_size
+    df = pd.read_csv(out_csv)
+    required_cols = {"chrom", "start_pos", "end_pos", "adj_pval"}
+    missing = required_cols - set(df.columns)
+    if missing:
+        return JsonResponse(
+            {"error": f"diff_peaks.csv is missing required columns: {missing}"},
+            status=500,
+        )
+
+    bedgraph_paths = []
+    for chrom, group in df.groupby("chrom"):
+        bg_df = group[["chrom", "start_pos", "end_pos", "adj_pval"]].sort_values(
+            "start_pos"
+        )
+        bedgraph_file = workdir / f"{chrom}.bedgraph"
+        bg_df.to_csv(bedgraph_file, sep="\t", header=False, index=False)
+        bedgraph_paths.append(bedgraph_file)
+
+    # 6) zip results (both diff_peaks.csv and all BEDGraphs)
+    zip_path = workdir / "results.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.write(out_csv, arcname="diff_peaks.csv")
+        for bg in bedgraph_paths:
+            zf.write(bg, arcname=bg.name)
+
+    # 7) return the ZIP as the HTTP response
+    with zip_path.open("rb") as fh:
+        response = HttpResponse(fh.read(), content_type="application/zip")
+        response["Content-Disposition"] = (
+            'attachment; filename="diff_peaks_and_bedgraphs.zip"'
+        )
+        return response

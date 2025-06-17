@@ -16,6 +16,7 @@ export const getDefaultState = (): State => ({
   dataFiles: [], // Array of file paths or URLs
   config: {
     "expanded_sidebar": true,
+    "diff_structure_form_open": false,
     "multilift_form_open": false,
     "working_directory": [],
   },
@@ -58,6 +59,8 @@ const spaceSlice = createSlice({
     setConnection: (state, action: PayloadAction<{ key: string, value: any }>) => {
       const { key, value } = action.payload;
       state.connections[key] = value;
+      console.log("Connection set:", key, value);
+      console.log("Current connections:", state.connections);
     },
     deleteConnection: (state, action: PayloadAction<string>) => {
       delete state.connections[action.payload];
@@ -76,6 +79,12 @@ const spaceSlice = createSlice({
       state.config = {
         ...state.config,
         expanded_sidebar: action.payload,
+      };
+    },
+    setDiffStructureFormOpen: (state, action: PayloadAction<boolean>) => {
+      state.config = {
+        ...state.config,
+        diff_structure_form_open: action.payload,
       };
     },
     setMultiliftFormOpen: (state, action: PayloadAction<boolean>) => {
@@ -138,6 +147,7 @@ export const {
   setSidebarExpanded,
   setMultiliftFormOpen,
   setWorkingDirectory,
+  setDiffStructureFormOpen,
   updateViewConfig,
   getViewConfig,
   updateViewProps

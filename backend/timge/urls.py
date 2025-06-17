@@ -17,4 +17,5 @@ urlpatterns = [
         name="get_files_hierarchical",
     ),
     path("download/", views.download_path, name="download"),
+    path("diff_structure/", views.diff_structure, name="diff_structure"),
 ]

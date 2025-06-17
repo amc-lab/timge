@@ -21,6 +21,7 @@ import {
   setConnection,
   deleteConnection,
   deleteDependency,
+  setDiffStructureFormOpen,
 } from "@/store/features/space/spaceSlice";
 import { addLinearGenomeView, addCircosView, addMapView, addCustomMapView } from "./utils/viewUtils";
 import FileViewerPanel from "@/components/FileViewerPanel";
@@ -31,6 +32,8 @@ import { fetchFiles } from "@/store/features/files/fileSlice";
 import { File as FileType } from "@/store/features/files/types";
 import LinearProgress from '@mui/material/LinearProgress';
 import { setLoading } from "@/store/features/site/siteSlice";
+import ShapeReactivityForm from "./diffStructure/Form";
+import { store } from "@/store";
 
 interface FileEntry {
   name: string;
@@ -237,6 +240,27 @@ export default function Page() {
         });
       }
     }
+    else if (action === "propagate_loci") {
+      console.log("Propagating loci update:", data);
+      const currentSpace = store.getState().space;
+      const { viewId, loci } = data;
+      console.log("View ID:", viewId, "Loci:", loci);
+      console.log("Space connections:", currentSpace.connections);
+      const dependents = currentSpace.connections[viewId];
+      console.log(dependents);
+      if (dependents) {
+        dependents.forEach((dependentId) => {
+          dispatch(setDependency({ key: dependentId, value: loci }));
+        });
+      }
+    }
+    else if (action === "update_view") {
+      const { index, updated } = data;
+      updateViewState(index, updated);
+    }
+    else if (action === "set_diff_structure_form_open") {
+      dispatch(setDiffStructureFormOpen(data.open));
+    }
     else {
       console.log("Unknown action:", action);
     }
@@ -328,6 +352,15 @@ export default function Page() {
             refreshView={refreshFileViewer}
             setRefreshView={setRefreshFileViewer}
         />
+        ) : space.config?.diff_structure_form_open ? (
+          <ShapeReactivityForm
+            open={space.config?.diff_structure_form_open}
+            onClose={() => dispatch(setDiffStructureFormOpen(false))}
+            onSubmit={(conditions) => {
+              console.log("Conditions submitted:", conditions);
+              dispatch(setSpace({ ...space, config: { ...space.config, diff_structure_form_open: false } }));
+            }}
+          />
         ) : <Sidebar />
       }
 

@@ -26,6 +26,7 @@ interface LinearViewProps {
 
 const LinearView = (props: LinearViewProps) => {
   const space = useAppSelector((state) => state.space);
+  
   const [reference, setReference] = useState(
     space.views.find(v => v.uuid === props.viewConfig.uuid).config.reference || ""
   );
@@ -283,6 +284,7 @@ const LinearView = (props: LinearViewProps) => {
             reference={reference}
             trackFiles={selectedTracks}
             viewConfig={props.viewConfig}
+            crossViewActionHandler={props.crossViewActionHandler}
           />
         </Box>
       )}

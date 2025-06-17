@@ -24,6 +24,12 @@ export const defaultChordConfig = {
   maxFilterScore: 1000,
 };
 
+export const defaultHighlightConfig = {
+  innerRadius: 195,
+  width: 50,
+  showHighlight: false,
+};
+
 export const defaultBarConfig = {
   innerRadius: 200,
   trackPadding: 10,
