@@ -1,5 +1,5 @@
 "use client"
-import { Box, Button, Card, IconButton, Input, Option, Select, Slider, TextField, Typography } from "@mui/joy";
+import { Box, Button, Card, IconButton, Input, Option, Select, Slider, Switch, TextField, Typography } from "@mui/joy";
 import { Track, TrackType } from "./config/track";
 import { useState } from "react";
 import Tracks from "./tracks";
@@ -40,6 +40,7 @@ const CircosView = (props: CircosViewProps) => {
       .map(([key]) => key);
     return Array.from(new Set([...direct, ...reverse]));
   });
+
   const [minFilterScore, setMinFilterScore] = useState(0);
 
   const fileFormatMapping = {
@@ -53,9 +54,6 @@ const CircosView = (props: CircosViewProps) => {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
 
-  const shouldDisplayFilterScore = (tracks: Track[]) => {
-    return tracks.some((track) => track.trackType === TrackType.Chord);
-  };
   const getMaxFilterScore = (tracks: Track[]) => {
     const chordTracks = tracks.filter((track) => track.trackType === TrackType.Chord);
     if (chordTracks.length > 0) {
@@ -122,7 +120,7 @@ const CircosView = (props: CircosViewProps) => {
         trackType: TrackType.Highlight,
         config: defaultHighlightConfig,
         data: {
-          globalConfig,
+          // globalConfig,
           divRef: canvasRef,
         },
         name: "Highlight",
@@ -262,7 +260,9 @@ const CircosView = (props: CircosViewProps) => {
                 setIsTrackSelectorOpen(false);
               }}
             />
-          ) : props.viewConfig.visible_tracks.length === 0 ? (
+          ) : null 
+        }
+        {props.viewConfig.visible_tracks.length === 0 ? (
             <Box
               sx={{
                 display: "flex",
@@ -303,151 +303,254 @@ const CircosView = (props: CircosViewProps) => {
                   width: "100%",
                   borderRadius: "none",
                   flexDirection: "row",
-                  justifyContent: "center",
                   alignItems: "center",
+                  backgroundColor: "#f3f3f3",
+                  border: "1px solid #bfbfbf",
+                  justifyContent: "center",
+                  padding: "5px",
                 }}
               >
-                <Typography
+                <Box
                   sx={{
-                    fontSize: "1em",
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "left",
+                    width: "10%",
+                    flexWrap: "wrap",
                   }}
                 >
-                  Filter score:
-                </Typography>
-                <Slider
-                  value={minFilterScore}
-                  min={0}
-                  max={getMaxFilterScore(selectedTracks)}
-                  step={1}
-                  valueLabelDisplay="auto"
-                  sx={{
-                    width: "10%",
-                  }}
-                  onChange={(event, newValue) => {
-                    setMinFilterScore(newValue as number);
-                    setSelectedTracks((prevTracks) => {
-                      return prevTracks.map((track) => {
-                        if (track.trackType === TrackType.Chord) {
-                          return {
-                            ...track,
-                            config: {
-                              ...track.config,
-                              minFilterScore: newValue as number,
-                              // maxFilterScore: newValue[1],
-                            },
-                          };
-                        }
-                        return track;
-                      });
-                    });
-                  }}
-                  ></Slider>
                   <Typography
                     sx={{
-                      fontSize: "1em",
+                      fontSize: "0.8em",
                       marginLeft: "10px",
                     }}
                   >
-                    Link Transparency:
+                    {selectedTracks.filter((track) => track.trackType === TrackType.Karyotype).length > 0
+                      ? selectedTracks.filter((track) => track.trackType === TrackType.Karyotype)[0].name + " (Reference)"
+                      : "No Reference Track Selected"}
+                  </Typography>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "right",
+                    width: "90%",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                    }}
+                  >
+                  <Typography
+                    sx={{
+                      fontSize: "0.8em",
+                      marginRight: "10px",
+                    }}
+                  >
+                    Show Highlights:
+                  </Typography>
+                  <Switch
+                    checked={globalConfig.showHighlight}
+                    onChange={(event) => {
+                      setGlobalConfig({
+                        ...globalConfig,
+                        showHighlight: event.target.checked,
+                      });
+                    }}
+                    sx={{
+                      marginRight: "10px",
+                    }}
+                  />
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                    }}
+                  >
+                  <Typography
+                    sx={{
+                      fontSize: "0.8em",
+                      marginRight: "20px",
+                    }}
+                  >
+                    Filter score:
                   </Typography>
                   <Slider
+                    value={minFilterScore}
                     min={0}
-                    max={1}
-                    step={0.1}
-                    value={globalConfig.linkUnselectedOpacity}
+                    max={getMaxFilterScore(selectedTracks)}
+                    step={1}
                     valueLabelDisplay="auto"
                     sx={{
                       width: "10%",
-                      marginLeft: "10px",
+                      minWidth: "50px",
+                      marginRight: "20px",
                     }}
                     onChange={(event, newValue) => {
-                      setGlobalConfig({
-                        ...globalConfig,
-                        linkUnselectedOpacity: newValue as number,
+                      setMinFilterScore(newValue as number);
+                      setSelectedTracks((prevTracks) => {
+                        return prevTracks.map((track) => {
+                          if (track.trackType === TrackType.Chord) {
+                            return {
+                              ...track,
+                              config: {
+                                ...track.config,
+                                minFilterScore: newValue as number,
+                                // maxFilterScore: newValue[1],
+                              },
+                            };
+                          }
+                          return track;
+                        });
                       });
                     }}
-                  ></Slider>
-                  <Typography
-                    sx={{
-                      fontSize: "1em",
-                      marginLeft: "10px",
-                    }}
-                  >
-                    Connect to:
-                  </Typography>
-                  <Select
-                    placeholder="Select views"
-                    multiple
-                    value={connectedViews}
-                    onChange={(event, value) => {
-                      // Find added and removed connections
-                      const prev = connectedViews;
-                      const added = value.filter((v) => !prev.includes(v));
-                      const removed = prev.filter((v) => !value.includes(v));
+                    ></Slider>
+                  </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "left",
+                      }}
+                    >
+                    <Typography
+                      sx={{
+                        fontSize: "0.8em",
+                        marginRight: "20px",
+                      }}
+                    >
+                      Link Transparency:
+                    </Typography>
+                    <Slider
+                      min={0}
+                      max={1}
+                      step={0.1}
+                      value={globalConfig.linkUnselectedOpacity}
+                      valueLabelDisplay="auto"
+                      sx={{
+                        width: "10%",
+                        minWidth: "50px",
+                        marginRight: "20px",
+                      }}
+                      onChange={(event, newValue) => {
+                        setGlobalConfig({
+                          ...globalConfig,
+                          linkUnselectedOpacity: newValue as number,
+                        });
+                      }}
+                    ></Slider>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "left",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                    <Typography
+                      sx={{
+                        fontSize: "0.8em",
+                        marginRight: "10px",
+                      }}
+                    >
+                      Connect to:
+                    </Typography>
+                    <Select
+                      placeholder="Select views"
+                      multiple
+                      value={connectedViews}
+                      onChange={(event, value) => {
+                        // Find added and removed connections
+                        const prev = connectedViews;
+                        const added = value.filter((v) => !prev.includes(v));
+                        const removed = prev.filter((v) => !value.includes(v));
 
-                      setConnectedViews(value);
+                        setConnectedViews(value);
 
-                      // Add new connections
-                      for (let i = 0; i < added.length; i++) {
-                        const source = props.viewConfig.uuid;
-                        const target = added[i];
-                        const targetView = space.views.find((view) => view.uuid === target);
-                        if (targetView?.type === "linear") {
-                          dispatch(setConnection({
-                            key: target,
-                            value: [...(space.connections[target] || []), source]
-                          }));
-                        } else {
-                          dispatch(setConnection({
-                            key: source,
-                            value: [...(space.connections[source] || []), target]
-                          }));
+                        // Add new connections
+                        for (let i = 0; i < added.length; i++) {
+                          const source = props.viewConfig.uuid;
+                          const target = added[i];
+                          const targetView = space.views.find((view) => view.uuid === target);
+                          if (targetView?.type === "linear") {
+                            dispatch(setConnection({
+                              key: target,
+                              value: [...(space.connections[target] || []), source]
+                            }));
+                          } else {
+                            dispatch(setConnection({
+                              key: source,
+                              value: [...(space.connections[source] || []), target]
+                            }));
+                          }
                         }
-                      }
 
-                      // Remove deselected connections
-                      for (let i = 0; i < removed.length; i++) {
-                        const source = props.viewConfig.uuid;
-                        const target = removed[i];
-                        const targetView = space.views.find((view) => view.uuid === target);
-                        if (targetView?.type === "linear") {
-                          // Remove source from target's connections
-                          const updated = (space.connections[target] || []).filter((uuid) => uuid !== source);
-                          dispatch(setConnection({
-                            key: target,
-                            value: updated
-                          }));
-                          dispatch(setDependency({
-                            key: source,
-                            value: null
-                          }));
-                        } else {
-                          // Remove target from source's connections
-                          const updated = (space.connections[source] || []).filter((uuid) => uuid !== target);
-                          dispatch(setConnection({
-                            key: source,
-                            value: updated
-                          }));
+                        // Remove deselected connections
+                        for (let i = 0; i < removed.length; i++) {
+                          const source = props.viewConfig.uuid;
+                          const target = removed[i];
+                          const targetView = space.views.find((view) => view.uuid === target);
+                          if (targetView?.type === "linear") {
+                            // Remove source from target's connections
+                            const updated = (space.connections[target] || []).filter((uuid) => uuid !== source);
+                            dispatch(setConnection({
+                              key: target,
+                              value: updated
+                            }));
+                            dispatch(setDependency({
+                              key: source,
+                              value: null
+                            }));
+                          } else {
+                            // Remove target from source's connections
+                            const updated = (space.connections[source] || []).filter((uuid) => uuid !== target);
+                            dispatch(setConnection({
+                              key: source,
+                              value: updated
+                            }));
+                          }
                         }
-                      }
-                    }}
-                  >
-                    {space.views &&
-                      space.views.filter(
-                        (view) => view.uuid !== props.viewConfig.uuid
-                      )
-                        .map((view) => {
-                        return (
-                          <Option
-                            key={view.uuid}
-                            value={view.uuid}
-                          >
-                            {view.title}
-                          </Option>
-                        );
-                      }
-                    )}
-                  </Select>
+                      }}
+                      sx={{
+                        fontSize: "0.8em",
+                        marginRight: "10px",
+                      }}
+                    >
+                      {space.views &&
+                        space.views.filter(
+                          (view) => view.uuid !== props.viewConfig.uuid
+                        )
+                          .map((view) => {
+                          return (
+                            <Option
+                              key={view.uuid}
+                              value={view.uuid}
+                              sx={{
+                                fontSize: "0.8em",
+                              }}
+                            >
+                              {view.title}
+                            </Option>
+                          );
+                        }
+                      )}
+                    </Select>
+                    </Box>
+                  </Box>
               </Card>
               <Box
                 sx={{

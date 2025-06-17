@@ -57,7 +57,6 @@ const Line = ({ data, config, segments, idx, trackName }: LineProps) => {
                             .filter(d => d.chrom === segment.chromosome)
                             .map(d => [d.chromStart, d])
                     );
-            console.log(byPos);
             const fullValues: Array<LineData | undefined> = Array.from({ length: segLen }, (_, i) =>
             byPos.get(i)
             );

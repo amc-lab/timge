@@ -14,6 +14,8 @@ interface CanvasHeatmapProps {
   setCanvasRef?: (el: HTMLCanvasElement | null) => void;
   setZoomRef?: (zoom: d3.ZoomBehavior<Element, unknown>, svgEl: SVGSVGElement | null) => void;
   viewConfig?: View;
+  onLocusChange?: (xRange: [number, number], yRange: [number, number]) => void;
+  zoomToLocusRef?: React.MutableRefObject<((x0: number, x1: number, y0: number, y1: number) => void) | null>;
 }
 
 const CanvasHeatmap = ({
@@ -27,7 +29,9 @@ const CanvasHeatmap = ({
   isMinimised,
   setCanvasRef,
   setZoomRef,
-  viewConfig
+  viewConfig,
+  onLocusChange,
+  zoomToLocusRef,
 }: CanvasHeatmapProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -175,6 +179,15 @@ const CanvasHeatmap = ({
         const zx = transform.rescaleX(xScale);
         const zy = transform.rescaleY(yScale);
 
+        if (onLocusChange) {
+          const zx = transform.rescaleX(xScale);
+          const zy = transform.rescaleY(yScale);
+          const xDomain = zx.domain().map(d => Math.round(d * resolution)) as [number, number];
+          const yDomain = zy.domain().map(d => Math.round(d * resolution)) as [number, number];
+          onLocusChange(xDomain, yDomain);
+        }
+
+
         gx.call(d3.axisBottom(zx).ticks(10).tickFormat(d => `${Math.round(+d * resolution)}`));
         gy.call(d3.axisLeft(zy).ticks(10).tickFormat(d => `${Math.round(+d * resolution)}`));
 
@@ -183,6 +196,18 @@ const CanvasHeatmap = ({
     
     if (setZoomRef) {
       setZoomRef(zoom, svgRef.current);
+    }
+
+    if (zoomToLocusRef) {
+      zoomToLocusRef.current = (x0, x1, y0, y1) => {
+        const scaleX = fixedWidth / ((x1 - x0) / resolution);
+        const scaleY = (fixedWidth * matrix[0].length / matrix.length) / ((y1 - y0) / resolution);
+        const scale = Math.min(scaleX, scaleY);
+        const tx = -x0 / resolution * scale;
+        const ty = -y0 / resolution * scale;
+        const transform = d3.zoomIdentity.translate(tx, ty).scale(scale);
+        d3.select(svgRef.current).call(zoom.current!.transform, transform);
+      };
     }
 
     svg.call(zoom as any);

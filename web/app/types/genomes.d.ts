@@ -128,6 +128,7 @@ interface GlobalConfig {
   canvasHeight: number;
   linkSelectedOpacity: number;
   linkUnselectedOpacity: number;
+  showHighlight: boolean;
 }
 
 interface SegmentDetails {

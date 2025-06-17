@@ -162,6 +162,27 @@ def multilift(
                 aln = AlignIO.read(result, "fasta")
                 L.add_alignment(aln, seq_group)
 
+                # Rewind to the start of the result to split into per-genome FASTA
+                result.seek(0)
+                fasta_content = result.read()
+
+                # Split by FASTA entries and write each genome to a separate file
+                for record in SeqIO.parse(StringIO(fasta_content), "fasta"):
+                    seq_id = (
+                        record.id
+                    )  # You can also use record.description for full line
+                    single_fasta_io = StringIO()
+                    SeqIO.write(record, single_fasta_io, "fasta")
+                    single_fasta_io.seek(0)
+
+                    # Add each file to the archive
+                    add_to_archive(
+                        Arc,
+                        BytesIO(bytes(single_fasta_io.getvalue(), "utf-8")),
+                        f"alignment/{seq_id}.fa",
+                        uiobj_download_format,
+                    )
+
                 # Write alignment as fasta
                 add_to_archive(
                     Arc,

@@ -9,8 +9,8 @@ import {
   Divider,
 } from "@mui/joy";
 import { Collapse } from "@mui/material";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import FolderIcon from "@mui/icons-material/Folder";
 import DescriptionIcon from "@mui/icons-material/Description";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -30,6 +30,12 @@ interface TrackSelectorProps {
   onClose: () => void;
   onConfirm: (selectedTracks: Track[]) => void;
 }
+
+const isFasta = (track: Track) =>
+  track.trackType === TrackType.Karyotype;
+
+const isReferenceFasta = (track: Track) =>
+  isFasta(track) && track.reference;
 
 const TrackSelector: React.FC<TrackSelectorProps> = ({
   onClose,
@@ -95,12 +101,40 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({
     fetchFiles();
   }, [space]);
 
+  // const toggleTrack = (track: Track) => {
+  //   setSelectedTracks((prev) =>
+  //     prev.includes(track)
+  //       ? prev.filter((t) => t !== track)
+  //       : [...prev, track]
+  //   );
+  // };
+
   const toggleTrack = (track: Track) => {
-    setSelectedTracks((prev) =>
-      prev.includes(track)
-        ? prev.filter((t) => t !== track)
-        : [...prev, track]
-    );
+    setSelectedTracks((prev) => {
+      const alreadySelected = prev.find((t) => t.name === track.name);
+
+      if (alreadySelected) {
+        return prev.filter((t) => t.name !== track.name);
+      }
+
+      const newSelection = [...prev, track];
+
+      // Count how many FASTA tracks are selected
+      const fastaTracks = newSelection.filter(isFasta);
+
+      // If only one FASTA, mark it as reference
+      if (fastaTracks.length === 1) {
+        fastaTracks[0].reference = true;
+      } else if (fastaTracks.length > 1) {
+        // If more than one, ensure only one is reference
+        // Keep the first one as reference, others not
+        fastaTracks.forEach((t, i) => {
+          t.reference = i === 0;
+        });
+      }
+
+    return newSelection;
+    });
   };
 
   const createTrackFromEntry = (entry: FileEntry, path: string): Track | null => {
@@ -267,7 +301,7 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({
               <Typography>{track.name}</Typography>
               <Box sx={{ display: "flex", gap: 1 }}>
                 <IconButton onClick={() => handleMove(index, -1)}>
-                  <ArrowUpwardIcon />
+                  <ArrowForwardIcon />
                 </IconButton>
                 <IconButton onClick={() => handleMove(index, 1)}>
                   <ArrowDownwardIcon />

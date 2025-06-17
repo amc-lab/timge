@@ -75,4 +75,5 @@ export const defaultGlobalConfig = {
   canvasHeight: 750,
   linkSelectedOpacity: 0.6,
   linkUnselectedOpacity: 0.1,
+  showHighlight: true,
 };

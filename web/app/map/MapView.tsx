@@ -21,7 +21,6 @@ interface MapViewProps {
 }
 
 const MapView = (props: MapViewProps) => {
-  console.log(props.viewConfig);
   const [reference, setReference] = useState(props.viewConfig.config.reference);
   const [track, setTrack] = useState(props.viewConfig.config.track);
   // const [segmentA, setSegmentA] = useState(props.viewConfig.config.segmentA);
@@ -39,14 +38,23 @@ const MapView = (props: MapViewProps) => {
   const space = useAppSelector((state) => state.space);
   const dispatch = useAppDispatch();
 
-  const segmentA = space.views[props.index].config.segmentA || props.viewConfig.config.segmentA;
-  const segmentB = space.views[props.index].config.segmentB || props.viewConfig.config.segmentB;
+  // const segmentA = space.views[props.index].config.segmentA || props.viewConfig.config.segmentA;
+  // const segmentB = space.views[props.index].config.segmentB || props.viewConfig.config.segmentB;
+
+  const [segmentA, setSegmentA] = useState(space.views[props.index].config.segmentA || props.viewConfig.config.segmentA);
+  const [segmentB, setSegmentB] = useState(space.views[props.index].config.segmentB || props.viewConfig.config.segmentB);
+
 
   const [renderedSegmentA, setRenderedSegmentA] = useState(segmentA);
   const [renderedSegmentB, setRenderedSegmentB] = useState(segmentB);
   const [renderedResolution, setRenderedResolution] = useState(resolution);
 
   const [showTrackPicker, setShowTrackPicker] = useState(false);
+
+  const [xLocus, setXLocus] = useState<[number, number]>([0, 0]);
+  const [yLocus, setYLocus] = useState<[number, number]>([0, 0]);
+  const zoomToLocusRef = useRef<((x0: number, x1: number, y0: number, y1: number) => void) | null>(null);
+
 
   const handleTrackConfirm = (ref: string, trk: string) => {
     setReference(ref);
@@ -196,6 +204,8 @@ const MapView = (props: MapViewProps) => {
         const _segmentA = props.dependencies.segmentA;
         const _segmentB = props.dependencies.segmentB;
         console.log("Dependencies changed", _segmentA, _segmentB);
+        setSegmentA(_segmentA);
+        setSegmentB(_segmentB);
         renderHeatmap(_segmentA, _segmentB);
       }
     }
@@ -267,10 +277,29 @@ const MapView = (props: MapViewProps) => {
                 borderRadius: "none",
                 boxShadow: "none",
                 width: "100%",
+                backgroundColor: "#f3f3f3",
+                border: "1px solid #bfbfbf",
             }}
             >
-                <Box className="flex flex-wrap gap-4 items-center">
-                    <Typography fontSize="md">
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "10px",
+                }}
+              >
+                <Box className="flex flex-wrap gap-4 items-center"
+                  sx={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                  }}
+                >
+                    <Typography 
+                      sx={{
+                        fontSize: "0.8em",
+                      }}
+                    >
                     Segment A:
                     </Typography>
                     <Select
@@ -282,21 +311,31 @@ const MapView = (props: MapViewProps) => {
                                 segmentA: value,
                             }
                         }))
+                        setSegmentA(value);
                     }}
-                    value={props.viewConfig.config.segmentA}
+                    value={segmentA}
                     placeholder="Select segment A"
                     sx={{
                       boxShadow: "none",
+                      fontSize: "0.8em",
                     }}
                     >
                     {availableSegments.map((segment, index) => (
-                        <Option key={index} value={segment}>
+                        <Option key={index} value={segment}
+                          sx={{
+                            fontSize: "0.8em",
+                          }}
+                        >
                         {segment}
                         </Option>
                     ))}
                     </Select>
 
-                    <Typography fontSize="md">
+                    <Typography 
+                      sx={{
+                        fontSize: "0.8em",
+                      }}
+                    >
                     Segment B:
                     </Typography>
                     <Select
@@ -308,21 +347,31 @@ const MapView = (props: MapViewProps) => {
                                 segmentB: value,
                             }
                         }))
+                        setSegmentB(value);
                     }}
-                    value={props.viewConfig.config.segmentB}
+                    value={segmentB}
                     placeholder="Select segment B"
                     sx={{
                       boxShadow: "none",
+                      fontSize: "0.8em",
                     }}
                     >
                     {availableSegments.map((segment, index) => (
-                        <Option key={index} value={segment}>
+                        <Option key={index} value={segment}
+                          sx={{
+                            fontSize: "0.8em",
+                          }}
+                          >
                         {segment}
                         </Option>
                     ))}
                     </Select>
 
-                    <Typography fontSize="md">
+                    <Typography 
+                      sx={{
+                        fontSize: "0.8em",
+                      }}
+                    >
                     Resolution (bp):
                     </Typography>
                     <Select
@@ -340,19 +389,24 @@ const MapView = (props: MapViewProps) => {
                     }}
                     sx={{
                       boxShadow: "none",
+                      fontSize: "0.8em",
                     }}
                     >
-                    <Option value={1}>1</Option>
-                    <Option value={5}>5</Option>
-                    <Option value={10}>10</Option>
-                    <Option value={25}>25</Option>
-                    <Option value={50}>50</Option>
-                    <Option value={100}>100</Option>
-                    <Option value={200}>200</Option>
-                    <Option value={500}>500</Option>
-                    <Option value={1000}>1000</Option>
+                    <Option value={1} sx={{fontSize: "0.8em"}}>1</Option>
+                    <Option value={5} sx={{fontSize: "0.8em"}}>5</Option>
+                    <Option value={10} sx={{fontSize: "0.8em"}}>10</Option>
+                    <Option value={25} sx={{fontSize: "0.8em"}}>25</Option>
+                    <Option value={50} sx={{fontSize: "0.8em"}}>50</Option>
+                    <Option value={100} sx={{fontSize: "0.8em"}}>100</Option>
+                    <Option value={200} sx={{fontSize: "0.8em"}}>200</Option>
+                    <Option value={500} sx={{fontSize: "0.8em"}}>500</Option>
+                    <Option value={1000} sx={{fontSize: "0.8em"}}>1000</Option>
                     </Select>
-                    <Typography fontSize="md">
+                    <Typography 
+                      sx={{
+                        fontSize: "0.8em",
+                      }}
+                    >
                     Show gridlines:
                     </Typography>
                     <Checkbox
@@ -361,7 +415,11 @@ const MapView = (props: MapViewProps) => {
                         setShowGridlines(e.target.checked);
                     }}
                     />
-                    <Typography fontSize="md">
+                    <Typography 
+                      sx={{
+                        fontSize: "0.8em",
+                      }}
+                    >
                     Toggle colour scheme:
                     </Typography>
                     <Checkbox
@@ -370,7 +428,11 @@ const MapView = (props: MapViewProps) => {
                         setToggleColourScheme(e.target.checked);
                     }}
                     />
-                    <Typography fontSize="md">
+                    <Typography 
+                      sx={{
+                        fontSize: "0.8em",
+                      }}
+                    >
                     Normalise:
                     </Typography>
                     <Checkbox
@@ -379,11 +441,58 @@ const MapView = (props: MapViewProps) => {
                         setNormalise(e.target.checked);
                     }}
                     />
-                    <Button variant="solid" color="primary" onClick={() => {
-                      clearHeatmap();
-                      renderHeatmap(null, null)
-                    }
-                    }>
+                    <Typography
+                      sx={{
+                        fontSize: "0.8em",
+                      }}
+                    >Locus:</Typography>
+                    <Box display="flex" gap={2}>
+                      {/* <input
+                        type="text"
+                        value={xLocus.join(" - ")}
+                        onChange={(e) => {
+                          const [start, end] = e.target.value.split("-").map(s => +s.trim());
+                          setXLocus([start, end]);
+                        }}
+                        onBlur={() => {
+                          if (zoomToLocusRef.current) {
+                            zoomToLocusRef.current(xLocus[0], xLocus[1], yLocus[0], yLocus[1]);
+                          }
+                        }}
+                      />
+                      <input
+                        type="text"
+                        value={yLocus.join(" - ")}
+                        onChange={(e) => {
+                          const [start, end] = e.target.value.split("-").map(s => +s.trim());
+                          setYLocus([start, end]);
+                        }}
+                        onBlur={() => {
+                          if (zoomToLocusRef.current) {
+                            zoomToLocusRef.current(xLocus[0], xLocus[1], yLocus[0], yLocus[1]);
+                          }
+                        }}
+                      /> */}
+                      <Typography
+                        sx={{
+                          fontSize: "0.8em",
+                        }}
+                      >{xLocus[0]} - {xLocus[1]},</Typography>
+                      <Typography
+                        sx={{
+                          fontSize: "0.8em",
+                        }}
+                      >{yLocus[0]} - {yLocus[1]}</Typography>
+                    </Box>
+                    <Button variant="solid" color="primary" 
+                      onClick={() => {
+                        clearHeatmap();
+                        renderHeatmap(null, null)
+                      }}
+                      sx={{
+                        fontSize: "0.8em",
+                      }}
+                    >
                     Render
                     </Button>
                     <Button
@@ -399,9 +508,13 @@ const MapView = (props: MapViewProps) => {
                           console.warn("Zoom or SVG not initialized");
                         }
                       }}
+                      sx={{
+                        fontSize: "0.8em",
+                      }}
                     >
                       Reset Zoom
                     </Button>
+                </Box>
                 </Box>
             </Card>
             <Box
@@ -432,6 +545,11 @@ const MapView = (props: MapViewProps) => {
                 setZoomRef={(zoom, svgEl) => {
                   zoomRef.current = zoom;
                   svgElRef.current = svgEl;
+                }}
+                zoomToLocusRef={zoomToLocusRef}
+                onLocusChange={(xRange, yRange) => {
+                  setXLocus(xRange);
+                  setYLocus(yRange);
                 }}
                 title={`${track.split("/").pop()} (${renderedResolution}nt)`}
                 matrix={matrix}

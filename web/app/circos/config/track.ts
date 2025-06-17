@@ -14,4 +14,5 @@ export interface Track {
   config: any;
   name?: string;
   path?: string;
+  reference?: boolean;
 }

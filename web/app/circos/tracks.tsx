@@ -293,6 +293,7 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig, dependencies
               config={track.config}
               data={track.data}
               dependencies={dependencies}
+              globalConfig={globalConfig}
             />
           );
         }
