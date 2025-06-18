@@ -64,7 +64,7 @@ const CanvasHeatmap = ({
     const numCols = matrix[0].length;
 
     // const width = canvasRef.current.clientWidth;
-    const width = fixedWidth;<s></s>
+    const width = fixedWidth - 40;
     // const cellSize = fixedWidth / numRows;
     const cellSize = width / numRows; 
     const height = cellSize * numCols;  
@@ -74,7 +74,7 @@ const CanvasHeatmap = ({
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
 
-    svg.attr("width", width + margin.left + margin.right)
+    svg.attr("width", width + margin.left + margin.right + 40)
        .attr("height", height + margin.top + margin.bottom);
 
     const xScale = d3.scaleLinear().domain([0, numRows]).range([0, width]);
