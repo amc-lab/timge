@@ -1,14 +1,26 @@
-FROM python:3.11-slim
+# FROM python:3.11-slim
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+# ENV PYTHONDONTWRITEBYTECODE 1
+# ENV PYTHONUNBUFFERED 1
+
+# RUN apt-get update && apt-get install -y \
+#     curl \
+#     build-essential \
+#     libpq-dev \
+#     wget && \
+#     apt-get clean && rm -rf /var/lib/apt/lists/*
+
+FROM ubuntu:24.04
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y \
-    curl \
-    build-essential \
-    libpq-dev \
-    wget && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+    python3.11 python3-pip \
+    curl build-essential libpq-dev wget \
+    libgsl27 liblapack3 liblapacke libomp5 zlib1g \
+    autoconf automake make gcc perl libbz2-dev liblzma-dev \
+    libcurl4-gnutls-dev libssl-dev libncurses5-dev libdeflate-dev
 
 RUN wget https://mafft.cbrc.jp/alignment/software/mafft_7.526-1_amd64.deb && \
     dpkg -i mafft_7.526-1_amd64.deb && \
