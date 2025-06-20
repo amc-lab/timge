@@ -44,7 +44,7 @@ const Sidebar = () => {
                     <FolderIcon sx={{ width: "60%", height: "60%" }} />
                 </IconButton>
             </Box>
-            <Box
+            {/* <Box
                 sx={{
                     width: "100%",
                     aspectRatio: "1 / 1",
@@ -66,7 +66,7 @@ const Sidebar = () => {
                 >
                     <FolderIcon sx={{ width: "60%", height: "60%" }} />
                 </IconButton>
-            </Box>
+            </Box> */}
         </Card>
     );
 };
