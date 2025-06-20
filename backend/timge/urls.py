@@ -18,4 +18,5 @@ urlpatterns = [
     ),
     path("download/", views.download_path, name="download"),
     path("diff_structure/", views.diff_structure, name="diff_structure"),
+    path("predict_rna_folds/", views.predict_rna_folds, name="predict_rna_folds"),
 ]

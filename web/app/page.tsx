@@ -195,6 +195,11 @@ export default function Page() {
     dispatch(deleteConnection(viewId));
   }
 
+
+  const updateViewState = (index: number, updatedConfig: any) => {
+    dispatch(updateView({ index, updated: updatedConfig }));
+  }
+
   const crossViewActionHandler = (action: string, data: any) => {
     if (action === "generate_heatmap") {
       if (!data || !data.track || !data.reference || !data.segmentA || !data.segmentB || !data.resolution) {
@@ -261,8 +266,52 @@ export default function Page() {
     else if (action === "set_diff_structure_form_open") {
       dispatch(setDiffStructureFormOpen(data.open));
     }
+    else if (action === "generate_rnafold") {
+      const { reference, segmentA, segmentB, segmentAStart, segmentAEnd, segmentBStart, segmentBEnd } = data;
+      if (!reference || !segmentA || !segmentB || !segmentAStart || !segmentAEnd || !segmentBStart || !segmentBEnd) {
+        console.error("Missing segment information for RNAfold generation");
+        return;
+      }
+
+      const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+      const formData = new URLSearchParams();
+      formData.append("uuid", space.uuid);
+      formData.append("fasta1", reference);
+      formData.append("fasta2", reference);
+      formData.append("segment1", segmentA);
+      formData.append("segment2", segmentB);
+      formData.append("segment1_coords", [segmentAStart, segmentAEnd].join(","));
+      formData.append("segment2_coords", [segmentBStart, segmentBEnd].join(","));
+
+      fetch(`${host}/api/timge/predict_rna_folds/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: formData.toString(),
+      })
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          return response.blob();
+        })
+        .then((blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "rnafold_results.gz";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          window.URL.revokeObjectURL(url);
+        })
+        .catch((error) => {
+          console.error("Error downloading RNAfold results:", error);
+        });
+    }
     else {
-      console.log("Unknown action:", action);
+      console.warn("Unhandled cross-view action:", action, "with data:", data);
     }
   }
 
@@ -292,9 +341,6 @@ export default function Page() {
     setGenomeFormOpen(true);
   }
 
-  const updateViewState = (index: number, updatedConfig: any) => {
-    dispatch(updateView({ index, updated: updatedConfig }));
-  }
 
   return <>
   {isLoading &&

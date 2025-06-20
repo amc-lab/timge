@@ -8,7 +8,7 @@ import Ring from "./components/ring";
 import Line from "./components/line";
 import Annotation from "./components/annotation";
 import Highlight from "./components/highlight";
-import { AnnotationData as AnnotationType, GlobalConfig } from "../types/genomes";
+import { AnnotationData as AnnotationType, Chord, GlobalConfig } from "../types/genomes";
 
 interface TracksProps {
   tracks: Array<Track>;
@@ -47,6 +47,33 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig, dependencies
       };
     }
   };
+
+  const generateRNAfold = (d: Chord) => {
+    const reference =  tracks.find(track => track.trackType === TrackType.Karyotype)?.name || "";
+    if (!reference) {
+      console.error("No karyotype track found to generate RNAfold.");
+      return;
+    }
+    const segmentA = d.source_chromosome;
+    const segmentB = d.target_chromosome;
+    const segmentAStart = d.source_start;
+    const segmentAEnd = d.source_end;
+    const segmentBStart = d.target_start;
+    const segmentBEnd = d.target_end;
+    
+    crossViewActionHandler(
+      "generate_rnafold",
+      {
+        "reference": reference,
+        "segmentA": d.source_chromosome,
+        "segmentB": d.target_chromosome,
+        "segmentAStart": d.source_start,
+        "segmentAEnd": d.source_end,
+        "segmentBStart": d.target_start,
+        "segmentBEnd": d.target_end,
+      }
+    );
+  }
 
   useEffect(() => {
     let minAvailableRadius = 160;
@@ -248,6 +275,7 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig, dependencies
               idx={index}
               globalConfig={globalConfig}
               dependencies={dependencies}
+              onChordClick={(d) => {generateRNAfold(d)}}
             />
           );
         }

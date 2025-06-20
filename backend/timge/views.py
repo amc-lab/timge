@@ -859,3 +859,77 @@ def diff_structure_test(request):
             'attachment; filename="diff_peaks_and_bedgraphs.zip"'
         )
         return response
+
+
+def get_fasta_file(path: str):
+    """
+    Reads a FASTA file and returns the first sequence record.
+    Args:
+        path (str): The file path to the FASTA file.
+    Returns:
+        SeqIO.SeqRecord: The first sequence record from the FASTA file.
+    """
+    with open(path, "r") as fasta_file:
+        for record in SeqIO.parse(fasta_file, "fasta"):
+            return record
+    return None
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def predict_rna_folds(request):
+    uuid = request.POST.get("uuid")
+    fasta1_path = os.path.join(TRACK_ROOT_DIR, uuid, request.POST.get("fasta1"))
+    fasta2_path = os.path.join(TRACK_ROOT_DIR, uuid, request.POST.get("fasta2"))
+    segment1_coords = request.POST.get("segment1_coords")
+    segment2_coords = request.POST.get("segment2_coords")
+
+    if not fasta1_path or not fasta2_path:
+        return JsonResponse(
+            {"error": "Both fasta1 and fasta2 must be provided."}, status=400
+        )
+
+    fasta1 = get_fasta_file(fasta1_path)
+    fasta2 = get_fasta_file(fasta2_path)
+
+    if not fasta1 or not fasta2 or not fasta1.seq or not fasta2.seq:
+        return JsonResponse({"error": "Invalid or empty FASTA sequences."}, status=400)
+
+    try:
+        if segment1_coords:
+            start1, end1 = map(int, segment1_coords.split(","))
+            fasta1.seq = fasta1.seq[start1:end1]
+        if segment2_coords:
+            start2, end2 = map(int, segment2_coords.split(","))
+            fasta2.seq = fasta2.seq[start2:end2]
+
+        zip_bytes_io = BytesIO()
+        with zipfile.ZipFile(zip_bytes_io, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for fasta, label in [(fasta1, "seq1"), (fasta2, "seq2")]:
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    tmpdir_path = Path(tmpdir)
+                    fasta_path = tmpdir_path / f"{label}.fa"
+                    SeqIO.write(fasta, fasta_path, "fasta")
+
+                    subprocess.run(
+                        ["RNAfold", "-i", str(fasta_path), "-o", "-t 3"],
+                        cwd=tmpdir_path,
+                        capture_output=True,
+                        check=True,
+                        text=True,
+                    )
+
+                    for file_path in tmpdir_path.iterdir():
+                        zipf.write(file_path, arcname=f"{label}/{file_path.name}")
+
+        zip_bytes_io.seek(0)
+        response = HttpResponse(zip_bytes_io.read(), content_type="application/zip")
+        response["Content-Disposition"] = 'attachment; filename="rnafold_outputs.zip"'
+        return response
+
+    except subprocess.CalledProcessError as e:
+        return JsonResponse({"error": "RNAfold failed", "stderr": e.stderr}, status=500)
+    except Exception as e:
+        return JsonResponse(
+            {"error": "Unexpected error", "details": str(e)}, status=500
+        )

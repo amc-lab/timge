@@ -16,9 +16,10 @@ interface ChordProps {
   idx: number;
   globalConfig?: GlobalConfig;
   dependencies?: any;
+  onChordClick?: (chord: Chord) => void;
 }
 
-const Chords = ({ data, config, segments, selectedSegments, idx, globalConfig, dependencies }: ChordProps) => {
+const Chords = ({ data, config, segments, selectedSegments, idx, globalConfig, dependencies, onChordClick}: ChordProps) => {
   const canvasRef = data.divRef;
   const chords = data.chords;
 
@@ -210,6 +211,9 @@ const Chords = ({ data, config, segments, selectedSegments, idx, globalConfig, d
           }
           return globalConfig.linkSelectedOpacity || 0.6;
         })
+      })
+      .on("click", function (event, d) {
+        onChordClick?.(d);
       });
   }, [canvasRef, chords, config, globalConfig, segments, selectedSegments, dependencies]);
 

@@ -14,6 +14,14 @@ RUN wget https://mafft.cbrc.jp/alignment/software/mafft_7.526-1_amd64.deb && \
     dpkg -i mafft_7.526-1_amd64.deb && \
     rm mafft_7.526-1_amd64.deb
 
+RUN apt-get update && apt-get install -y \
+    libgsl27 \
+    zlib1g \
+    libomp5 && \
+    wget https://www.tbi.univie.ac.at/RNA/download/ubuntu/ubuntu_24_04/viennarna_2.7.0-1_amd64.deb && \
+    dpkg -i viennarna_2.7.0-1_amd64.deb || apt-get -f install -y && \
+    rm viennarna_2.7.0-1_amd64.deb
+
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
 RUN apt-get update && \
