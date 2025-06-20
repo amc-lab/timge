@@ -30,6 +30,7 @@ const MapView = (props: MapViewProps) => {
   const [showGridlines, setShowGridlines] = useState(false);
   const [toggleColourScheme, setToggleColourScheme] = useState(props.viewConfig.config.toggleColourScheme || false);
   const [normalise, setNormalise] = useState(false);
+  const [negativeStrand, setNegativeStrand] = useState(props.viewConfig.config.negativeStrand || false);
   const [loading, setLoading] = useState(false);
   const [matrix, setMatrix] = useState<number[][]>([]);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -144,7 +145,19 @@ const MapView = (props: MapViewProps) => {
       .then(response => response.json())
       .then(data => {
         if (data.status === "success") {
-          setMatrix(data.matrix);
+          if (negativeStrand) {
+            const numRows = data.matrix.length;
+            const numCols = data.matrix[0]?.length || 0;
+            setMatrix(
+              data.matrix.map((row, rowIndex) =>
+                row.map((_, colIndex) =>
+                  data.matrix[numRows - 1 - rowIndex][numCols - 1 - colIndex]
+                )
+              )
+            );
+          } else {
+            setMatrix(data.matrix);
+          }
           setRenderedSegmentA(_segmentA ? _segmentA : segmentA); 
           setRenderedSegmentB(_segmentB ? _segmentB : segmentB);
           setRenderedResolution(resolution);
@@ -295,6 +308,15 @@ const MapView = (props: MapViewProps) => {
                     flexWrap: "wrap",
                   }}
                 >
+                <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                      gap: "10px",
+                    }}
+                  >
                     <Typography 
                       sx={{
                         fontSize: "0.8em",
@@ -330,7 +352,16 @@ const MapView = (props: MapViewProps) => {
                         </Option>
                     ))}
                     </Select>
-
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                      gap: "10px",
+                    }}
+                  >
                     <Typography 
                       sx={{
                         fontSize: "0.8em",
@@ -366,7 +397,16 @@ const MapView = (props: MapViewProps) => {
                         </Option>
                     ))}
                     </Select>
-
+                    </Box>
+                    <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                      gap: "10px",
+                    }}
+                  >
                     <Typography 
                       sx={{
                         fontSize: "0.8em",
@@ -402,7 +442,17 @@ const MapView = (props: MapViewProps) => {
                     <Option value={500} sx={{fontSize: "0.8em"}}>500</Option>
                     <Option value={1000} sx={{fontSize: "0.8em"}}>1000</Option>
                     </Select>
-                    <Typography 
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                      gap: "10px",
+                    }}
+                  >
+                    <Typography
                       sx={{
                         fontSize: "0.8em",
                       }}
@@ -415,7 +465,17 @@ const MapView = (props: MapViewProps) => {
                         setShowGridlines(e.target.checked);
                     }}
                     />
-                    <Typography 
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                      gap: "10px",
+                    }}
+                  >
+                    <Typography
                       sx={{
                         fontSize: "0.8em",
                       }}
@@ -428,6 +488,16 @@ const MapView = (props: MapViewProps) => {
                         setToggleColourScheme(e.target.checked);
                     }}
                     />
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                      gap: "10px",
+                    }}
+                  >
                     <Typography 
                       sx={{
                         fontSize: "0.8em",
@@ -441,6 +511,46 @@ const MapView = (props: MapViewProps) => {
                         setNormalise(e.target.checked);
                     }}
                     />
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                      gap: "10px",
+                    }}
+                  >
+                      <Typography 
+                        sx={{
+                          fontSize: "0.8em",
+                        }}
+                      >
+                      Negative Strand:
+                      </Typography>
+                      <Checkbox
+                      checked={negativeStrand}
+                      onChange={(e) => {
+                          setNegativeStrand(e.target.checked);
+                          dispatch(updateViewConfig({
+                            uuid: props.viewConfig.uuid,
+                            config: {
+                                ...props.viewConfig.config,
+                                negativeStrand: e.target.checked,
+                            }
+                        }))
+                      }}
+                      />
+                    </Box>
+                    <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                      gap: "10px",
+                    }}
+                  >
                     <Typography
                       sx={{
                         fontSize: "0.8em",
@@ -483,6 +593,7 @@ const MapView = (props: MapViewProps) => {
                           fontSize: "0.8em",
                         }}
                       >{yLocus[0]} - {yLocus[1]}</Typography>
+                    </Box>
                     </Box>
                     <Button variant="solid" color="primary" 
                       onClick={() => {

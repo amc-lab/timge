@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { addView, setDependency, setConnection } from "@/store/features/space/spaceSlice";
 import { ViewType } from "@/store/features/views/types";
+import { defaultGlobalConfig } from "../circos/config/defaultConfigs";
 
 export const addLinearGenomeView = (dispatch, space) => {
     const linearView = {
@@ -27,6 +28,7 @@ export const addCircosView = (dispatch, space) => {
       visible_tracks: [],
       config: {
         isMinimised: false,
+        ...defaultGlobalConfig
       },
     }
     dispatch(addView(circosView));

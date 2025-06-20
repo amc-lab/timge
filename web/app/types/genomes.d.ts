@@ -80,8 +80,9 @@ interface ChordConfig {
   colour?: string;
   useStroke: boolean;
   outerRadius: number;
-  minFilterScore: number;
-  maxFilterScore: number;
+  // minFilterScore: number;
+  // maxFilterScore: number;
+  // negativeStrand: boolean;
 }
 
 interface BarConfig {
@@ -129,6 +130,8 @@ interface GlobalConfig {
   linkSelectedOpacity: number;
   linkUnselectedOpacity: number;
   showHighlight: boolean;
+  filterScore: number;
+  negativeStrand: boolean;
 }
 
 interface SegmentDetails {

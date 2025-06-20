@@ -51,17 +51,37 @@ const Chords = ({ data, config, segments, selectedSegments, idx, globalConfig, d
     const chord_padding = config.chordPadding;
     const chord_radius = radius - chord_padding;
 
-    const minFilterScore = config.minFilterScore;
-    const maxFilterScore = config.maxFilterScore;
-    let filteredChords = chords.filter((d) => d.score >= minFilterScore && d.score <= maxFilterScore);
+    const minFilterScore = globalConfig.filterScore;
+    // const maxFilterScore = config.maxFilterScore;
+    let filteredChords = chords.filter((d) => d.score >= minFilterScore);
     filteredChords.sort((a, b) => b.score - a.score);
+
+    console.log("Negative strand:", globalConfig.negativeStrand);
+    let processedChords = filteredChords.map((chord) => {
+      if (!globalConfig.negativeStrand) return chord;
+
+      const sourceSegment = segments.find(s => s.chromosome === chord.source_chromosome);
+      const targetSegment = segments.find(s => s.chromosome === chord.target_chromosome);
+      if (!sourceSegment || !targetSegment) return chord;
+
+      const len_x = sourceSegment.length;
+      const len_y = targetSegment.length;
+
+      return {
+        ...chord,
+        source_start: len_x - chord.source_end,
+        source_end: len_x - chord.source_start,
+        target_start: len_y - chord.target_end,
+        target_end: len_y - chord.target_start,
+      };
+    });
 
     if (!dependencies) {
       dependencies = { chr: undefined, start: undefined, end: undefined };
     }
     const {chr, start, end} = dependencies;
     if (chr && chr !== "all" && start !== undefined && end !== undefined) {
-      filteredChords = filteredChords.filter((d => {
+      processedChords = processedChords.filter((d => {
         const sourceSegment = segments.find(segment => segment.chromosome === d.source_chromosome);
         const targetSegment = segments.find(segment => segment.chromosome === d.target_chromosome);
         if (!sourceSegment || !targetSegment) return false;
@@ -87,8 +107,8 @@ const Chords = ({ data, config, segments, selectedSegments, idx, globalConfig, d
       }));
     }
 
-    const maxScore = d3.max(filteredChords, (d) => d.score);
-    const minScore = d3.min(filteredChords, (d) => d.score);
+    const maxScore = d3.max(processedChords, (d) => d.score);
+    const minScore = d3.min(processedChords, (d) => d.score);
 
     const colourScale = d3
       .scaleSequential()
@@ -102,7 +122,7 @@ const Chords = ({ data, config, segments, selectedSegments, idx, globalConfig, d
 
     group
       .selectAll("path")
-      .data(filteredChords)
+      .data(processedChords)
       .join("path")
       .attr(
         "d",

@@ -1,5 +1,5 @@
 "use client"
-import { Box, Button, Card, IconButton, Input, Option, Select, Slider, Switch, TextField, Typography } from "@mui/joy";
+import { Box, Button, Card, Checkbox, IconButton, Input, Option, Select, Slider, Switch, TextField, Typography } from "@mui/joy";
 import { Track, TrackType } from "./config/track";
 import { useState } from "react";
 import Tracks from "./tracks";
@@ -30,7 +30,7 @@ const CircosView = (props: CircosViewProps) => {
   const dispatch = useAppDispatch();
 
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
+  const [globalConfig, setGlobalConfig] = useState(props.viewConfig.config || defaultGlobalConfig);
   const [connectedViews, setConnectedViews] = useState<string[]>(() => {
     const direct = space.connections[props.viewConfig.uuid] || [];
     const reverse = Object.entries(space.connections)
@@ -41,7 +41,7 @@ const CircosView = (props: CircosViewProps) => {
     return Array.from(new Set([...direct, ...reverse]));
   });
 
-  const [minFilterScore, setMinFilterScore] = useState(0);
+  const [minFilterScore, setMinFilterScore] = useState(props.viewConfig.config.filterScore || 0);
 
   const fileFormatMapping = {
     "fasta": "karyotype",
@@ -52,6 +52,7 @@ const CircosView = (props: CircosViewProps) => {
   }
   
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [negativeStrand, setNegativeStrand] = useState(props.viewConfig.config.negativeStrand || false);
   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
 
   const getMaxFilterScore = (tracks: Track[]) => {
@@ -341,7 +342,7 @@ const CircosView = (props: CircosViewProps) => {
                     flexWrap: "wrap",
                   }}
                 >
-                  <Box
+                <Box
                     sx={{
                       display: "flex",
                       flexDirection: "row",
@@ -364,11 +365,53 @@ const CircosView = (props: CircosViewProps) => {
                         ...globalConfig,
                         showHighlight: event.target.checked,
                       });
+                      props.handleViewUpdate(props.index, {
+                        ...props.viewConfig,
+                        config: {
+                          ...props.viewConfig.config,
+                          showHighlight: event.target.checked,
+                        },
+                      });
                     }}
                     sx={{
                       marginRight: "10px",
                     }}
                   />
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: "0.8em",
+                        marginRight: "10px",
+                      }}
+                      >Negative Strand</Typography>
+                    <Checkbox
+                      checked={negativeStrand}
+                      onChange={(event) => {
+                        setNegativeStrand(event.target.checked);
+                        props.handleViewUpdate(props.index, {
+                        ...props.viewConfig,
+                        config: {
+                          ...props.viewConfig.config,
+                          negativeStrand: event.target.checked,
+                        },
+                        });
+                          setGlobalConfig({
+                          ...globalConfig,
+                          negativeStrand: event.target.checked,
+                        });
+                      }}
+                      sx={{
+                        marginRight: "10px",
+                      }}
+                    />
                   </Box>
                   <Box
                     sx={{
@@ -399,21 +442,32 @@ const CircosView = (props: CircosViewProps) => {
                     }}
                     onChange={(event, newValue) => {
                       setMinFilterScore(newValue as number);
-                      setSelectedTracks((prevTracks) => {
-                        return prevTracks.map((track) => {
-                          if (track.trackType === TrackType.Chord) {
-                            return {
-                              ...track,
-                              config: {
-                                ...track.config,
-                                minFilterScore: newValue as number,
-                                // maxFilterScore: newValue[1],
-                              },
-                            };
-                          }
-                          return track;
-                        });
+                      props.handleViewUpdate(props.index, {
+                        ...props.viewConfig,
+                        config: {
+                          ...props.viewConfig.config,
+                          filterScore: newValue as number,
+                        },
                       });
+                      setGlobalConfig({
+                        ...globalConfig,
+                        filterScore: newValue as number,
+                      });
+                      // setSelectedTracks((prevTracks) => {
+                      //   return prevTracks.map((track) => {
+                      //     if (track.trackType === TrackType.Chord) {
+                      //       return {
+                      //         ...track,
+                      //         config: {
+                      //           ...track.config,
+                      //           // minFilterScore: newValue as number,
+                      //           // maxFilterScore: newValue[1],
+                      //         },
+                      //       };
+                      //     }
+                      //     return track;
+                      //   });
+                      // });
                     }}
                     ></Slider>
                   </Box>
@@ -448,6 +502,13 @@ const CircosView = (props: CircosViewProps) => {
                         setGlobalConfig({
                           ...globalConfig,
                           linkUnselectedOpacity: newValue as number,
+                        });
+                        props.handleViewUpdate(props.index, {
+                          ...props.viewConfig,
+                          config: {
+                            ...props.viewConfig.config,
+                            linkUnselectedOpacity: newValue as number,
+                          },
                         });
                       }}
                     ></Slider>

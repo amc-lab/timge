@@ -6,5 +6,6 @@ export const defaultMapState = {
         segmentB: "",
         resolution: 25,
         toggleColourScheme: false,
+        negativeStrand: false,
     },
 }
