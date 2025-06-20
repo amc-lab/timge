@@ -16,7 +16,7 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 RUN apt-get update && apt-get install -y \
-    python3.11 python3-pip \
+    python3 python3-pip \
     curl build-essential libpq-dev wget \
     libgsl27 liblapack3 liblapacke libomp5 zlib1g \
     autoconf automake make gcc perl libbz2-dev liblzma-dev \
