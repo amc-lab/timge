@@ -896,6 +896,7 @@ def predict_rna_folds(request):
         return JsonResponse({"error": "Invalid or empty FASTA sequences."}, status=400)
 
     try:
+        # Extract subsegments if specified
         if segment1_coords:
             start1, end1 = map(int, segment1_coords.split(","))
             fasta1.seq = fasta1.seq[start1:end1]
@@ -903,32 +904,89 @@ def predict_rna_folds(request):
             start2, end2 = map(int, segment2_coords.split(","))
             fasta2.seq = fasta2.seq[start2:end2]
 
-        zip_bytes_io = BytesIO()
-        with zipfile.ZipFile(zip_bytes_io, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for fasta, label in [(fasta1, "seq1"), (fasta2, "seq2")]:
-                with tempfile.TemporaryDirectory() as tmpdir:
-                    tmpdir_path = Path(tmpdir)
-                    fasta_path = tmpdir_path / f"{label}.fa"
-                    SeqIO.write(fasta, fasta_path, "fasta")
+        seq1 = str(fasta1.seq)
+        seq2 = str(fasta2.seq)
 
-                    subprocess.run(
-                        ["RNAfold", "-i", str(fasta_path), "-o", "-t 3"],
-                        cwd=tmpdir_path,
-                        capture_output=True,
-                        check=True,
-                        text=True,
-                    )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
 
-                    for file_path in tmpdir_path.iterdir():
-                        zipf.write(file_path, arcname=f"{label}/{file_path.name}")
+            # Write seq1 and seq2 to separate files
+            seq1_file = tmpdir_path / "seq1.seq"
+            seq2_file = tmpdir_path / "seq2.seq"
+            seq1_file.write_text(seq1 + "\n")
+            seq2_file.write_text(seq2 + "\n")
 
-        zip_bytes_io.seek(0)
-        response = HttpResponse(zip_bytes_io.read(), content_type="application/zip")
-        response["Content-Disposition"] = 'attachment; filename="rnafold_outputs.zip"'
-        return response
+            duplex_input_path = tmpdir_path / "duplex_input.txt"
+            with open(duplex_input_path, "w") as f:
+                f.write(seq1 + "\n")
+                f.write(seq2 + "\n")
+                f.write("@\n")
+
+            # Run RNAduplex with input redirected from file
+            duplex_output_path = tmpdir_path / "duplex_output.txt"
+            with (
+                open(duplex_input_path, "r") as infile,
+                open(duplex_output_path, "w") as outfile,
+            ):
+                subprocess.run(
+                    ["RNAduplex"],
+                    stdin=infile,
+                    stdout=outfile,
+                    stderr=subprocess.PIPE,
+                    cwd=tmpdir_path,
+                    check=True,
+                    text=True,
+                )
+
+            if not duplex_output_path.exists():
+                return JsonResponse(
+                    {"error": "RNAduplex output file not found."}, status=500
+                )
+            print("RNAduplex output:", duplex_output_path.read_text())
+
+            # Prepare input for RNAplot
+            duplex_output_lines = duplex_output_path.read_text().strip().splitlines()
+            if not duplex_output_lines:
+                return JsonResponse(
+                    {"error": "RNAduplex returned no output."}, status=500
+                )
+
+            # Extract only structure and sequence line
+            structure_line = duplex_output_lines[0].split()[0]
+            # pad left and right with dots to match the length of seq1 and seq2
+            struct_sizes = structure_line.split("&")
+            structure_line = (
+                "." * (len(seq1) - len(struct_sizes[0]))
+                + structure_line
+                + "." * (len(seq2) - len(struct_sizes[1]))
+            )
+            rnaplot_input_path = tmpdir_path / "rnaplot_input.txt"
+            rnaplot_input_path.write_text(f"{seq1}&{seq2}\n{structure_line}\n")
+
+            # Run RNAplot using the input file
+            subprocess.run(
+                ["RNAplot", "-i", str(rnaplot_input_path)],
+                cwd=tmpdir_path,
+                check=True,
+                text=True,
+            )
+
+            zip_bytes_io = BytesIO()
+            with zipfile.ZipFile(zip_bytes_io, "w", zipfile.ZIP_DEFLATED) as zipf:
+                for file_path in tmpdir_path.iterdir():
+                    zipf.write(file_path, arcname=f"{file_path.name}")
+
+            zip_bytes_io.seek(0)
+            response = HttpResponse(zip_bytes_io.read(), content_type="application/zip")
+            response["Content-Disposition"] = (
+                'attachment; filename="rnafold_outputs.zip"'
+            )
+            return response
 
     except subprocess.CalledProcessError as e:
-        return JsonResponse({"error": "RNAfold failed", "stderr": e.stderr}, status=500)
+        return JsonResponse(
+            {"error": "RNAduplex or RNAplot failed", "stderr": e.stderr}, status=500
+        )
     except Exception as e:
         return JsonResponse(
             {"error": "Unexpected error", "details": str(e)}, status=500
