@@ -10,7 +10,7 @@ FRONTEND_PORT="${FRONTEND_PORT:-3000}"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 TRACK_ROOT_DIR="${TRACK_ROOT_DIR:-$ROOT_DIR/uploads}"
 NEXT_PUBLIC_DJANGO_HOST="${NEXT_PUBLIC_DJANGO_HOST:-http://127.0.0.1:${BACKEND_PORT}}"
-NEXT_PUBLIC_FILE_HOST="${NEXT_PUBLIC_FILE_HOST:-${NEXT_PUBLIC_DJANGO_HOST}/uploads/}"
+NEXT_PUBLIC_FILE_HOST="${NEXT_PUBLIC_FILE_HOST:-http://127.0.0.1:${FRONTEND_PORT}/uploads/}"
 
 command -v npm >/dev/null 2>&1 || {
   echo "npm is required but not installed. Please install Node.js 18+." >&2

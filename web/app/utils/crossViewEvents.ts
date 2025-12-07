@@ -34,7 +34,7 @@ export const subscribeCrossViewEvent = <K extends EventKey>(
   handler: Handler<K>,
 ) => {
   if (!listeners[type]) {
-    listeners[type] = new Set();
+    listeners[type] = new Set<Handler<K>>() as any;
   }
   listeners[type]!.add(handler);
   return () => {
