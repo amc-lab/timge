@@ -744,11 +744,11 @@ const MapView = (props: MapViewProps) => {
                     >
                     Resolution (bp):
                     </Typography>
-                    <Select
+                    <Select<number | "auto">
                       value={resolutionSetting === "auto" ? "auto" : manualResolution}
                       placeholder="Select resolution"
                       onChange={(e, value) => {
-                        if (!value) return;
+                        if (value == null) return;
                         if (value === "auto") {
                           setResolutionSetting("auto");
                           if (segmentA && segmentB) {
@@ -761,9 +761,12 @@ const MapView = (props: MapViewProps) => {
                             );
                           }
                           return;
+                        } else {
+                          const numericValue =
+                            typeof value === "number" ? value : Number(value);
+                          setResolutionSetting(numericValue);
+                          setManualResolution(numericValue);
                         }
-                        setResolutionSetting(value);
-                        setManualResolution(value);
                       }}
                       sx={{
                         boxShadow: "none",
