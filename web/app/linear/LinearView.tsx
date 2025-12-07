@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+"use client";
+import { useEffect, useRef, useState } from "react";
 import {
   createViewState,
   JBrowseLinearGenomeView,
@@ -6,26 +7,46 @@ import {
 import { Box, Select, Option, Typography, Button } from "@mui/joy";
 import ParentView from "@/components/ParentView";
 import { View } from "@/store/features/views/types";
+import { useAppSelector, useAppDispatch} from "@/store/hooks";
+import TrackSelector from "./components/TrackSelector";
+import IGVBrowser from "./IGVBrowser";
+import { updateViewProps, updateViewConfig} from "@/store/features/space/spaceSlice";
+import { FILE_BASE_URL, buildApiUrl } from "@/app/config/env";
 
 interface LinearViewProps {
   trackFiles: any[];
   viewConfig: View;
   handleViewUpdate: (index: number, viewState: View) => void;
   index: number;
-  crossViewActionHandler?: any;
   dependencies?: any;
-  addConnection?: any;
-  removeConnection?: any;
   // createdViews: Set<any>;
 }
 
 const LinearView = (props: LinearViewProps) => {
-  const [reference, setReference] = useState("");
-  const [selectedTracks, setSelectedTracks] = useState<string[]>([]);
+  const space = useAppSelector((state) => state.space);
+  
+  const [reference, setReference] = useState(
+    space.views.find(v => v.uuid === props.viewConfig.uuid).config.reference || ""
+  );
+  const [selectedTracks, setSelectedTracks] = useState<string[]>(
+    space.views.find(v => v.uuid === props.viewConfig.uuid).config.trackFiles || []
+  );
   const [renderView, setRenderView] = useState(false);
   const [viewState, setViewState] = useState<any>(null);
+  const [openTrackSelector, setOpenTrackSelector] = useState(false);
 
-  const HOST = "https://timge.doc.ic.ac.uk/uploads/" + props.viewConfig.uuid + "/";
+  const dispatch = useAppDispatch();
+  
+  const HOST = `${FILE_BASE_URL}/${space.uuid}/`;
+  
+  useEffect(() => {
+    console.log("ViewState updated:", viewState);
+    // const { displayedRegions, bpPerPx, offsetPx } = viewState;
+    // console.log("displayedRegions", displayedRegions);
+    // console.log("bpPerPx", bpPerPx);
+    // console.log("offsetPx", offsetPx);
+  }
+  , [viewState]);
   
 //   // Filter reference tracks (e.g., .fasta/.fa)
 //   const referenceTracks = props.trackFiles.filter((file) =>
@@ -38,6 +59,14 @@ const LinearView = (props: LinearViewProps) => {
 //       !file.endsWith(".fa") &&
 //       !file.endsWith(".fasta")
 //   );
+
+  const handleIGVBrowserClose = useRef<any>(null);
+
+  const handleIGVClose = (igvClose) => {
+    if (igvClose) {
+      handleIGVBrowserClose.current = igvClose;
+    }
+  }
 
   useEffect(() => {
     if (reference && selectedTracks.length > 0) {
@@ -137,12 +166,13 @@ const LinearView = (props: LinearViewProps) => {
   }, [reference, selectedTracks]);
 
   const generateFai = async() => {
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
     const queryParams = new URLSearchParams({
       uuid: props.viewConfig.uuid,
       genome_path: reference,
     }).toString();
-    await fetch(`${host}/api/timge/generate_fai/?${queryParams}`, {
+    const url = new URL(buildApiUrl("/api/timge/generate_fai/"));
+    url.search = queryParams;
+    await fetch(url.toString(), {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -172,86 +202,90 @@ const LinearView = (props: LinearViewProps) => {
       width: "100%",
     }}
     >
-      {(!reference || selectedTracks.length === 0 || !renderView) && (
-        <ParentView
+      <ParentView
           viewConfig={props.viewConfig}
           index={props.index}
-          >
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-            <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-                <Box
-                    sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        marginRight: 2,
-                    }}
-                >
-                    <Typography>Select a reference genome:</Typography>
-                    <Select
-                    value={reference}
-                    onChange={(event, value) => {
-                        setReference(value);
-                    }}
-                    sx={{ width: "200px" }}
-                    >
-                        {props.trackFiles
-                            .filter((file) => file.name.endsWith(".fa") || file.name.endsWith(".fasta"))
-                            .map((file, index) => (
-                                <Option key={index} value={file.name}>
-                                {file.name}
-                                </Option>
-                        ))}
-                    </Select>
-                </Box>
-                <Box
-                    sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        marginRight: 2,
-                    }}
-                >
-                    <Typography>Select tracks to display:</Typography>
-                    <Select
-                    value={selectedTracks}
-                    onChange={(event, value) => {
-                        setSelectedTracks(value);
-                    }}
-                    multiple
-                    sx={{ width: "200px"}}
-                    >
-                        {props.trackFiles
-                            .filter((file) => file.name.endsWith(".bedgraph"))
-                            .map((file, index) => (
-                                <Option key={index} value={file.name}>
-                                {file.name}
-                                </Option>
-                        ))}
-                    </Select>
-                </Box>
-                <Button
-                    variant="solid"
-                    color="primary"
-                    onClick={() => {
-                        generateFai().then((success) => {
-                          setRenderView(true);
-                        });
-                    }}
-                    >Submit</Button>
-                    </Box>
-            </Box>
-
-        </ParentView>
-      )}
-
-      { renderView && reference && selectedTracks.length > 0 && viewState && (
-        <Box sx={{ width: "100%" }}>
-          <JBrowseLinearGenomeView viewState={viewState} />
+          userActions={{
+            "Clear Tracks": () => {
+              dispatch(updateViewConfig({
+                uuid: props.viewConfig.uuid,
+                config: {
+                    ...props.viewConfig.config,
+                    reference: "",
+                    trackFiles: []
+                }}))
+              setReference("");
+              setSelectedTracks([]);
+          },
+            "Select Tracks": () => {
+              setOpenTrackSelector(true);
+            }
+          }}
+          closeAction={async() => {
+            if (handleIGVBrowserClose.current) {
+              await handleIGVBrowserClose.current();
+            }
+          }}
+        >
+      {(!reference) && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            width: "100%",
+            height: "100%",
+            flexDirection: "column",
+            flexGrow: 1,
+            padding: 2,
+          }}
+        >
+          <p>No Tracks Selected</p>
+            <Button
+              variant="solid"
+              color="primary"
+              onClick={() => setOpenTrackSelector(true)}
+              sx={{
+                marginTop: "10px",
+              }}
+            >
+              Select Tracks
+            </Button>
         </Box>
       )}
+
+      {openTrackSelector && (
+        <TrackSelector
+          onClose={() => setOpenTrackSelector(false)}
+          onConfirm={(referencePath, selectedTrackPaths) => {
+            setReference(referencePath);
+            setSelectedTracks(selectedTrackPaths);
+            setOpenTrackSelector(false);
+            setRenderView(true);
+            dispatch(updateViewConfig({
+              uuid: props.viewConfig.uuid,
+              config: {
+                  ...props.viewConfig.config,
+                  reference: referencePath,
+                  trackFiles: selectedTrackPaths
+              }}))
+          }}
+        />
+      )}
+
+      { reference && (
+        <Box sx={{ width: "100%" }}>
+          {/* <JBrowseLinearGenomeView 
+          viewState={viewState} 
+          /> */}
+          <IGVBrowser
+            reference={reference}
+            trackFiles={selectedTracks}
+            viewConfig={props.viewConfig}
+          />
+        </Box>
+      )}
+    </ParentView>
     </Box>
   );
 };

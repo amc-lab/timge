@@ -5,5 +5,7 @@ export const defaultMapState = {
         segmentA: "",
         segmentB: "",
         resolution: 25,
+        toggleColourScheme: false,
+        negativeStrand: false,
     },
 }

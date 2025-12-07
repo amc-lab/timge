@@ -1,3 +1,5 @@
+import { text } from "stream/consumers";
+
 export const defaultAssemblyConfig = {
   segmentPadding: 0.02,
   axisLabelFontSize: 10,
@@ -22,6 +24,12 @@ export const defaultChordConfig = {
   maxFilterScore: 1000,
 };
 
+export const defaultHighlightConfig = {
+  innerRadius: 195,
+  width: 50,
+  showHighlight: false,
+};
+
 export const defaultBarConfig = {
   innerRadius: 200,
   trackPadding: 10,
@@ -44,14 +52,30 @@ export const defaultRingConfig = {
 };
 
 export const defaultLineConfig = {
-  trackPadding: 5,
+  trackPadding: 10,
   trackWidth: 40,
+  textPadding: 5,
+  textFontSize: 10,
   hide: false,
   innerRadius: 200,
   colour: "#000000",
 };
 
+export const defaultAnnotationConfig = {
+  trackPadding: 5,
+  trackWidth: 20,
+  hide: false,
+  innerRadius: 200,
+  textFontSize: 10,
+  textPadding: 3,
+};
+
 export const defaultGlobalConfig = {
-  canvasWidth: 650,
-  canvasHeight: 650,
+  canvasWidth: 750,
+  canvasHeight: 750,
+  linkSelectedOpacity: 0.6,
+  linkUnselectedOpacity: 0.1,
+  showHighlight: true,
+  filterScore: 0,
+  negativeStrand: false,
 };

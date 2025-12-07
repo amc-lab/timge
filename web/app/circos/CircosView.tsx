@@ -1,9 +1,9 @@
 "use client"
-import { Box, Button, Card, IconButton, Input, Option, Select, Slider, TextField, Typography } from "@mui/joy";
+import { Box, Button, Card, Checkbox, IconButton, Input, Option, Select, Slider, Switch, TextField, Typography } from "@mui/joy";
 import { Track, TrackType } from "./config/track";
 import { useState } from "react";
 import Tracks from "./tracks";
-import { defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig, defaultLineConfig } from "./config/defaultConfigs";
+import { defaultAnnotationConfig, defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig, defaultLineConfig, defaultHighlightConfig } from "./config/defaultConfigs";
 import { useRef, useEffect } from "react";
 import MenuIcon from "@mui/icons-material/Menu";
 import * as d3 from "d3";
@@ -11,16 +11,14 @@ import ParentView from "@/components/ParentView";
 import TrackSelector from "./components/TrackSelector";
 import { View } from "@/store/features/views/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { setConnection } from "@/store/features/space/spaceSlice";
+import { setConnection, setDependency } from "@/store/features/space/spaceSlice";
+import { buildApiUrl, buildFileUrl } from "@/app/config/env";
 
 interface CircosViewProps {
     viewConfig: View;
     handleViewUpdate: (index, viewState: View) => void;
-    crossViewActionHandler?: any;
     index: number;
     dependencies?: any;
-    addConnection?: any;
-    removeConnection?: any;
     connections?: string[];
     files: any[];
 }
@@ -30,32 +28,51 @@ const CircosView = (props: CircosViewProps) => {
   const dispatch = useAppDispatch();
 
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [globalConfig, setGlobalConfig] = useState(defaultGlobalConfig);
-  const [connectedViews, setConnectedViews] = useState<string[]>([]);
-  const [minFilterScore, setMinFilterScore] = useState(0);
+  const [globalConfig, setGlobalConfig] = useState(props.viewConfig.config || defaultGlobalConfig);
+  const [connectedViews, setConnectedViews] = useState<string[]>(() => {
+    const direct = space.connections[props.viewConfig.uuid] || [];
+    const reverse = Object.entries(space.connections)
+      .filter(([key, value]) =>
+        Array.isArray(value) && value.includes(props.viewConfig.uuid)
+      )
+      .map(([key]) => key);
+    return Array.from(new Set([...direct, ...reverse]));
+  });
+
+  const [minFilterScore, setMinFilterScore] = useState(props.viewConfig.config.filterScore || 0);
 
   const fileFormatMapping = {
     "fasta": "karyotype",
-    "bed": "line",
+    "bed": "annotation",
     "bedgraph": "line",
     "bedpe": "link",
     "fa": "karyotype",
   }
   
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [negativeStrand, setNegativeStrand] = useState(props.viewConfig.config.negativeStrand || false);
   const [selectedTracks, setSelectedTracks] = useState<Track[]>([]);
+
+  const getMaxFilterScore = (tracks: Track[]) => {
+    const chordTracks = tracks.filter((track) => track.trackType === TrackType.Chord);
+    if (chordTracks.length > 0) {
+      return chordTracks[0].data.chords.reduce((max, chord) => Math.max(max, chord.score), 0) + 1;
+    }
+    return 1000;
+  };
 
   const generate_circos_files = (files: any) => {
     console.log("Generating circos files", files);
-    const FILE_HOST = process.env.NEXT_PUBLIC_FILE_HOST;
     let circosFiles = [];
 
     const formData = new FormData();
     formData.append("track_types", JSON.stringify(files.map((file) => fileFormatMapping[file.split(".").pop()])));
-    formData.append("track_paths", JSON.stringify(files.map((file) => FILE_HOST + space.uuid + "/" + file)));
+    formData.append(
+      "track_paths",
+      JSON.stringify(files.map((file) => buildFileUrl(`${space.uuid}/${file}`))),
+    );
     
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/multilift/circos/`, {
+    fetch(buildApiUrl("/api/multilift/circos/"), {
       method: "POST",
       body: formData,
     })
@@ -82,22 +99,6 @@ const CircosView = (props: CircosViewProps) => {
     }
   }, [props.viewConfig.visible_tracks]);
 
-  // useEffect(() => {
-  //   if (props.files.length > 0) {
-  //     generate_circos_files(props.files);
-  //   }
-  // }
-  // , [props.files]);
-
-  //  const maxScore = d3.max(props.trackFiles, (d) => {
-  //      if (d.data) {
-  //          return d3.max(d.data, (d) => d.score);
-  //      }
-  //      return 0;
-  //  });
-
-  //   console.log("CircosView props", props.trackFiles);
-
      useEffect(() => {
        if (canvasRef.current) {
          const svg = d3.select(canvasRef.current).select("svg");
@@ -114,9 +115,19 @@ const CircosView = (props: CircosViewProps) => {
      }, [globalConfig]);
 
   const helper = (files) => {
-    let updatedTracks: Track[] = [];
+    let updatedTracks: Track[] = [
+      {
+        trackType: TrackType.Highlight,
+        config: defaultHighlightConfig,
+        data: {
+          // globalConfig,
+          divRef: canvasRef,
+        },
+        name: "Highlight",
+      }
+    ];
     files.forEach((trackFile) => {
-        if (trackFile.name.endsWith(".bed") || trackFile.name.endsWith(".bedgraph")) {
+        if (trackFile.name.endsWith(".bedgraph")) {
             updatedTracks.push({
                 trackType: TrackType.Line,
                 config: defaultLineConfig,
@@ -144,6 +155,19 @@ const CircosView = (props: CircosViewProps) => {
                 config: defaultChordConfig,
                 data: {
                     chords: trackFile.data,
+                    globalConfig,
+                    divRef: canvasRef,
+                },
+                name: trackFile.name,
+            });
+        }
+        else if (trackFile.name.endsWith(".bed")) {
+            console.log("Annotation track", trackFile, globalConfig, canvasRef);
+            updatedTracks.push({
+                trackType: TrackType.Annotation,
+                config: defaultAnnotationConfig,
+                data: {
+                    annotations: trackFile.data,
                     globalConfig,
                     divRef: canvasRef,
                 },
@@ -194,6 +218,20 @@ const CircosView = (props: CircosViewProps) => {
                 background: 'white'
               });
             },
+            "Export SVG": () => {
+              const svg = d3.select(canvasRef.current).select("svg");
+              const serializer = new XMLSerializer();
+              const svgString = serializer.serializeToString(svg.node());
+              const blob = new Blob([svgString], { type: "image/svg+xml" });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement("a");
+              a.href = url;
+              a.download = props.viewConfig.title + ".svg";
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+            },
             "Clear": () => {
                 props.handleViewUpdate(props.index, {
                     ...props.viewConfig,
@@ -222,7 +260,9 @@ const CircosView = (props: CircosViewProps) => {
                 setIsTrackSelectorOpen(false);
               }}
             />
-          ) : props.viewConfig.visible_tracks.length === 0 ? (
+          ) : null 
+        }
+        {props.viewConfig.visible_tracks.length === 0 ? (
             <Box
               sx={{
                 display: "flex",
@@ -263,120 +303,314 @@ const CircosView = (props: CircosViewProps) => {
                   width: "100%",
                   borderRadius: "none",
                   flexDirection: "row",
-                  justifyContent: "center",
                   alignItems: "center",
+                  backgroundColor: "#f3f3f3",
+                  border: "1px solid #bfbfbf",
+                  justifyContent: "center",
+                  padding: "5px",
                 }}
               >
-                <Typography
+                <Box
                   sx={{
-                    fontSize: "1em",
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "left",
+                    width: "10%",
+                    flexWrap: "wrap",
                   }}
                 >
-                  Filter score:
-                </Typography>
-                {/* <Input
-                  type="number"
-                  value={minFilterScore}
-                  onChange={(event) => {
-                    setMinFilterScore(parseInt(event.target.value));
-                    setSelectedTracks((prevTracks) => {
-                      return prevTracks.map((track) => {
-                        if (track.trackType === TrackType.Chord) {
-                          return {
-                            ...track,
-                            config: {
-                              ...track.config,
-                              minFilterScore: parseInt(event.target.value),
-                            },
-                          };
-                        }
-                        return track;
-                      });
-                    });
-                  }}
-                  sx={{
-                    width: "5%",
-                    marginLeft: "10px",
-                  }}
-                  ></Input> */}
-                <Slider
-                  // defaultValue={[20, maxScore]}
-                  value={minFilterScore}
-                  min={0}
-                  max={1000}
-                  step={1}
-                  valueLabelDisplay="auto"
-                  sx={{
-                    width: "10%",
-                  }}
-                  onChange={(event, newValue) => {
-                    setMinFilterScore(newValue as number);
-                    setSelectedTracks((prevTracks) => {
-                      return prevTracks.map((track) => {
-                        if (track.trackType === TrackType.Chord) {
-                          return {
-                            ...track,
-                            config: {
-                              ...track.config,
-                              minFilterScore: newValue as number,
-                              // maxFilterScore: newValue[1],
-                            },
-                          };
-                        }
-                        return track;
-                      });
-                    });
-                  }}
-                  ></Slider>
                   <Typography
                     sx={{
-                      fontSize: "1em",
+                      fontSize: "0.8em",
                       marginLeft: "10px",
                     }}
                   >
-                    Connect to:
+                    {selectedTracks.filter((track) => track.trackType === TrackType.Karyotype).length > 0
+                      ? selectedTracks.filter((track) => track.trackType === TrackType.Karyotype)[0].name + " (Reference)"
+                      : "No Reference Track Selected"}
                   </Typography>
-                  <Select
-                    placeholder="Select views"
-                    multiple
-                    value={connectedViews}
-                    onChange={(event, value) => {
-                      setConnectedViews(value);
-                      for (let i = 0; i < value.length; i++) {
-                        // if (props.crossViewActionHandler) {
-                          // console.log("Adding connection", value[i]);
-                          // props.crossViewActionHandler("add_connection", {
-                          //   source: props.viewConfig.uuid,
-                          //   target: value[i],
-                          // });
-                          const source = props.viewConfig.uuid;
-                          const target = value[i];
-                          dispatch(setConnection(
-                            { 
-                              key: source, value: [...(space.connections[source] || []), target] 
-                            }));
-                        // }
-                      }
-                    }
-                    }
-      
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    justifyContent: "right",
+                    width: "90%",
+                    flexWrap: "wrap",
+                  }}
+                >
+                <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                    }}
                   >
-                    {space.views &&
-                      space.views.filter(
-                        (view) => view.uuid !== props.viewConfig.uuid
-                      )
-                        .map((view) => {
-                        return (
-                          <Option
-                            key={view.uuid}
-                            value={view.uuid}
-                          >
-                            {view.title}
-                          </Option>
-                        );
-                      }
-                    )}
-                  </Select>
+                  <Typography
+                    sx={{
+                      fontSize: "0.8em",
+                      marginRight: "10px",
+                    }}
+                  >
+                    Show Highlights:
+                  </Typography>
+                  <Switch
+                    checked={globalConfig.showHighlight}
+                    onChange={(event) => {
+                      setGlobalConfig({
+                        ...globalConfig,
+                        showHighlight: event.target.checked,
+                      });
+                      props.handleViewUpdate(props.index, {
+                        ...props.viewConfig,
+                        config: {
+                          ...props.viewConfig.config,
+                          showHighlight: event.target.checked,
+                        },
+                      });
+                    }}
+                    sx={{
+                      marginRight: "10px",
+                    }}
+                  />
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                    }}
+                  >
+                    <Typography
+                      sx={{
+                        fontSize: "0.8em",
+                        marginRight: "10px",
+                      }}
+                      >Negative Strand</Typography>
+                    <Checkbox
+                      checked={negativeStrand}
+                      onChange={(event) => {
+                        setNegativeStrand(event.target.checked);
+                        props.handleViewUpdate(props.index, {
+                        ...props.viewConfig,
+                        config: {
+                          ...props.viewConfig.config,
+                          negativeStrand: event.target.checked,
+                        },
+                        });
+                          setGlobalConfig({
+                          ...globalConfig,
+                          negativeStrand: event.target.checked,
+                        });
+                      }}
+                      sx={{
+                        marginRight: "10px",
+                      }}
+                    />
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "left",
+                    }}
+                  >
+                  <Typography
+                    sx={{
+                      fontSize: "0.8em",
+                      marginRight: "20px",
+                    }}
+                  >
+                    Filter score:
+                  </Typography>
+                  <Slider
+                    value={minFilterScore}
+                    min={0}
+                    max={getMaxFilterScore(selectedTracks)}
+                    step={1}
+                    valueLabelDisplay="auto"
+                    sx={{
+                      width: "10%",
+                      minWidth: "50px",
+                      marginRight: "20px",
+                    }}
+                    onChange={(event, newValue) => {
+                      setMinFilterScore(newValue as number);
+                      props.handleViewUpdate(props.index, {
+                        ...props.viewConfig,
+                        config: {
+                          ...props.viewConfig.config,
+                          filterScore: newValue as number,
+                        },
+                      });
+                      setGlobalConfig({
+                        ...globalConfig,
+                        filterScore: newValue as number,
+                      });
+                      // setSelectedTracks((prevTracks) => {
+                      //   return prevTracks.map((track) => {
+                      //     if (track.trackType === TrackType.Chord) {
+                      //       return {
+                      //         ...track,
+                      //         config: {
+                      //           ...track.config,
+                      //           // minFilterScore: newValue as number,
+                      //           // maxFilterScore: newValue[1],
+                      //         },
+                      //       };
+                      //     }
+                      //     return track;
+                      //   });
+                      // });
+                    }}
+                    ></Slider>
+                  </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "left",
+                      }}
+                    >
+                    <Typography
+                      sx={{
+                        fontSize: "0.8em",
+                        marginRight: "20px",
+                      }}
+                    >
+                      Link Transparency:
+                    </Typography>
+                    <Slider
+                      min={0}
+                      max={1}
+                      step={0.1}
+                      value={globalConfig.linkUnselectedOpacity}
+                      valueLabelDisplay="auto"
+                      sx={{
+                        width: "10%",
+                        minWidth: "50px",
+                        marginRight: "20px",
+                      }}
+                      onChange={(event, newValue) => {
+                        setGlobalConfig({
+                          ...globalConfig,
+                          linkUnselectedOpacity: newValue as number,
+                        });
+                        props.handleViewUpdate(props.index, {
+                          ...props.viewConfig,
+                          config: {
+                            ...props.viewConfig.config,
+                            linkUnselectedOpacity: newValue as number,
+                          },
+                        });
+                      }}
+                    ></Slider>
+                    </Box>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "left",
+                        flexWrap: "wrap",
+                      }}
+                    >
+                    <Typography
+                      sx={{
+                        fontSize: "0.8em",
+                        marginRight: "10px",
+                      }}
+                    >
+                      Connect to:
+                    </Typography>
+                    <Select
+                      placeholder="Select views"
+                      multiple
+                      value={connectedViews}
+                      onChange={(event, value) => {
+                        // Find added and removed connections
+                        const prev = connectedViews;
+                        const added = value.filter((v) => !prev.includes(v));
+                        const removed = prev.filter((v) => !value.includes(v));
+
+                        setConnectedViews(value);
+
+                        // Add new connections
+                        for (let i = 0; i < added.length; i++) {
+                          const source = props.viewConfig.uuid;
+                          const target = added[i];
+                          const targetView = space.views.find((view) => view.uuid === target);
+                          if (targetView?.type === "linear") {
+                            dispatch(setConnection({
+                              key: target,
+                              value: [...(space.connections[target] || []), source]
+                            }));
+                          } else {
+                            dispatch(setConnection({
+                              key: source,
+                              value: [...(space.connections[source] || []), target]
+                            }));
+                          }
+                        }
+
+                        // Remove deselected connections
+                        for (let i = 0; i < removed.length; i++) {
+                          const source = props.viewConfig.uuid;
+                          const target = removed[i];
+                          const targetView = space.views.find((view) => view.uuid === target);
+                          if (targetView?.type === "linear") {
+                            // Remove source from target's connections
+                            const updated = (space.connections[target] || []).filter((uuid) => uuid !== source);
+                            dispatch(setConnection({
+                              key: target,
+                              value: updated
+                            }));
+                            dispatch(setDependency({
+                              key: source,
+                              value: null
+                            }));
+                          } else {
+                            // Remove target from source's connections
+                            const updated = (space.connections[source] || []).filter((uuid) => uuid !== target);
+                            dispatch(setConnection({
+                              key: source,
+                              value: updated
+                            }));
+                          }
+                        }
+                      }}
+                      sx={{
+                        fontSize: "0.8em",
+                        marginRight: "10px",
+                      }}
+                    >
+                      {space.views &&
+                        space.views.filter(
+                          (view) => view.uuid !== props.viewConfig.uuid
+                        )
+                          .map((view) => {
+                          return (
+                            <Option
+                              key={view.uuid}
+                              value={view.uuid}
+                              sx={{
+                                fontSize: "0.8em",
+                              }}
+                            >
+                              {view.title}
+                            </Option>
+                          );
+                        }
+                      )}
+                    </Select>
+                    </Box>
+                  </Box>
               </Card>
               <Box
                 sx={{
@@ -386,7 +620,12 @@ const CircosView = (props: CircosViewProps) => {
                 }}
                 >
               <div ref={canvasRef} style={{ width: "100%", height: "100%" }}>
-                <Tracks id={props.viewConfig.uuid} tracks={selectedTracks} crossViewActionHandler={props.crossViewActionHandler} />
+                <Tracks 
+                  id={props.viewConfig.uuid} 
+                  tracks={selectedTracks} 
+                  globalConfig={globalConfig} 
+                  dependencies={props.dependencies}
+                  />
               </div>
               </Box>
             </Box>

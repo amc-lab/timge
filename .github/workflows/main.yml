@@ -9,6 +9,7 @@ on:
       - feature/40-setup-exportable-state-representation-for-workspace
       - feature/42-create-heatmap-view
       - migrate/44-migrate-to-redux-for-state-management
+      - feature/46-setup-arc-view-for-secondary-structures-and-circos-annotations
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest

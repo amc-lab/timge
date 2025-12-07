@@ -5,6 +5,7 @@ export enum TrackType {
   Ring = "Ring",
   Line = "Line",
   Highlight = "Highlight",
+  Annotation = "Annotation",
 }
 
 export interface Track {
@@ -13,4 +14,5 @@ export interface Track {
   config: any;
   name?: string;
   path?: string;
+  reference?: boolean;
 }

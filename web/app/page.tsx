@@ -14,19 +14,25 @@ import {
   resetSpace,
   setSpace,
   updateView,
-  deleteView,
   setDataFiles,
   selectSpace,
-  setDependency,
-  setConnection,
-  deleteConnection,
-  deleteDependency,
+  setDiffStructureFormOpen,
 } from "@/store/features/space/spaceSlice";
-import { addLinearGenomeView, addCircosView, addMapView, addCustomMapView } from "./utils/viewUtils";
+import { addLinearGenomeView, addCircosView, addMapView } from "./utils/viewUtils";
 import FileViewerPanel from "@/components/FileViewerPanel";
 import Sidebar from "@/components/Sidebar";
 import Multilift from "./multilift/Multilift";
 import { getTrackFiles } from "./utils/fileUtils";
+import { fetchFiles } from "@/store/features/files/fileSlice";
+import { File as FileType } from "@/store/features/files/types";
+import LinearProgress from '@mui/material/LinearProgress';
+import { setLoading } from "@/store/features/site/siteSlice";
+import ShapeReactivityForm from "./diffStructure/Form";
+import {
+  registerCrossViewEventHandlers,
+  unregisterCrossViewEventHandlers,
+} from "./utils/crossViewEventHandlers";
+import { API_BASE_URL } from "@/app/config/env";
 
 interface FileEntry {
   name: string;
@@ -38,9 +44,34 @@ export default function Page() {
 
   const dispatch = useAppDispatch();
   const space = useAppSelector(selectSpace);
-  const [files, setFiles] = useState<FileEntry[]>([]);
+  // const [files, setFiles] = useState<FileEntry[]>([]);
+  const [files, setFiles] = useState<FileType[]>([]);
   const [genomeFormOpen, setGenomeFormOpen] = useState(false);
+  const _files = useAppSelector((state) => state.files);
+  const isLoading = useAppSelector((state) => state.site.isLoading);
 
+  useEffect(() => {
+    registerCrossViewEventHandlers();
+    return () => {
+      unregisterCrossViewEventHandlers();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (space.uuid) {
+      const fetchData = async () => {
+        const _files = await dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
+        return _files;
+      };
+      fetchData().then((result) => {
+        if (result.meta.requestStatus === "fulfilled") {
+          const files = result.payload as FileType[];
+          setFiles(files);
+        }
+      });
+    }
+  }, [space.uuid]);
+  
   const fileFormatMapping = {
     "fasta": "karyotype",
     "bed": "line",
@@ -61,7 +92,7 @@ export default function Page() {
     setFiles(files.filter((file) => file.name !== trackName));
     dispatch(setDataFiles(space.dataFiles.filter((file) => file !== trackName)));
 
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+    const host = API_BASE_URL;
     fetch(`${host}/api/timge/delete_track/?uuid=${space.uuid}&track_name=${trackName}`, {
       method: "DELETE",
     })
@@ -69,18 +100,37 @@ export default function Page() {
     .then((data) => {
       if (data.status === "success") {
         console.log("Track deleted successfully");
+        dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
       } else {
         console.error("Error deleting track:", data.message);
       }
     })
   }
 
-  useEffect(() => {
-    saveToLocalStorage(space);
-  }, [space]);
+  const [hasHydratedState, setHasHydratedState] = useState(false);
 
   useEffect(() => {
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+    if (typeof window === "undefined") return;
+    const savedState = localStorage.getItem(STATE_KEY);
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        dispatch(setSpace(parsedState));
+      } catch (error) {
+        console.error("Failed to parse saved TIMGE state", error);
+      }
+    }
+    setHasHydratedState(true);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (hasHydratedState) {
+      saveToLocalStorage(space);
+    }
+  }, [space, hasHydratedState]);
+
+  useEffect(() => {
+    const host = API_BASE_URL;
     
     fetch(`${host}/api/timge/get_files_in_path/`, {
       method: "POST",
@@ -111,105 +161,45 @@ export default function Page() {
   }, [space.uuid]);
 
   const uploadTrackFiles = async(files: File[]) => {
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+    const host = API_BASE_URL;
     let formData = new FormData();
     
     files.forEach((track) => {
       formData.append("track_files", track);
     });
     formData.append("uuid", space.uuid);
-    fetch(`${host}/api/timge/upload_tracks/`, {
-      method: "POST",
-      body: formData,
-    })
-    .then((response) => response.json())
-    .then((data) => {
+    // fetch(`${host}/api/timge/upload_tracks/`, {
+    //   method: "POST",
+    //   body: formData,
+    // })
+    // .then((response) => response.json())
+    // .then((data) => {
+    //   console.log("Files uploaded successfully", data);
+    //   dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
+    // })
+    // .catch((error) => {
+    //   console.error("Error uploading files", error);
+    // });
+
+    try {
+      const response = await fetch(`${host}/api/timge/upload_tracks/`, {
+        method: "POST",
+        body: formData,
+      });
+  
+      const data = await response.json();
       console.log("Files uploaded successfully", data);
-      const trackFiles = files.map((file) => ({
-        name: file.name,
-        data: file,
-        type: file.type,
-        size: file.size,
-        trackType: fileFormatMapping[file.name.split('.').pop()],
-      }));
-      getTrackFiles(space, false).then((_files) => {
-        setFiles(_files);
-      });
-    })
-    .catch((error) => {
+  
+      await dispatch(fetchFiles({ uuid: space.uuid, path: [] }));
+    } catch (error) {
       console.error("Error uploading files", error);
-    });
+    } finally {
+      dispatch(setLoading(false));
+    }
   }
 
-  const addConnection = (viewId: string, linkedViewId: string) => {
-    console.log("Adding connection from", viewId, "to", linkedViewId);
-    dispatch(setConnection(
-      { 
-        key: viewId, value: [...(space.connections[viewId] || []), linkedViewId] 
-      }));
-  }
-
-  const removeConnection = (viewId: string) => {
-    const dependents = space.connections[viewId];
-    if (dependents) {
-      dependents.forEach((dependentId) => {
-        dispatch(setDependency(
-          { key: dependentId, value: [] }
-        ));
-      });
-    }
-
-    dispatch(deleteConnection(viewId));
-  }
-
-  const crossViewActionHandler = (action: string, data: any) => {
-    if (action === "generate_heatmap") {
-      if (!data || !data.track || !data.reference || !data.segmentA || !data.segmentB || !data.resolution) {
-        console.error("Invalid or missing data for generate_heatmap action");
-        return;
-      }
-      console.log("Generating heatmap with data:", data);
-      addCustomMapView(dispatch, space,
-        {
-        reference: data.reference,
-        track: data.track,
-        segmentA: data.segmentA,
-        segmentB: data.segmentB,
-        resolution: data.resolution,
-      });
-    }
-    else if (action === "delete_view") {
-      const viewId = data.viewId;
-      if (viewId) {
-        dispatch(deleteView(viewId));
-        dispatch(deleteConnection(viewId));
-        dispatch(deleteDependency(viewId));
-      }
-    }
-    else if (action === "add_connection") {
-      const { source, target } = data;
-      if (source && target) {
-        addConnection(source, target);
-      }
-    }
-    else if (action === "remove_connection") {
-      const { viewId } = data;
-      if (viewId) {
-        removeConnection(viewId);
-      }
-    }
-    else if (action === "propagate_dependencies") {
-      const { viewId, dependencies } = data;
-      const dependents = space.connections[viewId];
-      if (dependents) {
-        dependents.forEach((dependentId) => {
-          dispatch(setDependency({ key: dependentId, value: dependencies }));
-        });
-      }
-    }
-    else {
-      console.log("Unknown action:", action);
-    }
+  const updateViewState = (index: number, updatedConfig: any) => {
+    dispatch(updateView({ index, updated: updatedConfig }));
   }
 
   // When importing a state, set the space state to the imported state and fetch the tracks from the backend
@@ -238,11 +228,24 @@ export default function Page() {
     setGenomeFormOpen(true);
   }
 
-  const updateViewState = (index: number, updatedConfig: any) => {
-    dispatch(updateView({ index, updated: updatedConfig }));
+
+  if (!hasHydratedState) {
+    return null;
   }
 
   return <>
+  {isLoading &&
+  <LinearProgress
+    sx={{
+      width: "100%",
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 2000,
+    }}
+    ></LinearProgress>
+  }
     <Header 
       addLinearGenomeView={() => addLinearGenomeView(dispatch, space)}
       addCircosView={() => addCircosView(dispatch, space)}
@@ -286,6 +289,15 @@ export default function Page() {
             refreshView={refreshFileViewer}
             setRefreshView={setRefreshFileViewer}
         />
+        ) : space.config?.diff_structure_form_open ? (
+          <ShapeReactivityForm
+            open={space.config?.diff_structure_form_open}
+            onClose={() => dispatch(setDiffStructureFormOpen(false))}
+            onSubmit={(conditions) => {
+              console.log("Conditions submitted:", conditions);
+              dispatch(setSpace({ ...space, config: { ...space.config, diff_structure_form_open: false } }));
+            }}
+          />
         ) : <Sidebar />
       }
 
@@ -303,7 +315,7 @@ export default function Page() {
           display: "flex",
           flexDirection: "row",
           flexWrap: "wrap",
-          alignItems: "flex-start",
+          // alignItems: "flex-end"
         }}
         >
         {
@@ -315,10 +327,7 @@ export default function Page() {
                         viewConfig={view} 
                         handleViewUpdate={updateViewState} 
                         index={index} 
-                        crossViewActionHandler={crossViewActionHandler} 
                         dependencies={space.dependencies[view.uuid]}
-                        addConnection={addConnection}
-                        removeConnection={removeConnection}
                       />  
             }
             else if (view.type === "circos") {
@@ -327,10 +336,7 @@ export default function Page() {
                         viewConfig={view}
                         handleViewUpdate={updateViewState} 
                         index={index} 
-                        crossViewActionHandler={crossViewActionHandler} 
                         dependencies={space.dependencies[view.uuid]}
-                        addConnection={addConnection}
-                        removeConnection={removeConnection}
                         files={files}
                       />
             }
@@ -341,10 +347,7 @@ export default function Page() {
                         viewConfig={view}
                         handleViewUpdate={updateViewState} 
                         index={index} 
-                        crossViewActionHandler={crossViewActionHandler} 
                         dependencies={space.dependencies[view.uuid]}
-                        addConnection={addConnection}
-                        removeConnection={removeConnection}
                       />
             }
           })

@@ -64,9 +64,13 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({ label, items }) => {
         onMouseLeave={handleMouseLeave}
       >
         {items.map((item, index) => (
-          <MenuItem key={index} onClick={() => setMenuOpen(false)}>
+          <MenuItem key={index} 
+            onClick={() => {
+              setMenuOpen(false);
+              if (item.action) item.action();
+              }}>
             {item.action ? (
-              <Box onClick={item.action} sx={{ background: "none", color: "black" }}>
+              <Box sx={{ background: "none", color: "black" }}>
                 {item.text}
               </Box>
             ) : (

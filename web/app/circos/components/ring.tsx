@@ -96,6 +96,7 @@ const Ring = ({ data, config, segments, idx }: RingProps) => {
         })
         .attr("text-anchor", "middle")
         .attr("alignment-baseline", "middle")
+        .attr("font-family", "Arial")
         .attr("font-size", 10)
         .attr("fill", "black")
         .text((d: { index: number }) => segment.chromosome);

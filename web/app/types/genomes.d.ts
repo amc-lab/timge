@@ -38,6 +38,18 @@ export interface LineData {
   value: number;
 }
 
+export interface AnnotationData {
+  chrom: string;
+  chromStart: number;
+  chromEnd: number;
+  name: string;
+  score: number;
+  strand: string;
+  thickStart: number;
+  thickEnd: number;
+  itemRgb: string;
+}
+
 interface AssemblyConfig {
   segmentPadding: number;
   axisLabelFontSize: number;
@@ -52,14 +64,25 @@ interface AssemblyConfig {
   metricPrefix: string;
 }
 
+interface HighlightConfig {
+  // segmentStartIdx: number;
+  // segmentEndIdx: number;
+  // segmentStartPos: number;
+  // segmentEndPos: number;
+  showHighlight: boolean;
+  innerRadius: number;
+  width: number;
+}
+
 interface ChordConfig {
   chordPadding: number;
   opacity: number;
   colour?: string;
   useStroke: boolean;
   outerRadius: number;
-  minFilterScore: number;
-  maxFilterScore: number;
+  // minFilterScore: number;
+  // maxFilterScore: number;
+  // negativeStrand: boolean;
 }
 
 interface BarConfig {
@@ -91,9 +114,24 @@ interface LineConfig {
   hide: boolean;
 }
 
+interface AnnotationConfig {
+  innerRadius: number;
+  trackWidth: number;
+  trackPadding: number;
+  colour?: string;
+  hide: boolean;
+  textFontSize: number;
+  textPadding: number;
+}
+
 interface GlobalConfig {
   canvasWidth: number;
   canvasHeight: number;
+  linkSelectedOpacity: number;
+  linkUnselectedOpacity: number;
+  showHighlight: boolean;
+  filterScore: number;
+  negativeStrand: boolean;
 }
 
 interface SegmentDetails {

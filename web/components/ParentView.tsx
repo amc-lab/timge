@@ -18,11 +18,12 @@ interface ParentViewProps {
   children?: React.ReactNode;
   viewConfig?: any;
   userActions?: Record<string, (...args: any[]) => void>;
+  closeAction?: () => void;
   index?: number;
   ref?: React.Ref<any>;
 }
 
-const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {}, index, ref }) => {
+const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActions = {}, index, ref, closeAction }) => {
   const dispatch = useAppDispatch();
   const space = useAppSelector((state) => state.space);
   
@@ -52,6 +53,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
 
   const handleViewClose = () => {
     const uuid = viewConfig.uuid;
+    console.log("Closing view with UUID:", uuid);
     if (uuid) {
       dispatch(deleteView(uuid));
       dispatch(deleteConnection(uuid));
@@ -71,7 +73,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
     <Box
       sx={{
         display: "flex",
-        justifyContent: "center",
+        // justifyContent: "center",
         alignItems: "center",
         width: viewConfig.config.isMinimised ? "calc(50% - 5px)" : "calc(100% - 5px)",
         borderRadius: "3px",
@@ -104,12 +106,12 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
         </IconButton>
 
         <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
+          <MenuItem onClick={() => setIsTitleEditing(true)}>Rename View</MenuItem>
           {Object.keys(userActions).map((key) => (
             <MenuItem key={key} onClick={() => handleActionClick(key)}>
               {key}
             </MenuItem>
           ))}
-          <MenuItem onClick={() => setIsTitleEditing(true)}>Rename View</MenuItem>
         </Menu>
 
         <EditableLabel
@@ -125,7 +127,12 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
 
         <Box sx={{ ml: "auto" }}>
           <IconButton
-            onClick={handleViewClose}
+            onClick={() => {
+              if (closeAction) {
+                closeAction();
+              }
+              handleViewClose();
+            }}
             sx={{
               color: "white",
               height: "2em",
@@ -144,7 +151,7 @@ const ParentView: React.FC<ParentViewProps> = ({ children, viewConfig, userActio
           borderRadius: "3px",
           width: "100%",
           minHeight: "200px",
-          // padding: "5px",
+          height: "100%",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",

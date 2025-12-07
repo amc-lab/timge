@@ -53,6 +53,8 @@ def format_genome(genome, format) -> list[dict]:
         return format_scatter(genome)
     elif format == "line":
         return format_line(genome)
+    elif format == "annotation":
+        return format_annotation(genome)
     else:
         return []
 
@@ -187,9 +189,45 @@ def format_line(line) -> list[dict]:
                 data.append(
                     {
                         "chrom": line.split("\t")[0],
-                        "chromStart": line.split("\t")[1],
-                        "chromEnd": line.split("\t")[2],
+                        "chromStart": int(line.split("\t")[1]),
+                        "chromEnd": int(line.split("\t")[2]),
                         "value": float(line.split("\t")[3]),
+                    }
+                )
+            return data
+    else:
+        return []
+
+
+def format_annotation(annotation) -> list[dict]:
+    """
+    Args:
+    - annotation: File object containing the annotation data
+    Returns:
+    - List of dictionaries containing the annotation data
+    """
+    annotation_format = annotation.name.split(".")[-1]
+    if annotation_format in ["bed"]:
+        with StringIO(annotation.read().decode("utf-8")) as F:
+            lines = F.readlines()[1:]
+            data = []
+
+            if lines[0].startswith("track name="):
+                lines = lines[1:]
+
+            for line in lines:
+                line = line.strip()
+                data.append(
+                    {
+                        "chrom": line.split("\t")[0],
+                        "chromStart": int(line.split("\t")[1]),
+                        "chromEnd": int(line.split("\t")[2]),
+                        "name": line.split("\t")[3],
+                        "score": int(line.split("\t")[4]),
+                        "strand": line.split("\t")[5],
+                        "thickStart": int(line.split("\t")[6]),
+                        "thickEnd": int(line.split("\t")[7]),
+                        "itemRgb": line.split("\t")[8],
                     }
                 )
             return data

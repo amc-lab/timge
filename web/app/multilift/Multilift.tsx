@@ -31,6 +31,9 @@ import DataTrackSelect from "./components/DataTrackSelect";
 import CloseIcon from '@mui/icons-material/Close';
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setMultiliftFormOpen } from '@/store/features/space/spaceSlice';
+import { setLoading } from "@/store/features/site/siteSlice";
+import { fetchFiles } from "@/store/features/files/fileSlice";
+import { API_BASE_URL } from "@/app/config/env";
 
 interface MultiliftProps {
   triggerFileRefresh: () => void;
@@ -65,9 +68,7 @@ const Multilift: React.FC<MultiliftProps> = ({triggerFileRefresh}) => {
     formData.append("genome", genome);
     formData.append("genome_file", file);
 
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-
-    fetch(`${host}/api/multilift/multilift_sequences/`, {
+    fetch(`${API_BASE_URL}/api/multilift/multilift_sequences/`, {
       method: "POST",
       body: formData,
     })
@@ -167,8 +168,7 @@ const Multilift: React.FC<MultiliftProps> = ({triggerFileRefresh}) => {
     }
     formData.append("multilift_genomes", JSON.stringify(uploadGenomes));
 
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/multilift/temp/`, {
+    fetch(`${API_BASE_URL}/api/multilift/temp/`, {
       method: "POST",
       body: formData,
     })
@@ -199,6 +199,7 @@ const Multilift: React.FC<MultiliftProps> = ({triggerFileRefresh}) => {
   const dispatch = useAppDispatch();
 
   const saveAlignment = () => {
+    dispatch(setLoading(true));
     const formData = new FormData();
 
     formData.append("genomes", JSON.stringify(Object.keys(genomes)));
@@ -228,8 +229,7 @@ const Multilift: React.FC<MultiliftProps> = ({triggerFileRefresh}) => {
     }
     formData.append("multilift_genomes", JSON.stringify(uploadGenomes));
 
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/multilift/temp/`, {
+    fetch(`${API_BASE_URL}/api/multilift/temp/`, {
       method: "POST",
       body: formData,
     })
@@ -242,9 +242,13 @@ const Multilift: React.FC<MultiliftProps> = ({triggerFileRefresh}) => {
       })
       .catch((error) => {
         console.error("Error generating alignment:", error);
+      })
+      .finally(() => {
+        dispatch(setLoading(false));
+        dispatch(fetchFiles({uuid: space.uuid, path: []}));
       });
-    
-      triggerFileRefresh();
+
+      dispatch(setMultiliftFormOpen(false));
   }
 
 
@@ -274,12 +278,6 @@ const Multilift: React.FC<MultiliftProps> = ({triggerFileRefresh}) => {
           padding: "2em",
           }}
       >
-        <LinearProgress
-        sx={{
-            display: showLoadingBar ? "block" : "none",
-            height: "0.5em",
-        }}
-        />
 
         <Box
           sx={{

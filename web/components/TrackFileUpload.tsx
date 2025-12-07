@@ -4,16 +4,20 @@ import { useDropzone } from "react-dropzone";
 import { Card, Typography } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { useRef } from "react";
+import { useAppDispatch } from "@/store/hooks";
+import { setLoading } from "@/store/features/site/siteSlice";
 
 interface DataTrackFileUploadBoxProps {
     onDataTrackFileUpload: (fileList: FileList) => void;
 }
 
 const DataTrackFileUploadBox: React.FC<DataTrackFileUploadBoxProps> = ({ onDataTrackFileUpload }) => {
+    const dispatch = useAppDispatch();
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop: (acceptedFiles) => {
             if (acceptedFiles.length > 0) {
+                dispatch(setLoading(true));
                 const fileList = new DataTransfer();
                 acceptedFiles.forEach(file => fileList.items.add(file));
                 onDataTrackFileUpload(fileList.files);

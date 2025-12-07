@@ -13,6 +13,7 @@ import os
 from django.conf import settings
 from io import BytesIO
 import zipfile
+import urllib.request
 
 TRACK_ROOT_DIR = settings.TRACK_ROOT_DIR
 
@@ -141,7 +142,17 @@ def format_circos(request):
 
     track_types = json.loads(request.POST.get("track_types"))
     track_paths = json.loads(request.POST.get("track_paths"))
-    data_files = [open(os.path.join(track_path), "rb") for track_path in track_paths]
+
+    data_files = []
+    for track_path in track_paths:
+        if track_path.startswith("http://") or track_path.startswith("https://"):
+            with urllib.request.urlopen(track_path) as response:
+                f = BytesIO(response.read())
+                f.name = os.path.basename(track_path)
+                data_files.append(f)
+        else:
+            f = open(os.path.join(track_path), "rb")
+            data_files.append(f)
 
     data = []
     for i in range(len(track_types)):

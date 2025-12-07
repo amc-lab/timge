@@ -3,12 +3,16 @@ import tarfile
 import zipfile
 import gzip
 import io
+import tempfile
+import os
+import pysam
 
 from Bio import AlignIO, SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio.Align import MultipleSeqAlignment
 
+# from library.liftover import annotate, Lifter, liftover
 from libraries.multilift.liftover import annotate, Lifter, liftover
 from libraries.multilift.msa import align, generate_consensus
 from libraries.multilift.utils import (
@@ -158,6 +162,27 @@ def multilift(
                 aln = AlignIO.read(result, "fasta")
                 L.add_alignment(aln, seq_group)
 
+                # Rewind to the start of the result to split into per-genome FASTA
+                result.seek(0)
+                fasta_content = result.read()
+
+                # Split by FASTA entries and write each genome to a separate file
+                for record in SeqIO.parse(StringIO(fasta_content), "fasta"):
+                    seq_id = (
+                        record.id
+                    )  # You can also use record.description for full line
+                    single_fasta_io = StringIO()
+                    SeqIO.write(record, single_fasta_io, "fasta")
+                    single_fasta_io.seek(0)
+
+                    # Add each file to the archive
+                    add_to_archive(
+                        Arc,
+                        BytesIO(bytes(single_fasta_io.getvalue(), "utf-8")),
+                        f"alignment/{seq_id}.fa",
+                        uiobj_download_format,
+                    )
+
                 # Write alignment as fasta
                 add_to_archive(
                     Arc,
@@ -187,15 +212,41 @@ def multilift(
                     )
                 )
 
+        with tempfile.TemporaryDirectory() as tmpdir:
+            consensus_path = os.path.join(tmpdir, "consensus.fa")
+            with open(consensus_path, "w") as consensus_file:
+                SeqIO.write(igv_genomes, consensus_file, "fasta")
+
+            pysam.faidx(consensus_path)
+
+            with open(consensus_path, "rb") as f:
+                add_to_archive(
+                    Arc,
+                    BytesIO(f.read()),
+                    f"genome/consensus.fa",
+                    uiobj_download_format,
+                )
+
+            # Read and archive consensus.fa.fai
+            fai_path = consensus_path + ".fai"
+            with open(fai_path, "rb") as f:
+                add_to_archive(
+                    Arc,
+                    BytesIO(f.read()),
+                    f"genome/consensus.fa.fai",
+                    uiobj_download_format,
+                )
+
         # Write consensus sequences
-        with StringIO() as F:
-            SeqIO.write(igv_genomes, F, "fasta")
-            add_to_archive(
-                Arc,
-                BytesIO(bytes(F.getvalue(), "utf-8")),
-                f"genome/consensus.fa",
-                uiobj_download_format,
-            )
+        # with StringIO() as F:
+        #     SeqIO.write(igv_genomes, F, "fasta")
+        #     add_to_archive(
+        #         Arc,
+        #         BytesIO(bytes(F.getvalue(), "utf-8")),
+        #         f"genome/consensus.fa",
+        #         uiobj_download_format,
+        #     )
+
         del igv_genomes
 
         # Write maf alignment

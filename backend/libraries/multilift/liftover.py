@@ -150,11 +150,13 @@ def _liftover_bedgraph(
             print(line, file=outfile)
         else:
             line = line.split("\t")
+            diff = int(line[2]) - int(line[1])
             if line[0] not in lifter.liftovers[genome]:
                 ignoring.add(line[0])
                 continue
             line[0], line[1] = lifter(genome, seqid := line[0], int(line[1]))
-            _, line[2] = lifter(genome, seqid, int(line[2]))
+            # _, line[2] = lifter(genome, seqid, int(line[2]))
+            line[2] = int(line[1]) + diff
             print("\t".join(str(x) for x in line), file=outfile)
 
     if ignoring:

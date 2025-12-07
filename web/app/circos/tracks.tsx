@@ -4,17 +4,23 @@ import Segment from "./components/segment";
 import Chords from "./components/chord";
 import Bar from "./components/bar";
 import { Track, TrackType } from "./config/track";
-import Highlight from "./components/highlight"; // Ensure this is the correct path to your Highlight component
 import Ring from "./components/ring";
 import Line from "./components/line";
+import Annotation from "./components/annotation";
+import Highlight from "./components/highlight";
+import { AnnotationData as AnnotationType, Chord, GlobalConfig } from "../types/genomes";
+import { publishCrossViewEvent } from "@/app/utils/crossViewEvents";
 
 interface TracksProps {
   tracks: Array<Track>;
-  crossViewActionHandler?: any;
   id?: string;
+  globalConfig?: GlobalConfig;
+  dependencies?: any;
 }
 
-const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
+const DEFAULT_HEATMAP_RESOLUTION = 100;
+
+const Tracks = ({ tracks, id, globalConfig, dependencies }: TracksProps) => {
   const [segmentData, setSegmentData] = useState<any[]>([]);
   const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
   const [trackData, setTrackData] = useState<Array<Track>>([]);
@@ -34,8 +40,43 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
   }
   , [totalRadius]);
 
+  const setHighlightConfig = (tracks: Array<Track>, newHighlightConfig: any) => {
+    const highlightTrack = tracks.find(track => track.trackType === TrackType.Highlight);
+    if (highlightTrack) {
+      highlightTrack.config = {
+        ...highlightTrack.config,
+        ...newHighlightConfig
+      };
+    }
+  };
+
+  const generateRNAfold = (d: Chord) => {
+    const reference =  tracks.find(track => track.trackType === TrackType.Karyotype)?.name || "";
+    if (!reference) {
+      console.error("No karyotype track found to generate RNAfold.");
+      return;
+    }
+    const segmentA = d.source_chromosome;
+    const segmentB = d.target_chromosome;
+    const segmentAStart = d.source_start;
+    const segmentAEnd = d.source_end;
+    const segmentBStart = d.target_start;
+    const segmentBEnd = d.target_end;
+    
+    publishCrossViewEvent("GENERATE_RNAFOLD", {
+      reference,
+      segmentA: d.source_chromosome,
+      segmentB: d.target_chromosome,
+      segmentAStart: d.source_start,
+      segmentAEnd: d.source_end,
+      segmentBStart: d.target_start,
+      segmentBEnd: d.target_end,
+    });
+  }
+
   useEffect(() => {
     let minAvailableRadius = 160;
+    let karyotypeWidth = 0;
 
     const updatedTracks = [...tracks]
       .reverse()
@@ -45,6 +86,10 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
           const trackWidth = track.config.segmentTrackWidth;
           minAvailableRadius =
             segmentInnerRadius + trackWidth + track.config.segmentGridPadding;
+          setHighlightConfig(tracks, {
+            innerRadius: segmentInnerRadius - 5,
+            width: trackWidth + 10,
+          });
           return {
             ...track,
             config: {
@@ -103,6 +148,24 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
             },
           };
         }
+        else if (track.trackType === TrackType.Annotation) {
+          const annotationInnerRadius = minAvailableRadius;
+          console.log(findMaxOverlaps(track.data.annotations));
+          minAvailableRadius =
+            annotationInnerRadius +
+            findMaxOverlaps(track.data.annotations) * (
+            track.config.trackWidth +
+            track.config.trackPadding +
+            track.config.textFontSize + 
+            track.config.textPadding);
+          return {
+            ...track,
+            config: {
+              ...track.config,
+              innerRadius: annotationInnerRadius,
+            },
+          };
+        }
         setTotalRadius(minAvailableRadius);
         return track;
       })
@@ -111,6 +174,28 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
     setTrackData(updatedTracks);
   }, [tracks]);
 
+    const findMaxOverlaps = (annotations: AnnotationType[]): number => {
+      const intervals = [];
+      annotations.forEach((annotation) => {
+        intervals.push({ start: annotation.chromStart, end: annotation.chromEnd });
+      });
+      intervals.sort((a, b) => a.start);
+      let maxOverlaps = 1;
+      let currentOverlaps = 1;
+      let prevEnd = intervals[0].end;
+
+      for (let i = 1; i < intervals.length; i++) {
+        if (intervals[i].start < prevEnd) {
+          currentOverlaps++;
+          maxOverlaps = Math.max(maxOverlaps, currentOverlaps);
+        } else {
+          currentOverlaps = 1;
+        }
+        prevEnd = Math.max(prevEnd, intervals[i].end);
+      }
+      return maxOverlaps;
+    };
+
   const onSelectSegments = (selectedSegments: string[]) => {
     console.log("Selected segments:", selectedSegments);
     setSelectedSegments(selectedSegments);
@@ -118,18 +203,46 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
 
   const onCustomAction = (action: string, data: any) => {
     console.log("Custom action triggered:", action, data);
-    if (action === "generate_heatmap") {
-      crossViewActionHandler(
-        "propagate_dependencies",
-        {
-          viewId: id,
-          dependencies: {
-            segmentA: data.segmentA,
-            segmentB: data.segmentB,
-          }
-        }
-      );
+    if (action !== "generate_heatmap") return;
+
+    const segments = (data?.segments ?? []) as Array<{ id: string; length: number }>;
+    if (segments.length < 2) {
+      console.warn("Generate heatmap requires exactly two segments.");
+      return;
     }
+
+    const [segmentA, segmentB] = segments;
+
+    if (!segmentA || !segmentB) {
+      console.warn("Generate heatmap invoked without both segments.");
+      return;
+    }
+
+    if (id) {
+      publishCrossViewEvent("PROPAGATE_DEPENDENCIES", {
+        viewId: id,
+        dependencies: { segmentA, segmentB },
+      });
+    }
+
+    const referenceTrack = trackData.find((track) => track.trackType === TrackType.Karyotype)
+      ?.name;
+    const contactTrack = trackData.find((track) => track.trackType === TrackType.Chord)?.name;
+
+    if (!referenceTrack || !contactTrack) {
+      console.warn(
+        "Unable to generate heatmap from circos view without both reference and interaction tracks.",
+      );
+      return;
+    }
+
+    publishCrossViewEvent("GENERATE_HEATMAP", {
+      reference: referenceTrack,
+      track: contactTrack,
+      segmentA,
+      segmentB,
+      resolution: DEFAULT_HEATMAP_RESOLUTION,
+    });
   };
 
   return (
@@ -137,6 +250,7 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
       {trackData.map((track, index) => {
         if (track.trackType === TrackType.Karyotype) {
           return (
+            <>
             <Segment
               key={index}
               data={track.data}
@@ -146,6 +260,23 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
               onCustomAction={onCustomAction}
               idx={id + index}
             />
+            {/* {
+              segmentData.length > 0 && (
+                <Highlight
+                  divRef={track.data.divRef}
+                  key={index + "highlight"}
+                  segmentStartIdx={0}
+                  segmentEndIdx={0}
+                  segmentStartPos={0}
+                  segmentEndPos={500}
+                  segments={segmentData}
+                  globalConfig={globalConfig}
+                  innerRadius={track.config.segmentInnerRadius}
+                  width={track.config.segmentTrackWidth}
+            />
+              )
+            } */}
+            </>
           );
         } else if (track.trackType === TrackType.Bar) {
           return (
@@ -169,6 +300,9 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
               segments={segmentData}
               selectedSegments={selectedSegments}
               idx={index}
+              globalConfig={globalConfig}
+              dependencies={dependencies}
+              onChordClick={(d) => {generateRNAfold(d)}}
             />
           );
         }
@@ -191,21 +325,30 @@ const Tracks = ({ tracks, crossViewActionHandler, id }: TracksProps) => {
               config={track.config}
               segments={segmentData}
               idx={index}
+              trackName={track.name}
             />
           )
+        }
+        else if (track.trackType === TrackType.Annotation) {
+          return (
+            <Annotation
+              key={index}
+              data={track.data}
+              config={track.config}
+              segments={segmentData}
+              idx={index}
+            />
+          );
         }
         else if (track.trackType === TrackType.Highlight) {
           return (
             <Highlight
               key={index}
-              divRef={track.data.divRef}
-              segmentStartIdx={0}
-              segmentEndIdx={0}
-              segmentStartPos={2000}
-              segmentEndPos={5000}
-              totalRadius={totalRadius}
               segments={segmentData}
-              globalConfig={track.data.globalConfig}
+              config={track.config}
+              data={track.data}
+              dependencies={dependencies}
+              globalConfig={globalConfig}
             />
           );
         }

@@ -17,6 +17,12 @@ from timge.utils.heatmap import generate_contact_map, generate_contact_map_bedpe
 import gzip
 import io
 from io import BytesIO
+from django.http import HttpResponse, StreamingHttpResponse
+import tempfile
+from pathlib import Path
+import tempfile, zipfile
+from timge.utils.diffStructure.main import run_differential
+import pandas as pd
 
 TRACK_ROOT_DIR = settings.TRACK_ROOT_DIR
 
@@ -56,6 +62,19 @@ from io import BytesIO
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 from django.http import JsonResponse
+import zipfile
+
+
+import os
+import gzip
+import tarfile
+import zipfile
+import shutil
+import subprocess
+from io import BytesIO
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 
 @csrf_exempt
@@ -64,16 +83,22 @@ def upload_tracks(request):
     """
     Handles the upload of track files to the server.
     Extracts .gz and .tar.gz files if detected, otherwise saves as-is.
+    If a file ends in .fasta or .fa, runs samtools faidx on it.
     """
     if request.method == "POST":
         track_files = request.FILES.getlist("track_files")
         uuid = request.POST.get("uuid")
+        path = request.POST.get("path", [])
+
+        if path and isinstance(path, list):
+            path = "/".join(path)
+        else:
+            path = ""
 
         # make directory for the uuid
         print("Track root dir:", TRACK_ROOT_DIR)
-        directory = os.path.join(TRACK_ROOT_DIR, uuid)
-        if not os.path.exists(directory):
-            os.makedirs(directory)
+        directory = os.path.join(TRACK_ROOT_DIR, uuid, path)
+        os.makedirs(directory, exist_ok=True)
 
         for track_file in track_files:
             file_name = track_file.name
@@ -98,10 +123,24 @@ def upload_tracks(request):
                             f_out.write(extracted_data)
                         print(f"Saved decompressed file to: {extracted_path}")
 
+                        # Check if decompressed file is FASTA
+                        if base_name.endswith((".fasta", ".fa")):
+                            run_samtools_faidx(extracted_path)
+
+                elif file_name.endswith(".zip"):
+                    with zipfile.ZipFile(file_like, "r") as zip_ref:
+                        zip_ref.extractall(directory)
+                        print(f"Extracted contents of {file_name} to {directory}")
+                        # You could optionally walk the extracted contents and call samtools on any .fa/.fasta files
+
                 else:
                     print(f"Saving regular file: {file_name}")
                     with open(file_path, "wb") as f_out:
                         f_out.write(file_data)
+
+                    if file_name.endswith((".fasta", ".fa")):
+                        run_samtools_faidx(file_path)
+
             except Exception as e:
                 return JsonResponse(
                     {
@@ -113,6 +152,25 @@ def upload_tracks(request):
         return JsonResponse({"status": "success", "directory": directory})
 
     return JsonResponse({"status": "error", "message": "Invalid request method."})
+
+
+def run_samtools_faidx(fasta_path):
+    """
+    Run samtools faidx on the given FASTA file to generate an index (.fai).
+    """
+    try:
+        print(f"Running samtools faidx on {fasta_path}")
+        result = subprocess.run(
+            ["samtools", "faidx", fasta_path],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        print(f"samtools faidx completed: {result.stdout}")
+    except subprocess.CalledProcessError as e:
+        print(f"samtools faidx failed: {e.stderr}")
+        raise Exception(f"samtools faidx failed for {fasta_path}: {e.stderr}")
 
 
 @csrf_exempt
@@ -251,6 +309,316 @@ def generate_heatmap(request):
     )
 
 
+TILE_SIZE = 256  # standard tile size
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def generate_heatmap_tiles(request):
+    """
+    Generate contact map tiles for efficient rendering.
+    Expects a list of tiles with their coordinates and returns matrices for each tile.
+
+    Request body format:
+    {
+        "uuid": "user_uuid",
+        "file_name": "reads.bam",
+        "genome_path": "reference.fasta",
+        "resolution": 1000,  # bp per bin
+        "segment_1": "chr1",
+        "segment_2": "chr1",  # can be same or different
+        "normalise": false,
+        "tiles": [
+            {"x": 0, "y": 0},  # tile coordinates
+            {"x": 1, "y": 0},
+            {"x": 0, "y": 1}
+        ]
+    }
+
+    Returns:
+    {
+        "status": "success",
+        "tiles": [
+            {
+                "x": 0,
+                "y": 0,
+                "matrix": [[...], [...], ...],  # 256x256 matrix
+                "x_range": [0, 256000],  # genomic coordinates covered
+                "y_range": [0, 256000]
+            },
+            ...
+        ]
+    }
+    """
+    from timge.utils.heatmap import generate_contact_map_tile_bedpe
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"status": "error", "message": "Invalid JSON."})
+
+    uuid = data.get("uuid")
+    reads_path = data.get("file_name")
+    resolution = int(data.get("resolution", 1000))
+    segment_1 = data.get("segment_1")
+    segment_2 = data.get("segment_2")
+    genome_path = data.get("genome_path")
+    normalise = data.get("normalise", False)
+    tiles = data.get("tiles", [])
+
+    if not tiles:
+        return JsonResponse({"status": "error", "message": "No tiles specified."})
+
+    directory = os.path.join(TRACK_ROOT_DIR, uuid)
+    reads_path = os.path.join(directory, reads_path)
+    reference_path = os.path.join(directory, genome_path)
+    fai_path = os.path.join(directory, genome_path + ".fai")
+
+    if not os.path.exists(reads_path):
+        return JsonResponse({"status": "error", "message": "File not found."})
+    if not os.path.exists(reference_path):
+        return JsonResponse({"status": "error", "message": "Reference file not found."})
+    if not os.path.exists(fai_path):
+        os.system(f'samtools faidx "{reference_path}"')
+        print("FAI file created.")
+
+    # Get segment lengths from FAI
+    segment_lengths = {}
+    with open(fai_path, "r") as fai:
+        for line in fai:
+            parts = line.strip().split("\t")
+            segment_lengths[parts[0]] = int(parts[1])
+
+    seg1_length = segment_lengths.get(segment_1)
+    seg2_length = segment_lengths.get(segment_2)
+
+    if seg1_length is None or seg2_length is None:
+        return JsonResponse(
+            {"status": "error", "message": "Segment not found in reference."}
+        )
+
+    # Generate tiles
+    tile_results = []
+    for tile in tiles:
+        tile_x = tile.get("x")
+        tile_y = tile.get("y")
+
+        if tile_x is None or tile_y is None:
+            continue
+
+        # Calculate genomic coordinates for this tile
+        x_start = tile_x * TILE_SIZE * resolution
+        x_end = (tile_x + 1) * TILE_SIZE * resolution
+        y_start = tile_y * TILE_SIZE * resolution
+        y_end = (tile_y + 1) * TILE_SIZE * resolution
+
+        # Clamp to segment boundaries
+        x_start = max(0, x_start)
+        x_end = min(seg1_length, x_end)
+        y_start = max(0, y_start)
+        y_end = min(seg2_length, y_end)
+
+        # Generate the contact map for this region
+        # if reads_path.endswith(".bedpe"):
+        #     matrix = generate_contact_map_tile_bedpe(
+        #         reads_path, segment_1, segment_2, fai_path,
+        #         x_start, x_end, y_start, y_end,
+        #         resolution, normalise
+        #     )
+        # else:
+        matrix = generate_contact_map_tile_bedpe(
+            reads_path,
+            segment_1,
+            segment_2,
+            fai_path,
+            x_start,
+            x_end,
+            y_start,
+            y_end,
+            resolution,
+            normalise,
+        )
+
+        # Pad matrix to TILE_SIZE x TILE_SIZE if needed
+        if matrix is not None:
+            padded_matrix = pad_matrix_to_tile_size(matrix, TILE_SIZE)
+            tile_results.append(
+                {
+                    "x": tile_x,
+                    "y": tile_y,
+                    "matrix": padded_matrix.tolist(),
+                    "x_range": [x_start, x_end],
+                    "y_range": [y_start, y_end],
+                }
+            )
+        else:
+            tile_results.append(
+                {
+                    "x": tile_x,
+                    "y": tile_y,
+                    "matrix": None,
+                    "x_range": [x_start, x_end],
+                    "y_range": [y_start, y_end],
+                }
+            )
+
+    return JsonResponse({"status": "success", "tiles": tile_results})
+
+
+# def generate_contact_map_tile_bedpe(reads_path, segment_1, segment_2, fai_path,
+#                                      x_start, x_end, y_start, y_end, resolution, normalise):
+#     """
+#     Generate a contact map tile from BEDPE format.
+
+#     Args:
+#         reads_path: Path to BEDPE file
+#         segment_1: First segment/chromosome name
+#         segment_2: Second segment/chromosome name
+#         fai_path: Path to FAI index
+#         x_start: Start position on segment_1 (bp)
+#         x_end: End position on segment_1 (bp)
+#         y_start: Start position on segment_2 (bp)
+#         y_end: End position on segment_2 (bp)
+#         resolution: Bin size in base pairs
+#         normalise: Whether to normalize the matrix
+
+#     Returns:
+#         numpy array of contact counts
+#     """
+#     from timge.utils.heatmap import generate_contact_map_tile_bedpe
+
+#     region_1 = f"{segment_1}:{x_start}-{x_end}"
+#     region_2 = f"{segment_2}:{y_start}-{y_end}"
+
+#     try:
+#         matrix = generate_contact_map_tile_bedpe(
+#                 reads_path, segment_1, segment_2, fai_path,
+#                 x_start, x_end, y_start, y_end,
+#                 resolution, normalise
+#             )
+#         return matrix
+#     except Exception as e:
+#         print(f"Error generating BEDPE tile: {e}")
+#         return None
+
+
+def pad_matrix_to_tile_size(matrix, tile_size):
+    """
+    Pad a matrix to the standard tile size with zeros.
+
+    Args:
+        matrix: Input numpy array
+        tile_size: Target size (e.g., 256)
+
+    Returns:
+        Padded numpy array of shape (tile_size, tile_size)
+    """
+    if matrix is None:
+        return np.zeros((tile_size, tile_size))
+
+    current_height, current_width = matrix.shape
+
+    # If already the right size, return as-is
+    if current_height == tile_size and current_width == tile_size:
+        return matrix
+
+    # Create padded matrix
+    padded = np.zeros((tile_size, tile_size))
+
+    # Copy the actual data
+    h = min(current_height, tile_size)
+    w = min(current_width, tile_size)
+    padded[:h, :w] = matrix[:h, :w]
+
+    return padded
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_tile_metadata(request):
+    """
+    Get metadata about the tile grid for a given segment pair and resolution.
+
+    Query parameters:
+        - uuid: User UUID
+        - genome_path: Path to reference genome
+        - segment_1: First segment name
+        - segment_2: Second segment name
+        - resolution: Bin size in base pairs
+
+    Returns:
+    {
+        "status": "success",
+        "metadata": {
+            "segment_1_length": 248956422,
+            "segment_2_length": 248956422,
+            "resolution": 1000,
+            "tile_size": 256,
+            "tiles_x": 972,  # number of tiles needed for x-axis
+            "tiles_y": 972,  # number of tiles needed for y-axis
+            "bp_per_tile": 256000  # base pairs covered per tile
+        }
+    }
+    """
+    uuid = request.GET.get("uuid")
+    genome_path = request.GET.get("genome_path")
+    segment_1 = request.GET.get("segment_1")
+    segment_2 = request.GET.get("segment_2")
+    resolution = int(request.GET.get("resolution", 1000))
+
+    if not all([uuid, genome_path, segment_1, segment_2]):
+        return JsonResponse(
+            {"status": "error", "message": "Missing required parameters."}
+        )
+
+    directory = os.path.join(TRACK_ROOT_DIR, uuid)
+    reference_path = os.path.join(directory, genome_path)
+    fai_path = os.path.join(directory, genome_path + ".fai")
+
+    if not os.path.exists(reference_path):
+        return JsonResponse({"status": "error", "message": "Reference file not found."})
+
+    if not os.path.exists(fai_path):
+        os.system(f'samtools faidx "{reference_path}"')
+
+    # Read segment lengths from FAI
+    segment_lengths = {}
+    with open(fai_path, "r") as fai:
+        for line in fai:
+            parts = line.strip().split("\t")
+            segment_lengths[parts[0]] = int(parts[1])
+
+    seg1_length = segment_lengths.get(segment_1)
+    seg2_length = segment_lengths.get(segment_2)
+
+    if seg1_length is None or seg2_length is None:
+        return JsonResponse(
+            {"status": "error", "message": "Segment not found in reference."}
+        )
+
+    # Calculate tile grid dimensions
+    bp_per_tile = TILE_SIZE * resolution
+    tiles_x = int(np.ceil(seg1_length / bp_per_tile))
+    tiles_y = int(np.ceil(seg2_length / bp_per_tile))
+
+    return JsonResponse(
+        {
+            "status": "success",
+            "metadata": {
+                "segment_1": segment_1,
+                "segment_2": segment_2,
+                "segment_1_length": seg1_length,
+                "segment_2_length": seg2_length,
+                "resolution": resolution,
+                "tile_size": TILE_SIZE,
+                "tiles_x": tiles_x,
+                "tiles_y": tiles_y,
+                "bp_per_tile": bp_per_tile,
+            },
+        }
+    )
+
+
 @csrf_exempt
 @require_http_methods(["GET"])
 def generate_fai(request):
@@ -334,13 +702,22 @@ def get_segments(request):
         return JsonResponse({"status": "error", "message": "Reference file not found."})
 
     try:
-        segments = [record.id for record in SeqIO.parse(reference_path, "fasta")]
+        # record.id for record in SeqIO.parse(reference_path, "fasta")
+        segments = {
+            record.id: len(record.seq)
+            for record in SeqIO.parse(reference_path, "fasta")
+        }
     except Exception as e:
         return JsonResponse(
             {"status": "error", "message": f"Error parsing FASTA: {str(e)}"}
         )
 
-    return JsonResponse({"status": "success", "segments": segments})
+    return JsonResponse(
+        {
+            "status": "success",
+            "segments": segments,
+        }
+    )
 
 
 @csrf_exempt
@@ -519,3 +896,417 @@ def folder_operation(request):
             return JsonResponse({"status": "error", "message": str(e)})
 
     return JsonResponse({"status": "error", "message": "Invalid operation."})
+
+
+def stream_zip(target):
+    """
+    Walk `target` (file or folder), write it into an in-memory ZipFile,
+    and yield it in 8k chunks.
+    """
+    buf = BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        if os.path.isfile(target):
+            # Single file: use basename
+            zf.write(target, os.path.basename(target))
+        else:
+            # Directory: walk and zip with paths relative to the directory itself
+            for root, _, files in os.walk(target):
+                for fname in files:
+                    full_path = os.path.join(root, fname)
+                    # This makes “folder/subfolder/file.ext” inside the zip
+                    rel_path = os.path.relpath(full_path, start=target)
+                    zf.write(full_path, rel_path)
+
+    buf.seek(0)
+    while True:
+        chunk = buf.read(8192)
+        if not chunk:
+            break
+        yield chunk
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def download_path(request):
+    """
+    Streams back a ZIP containing either:
+      - one file (if `path` is a file) or
+      - the entire directory tree (if `path` is a folder).
+    """
+    uuid = request.GET.get("uuid")
+    relpath = request.GET.get("path", "").lstrip("/")
+    if not uuid:
+        return JsonResponse({"status": "error", "message": "Missing uuid"}, status=400)
+
+    base_dir = os.path.abspath(os.path.join(TRACK_ROOT_DIR, uuid))
+    target = os.path.abspath(os.path.join(base_dir, relpath))
+
+    # Security: prevent traversal outside of the uuid folder
+    if not target.startswith(base_dir + os.sep):
+        return JsonResponse({"status": "error", "message": "Invalid path"}, status=400)
+    if not os.path.exists(target):
+        return JsonResponse(
+            {"status": "error", "message": "File or directory not found"}, status=404
+        )
+
+    # Decide on a sensible download‐filename
+    if os.path.isdir(target):
+        download_name = os.path.basename(target) or uuid
+    else:
+        download_name = os.path.basename(target)
+
+    response = StreamingHttpResponse(stream_zip(target), content_type="application/zip")
+    response["Content-Disposition"] = f'attachment; filename="{download_name}.zip"'
+    return response
+
+
+def csv_to_bedgraphs(input_csv, output_prefix=""):
+    """
+    Reads a CSV file with columns ['chrom', 'start_pos', 'end_pos', 'raw_pval', 'effect_size']
+    and writes a separate BEDGraph file for each chromosome. Each BEDGraph will have:
+        chrom  start_pos  end_pos  effect_size
+
+    Parameters:
+    - input_csv (str): Path to the input CSV file.
+    - output_prefix (str): Optional prefix or directory for output files.
+                           Each file will be named "<output_prefix><chrom>.bedgraph".
+
+    Example:
+        csv_to_bedgraphs("results.csv", output_prefix="bedgraphs/")
+    """
+    # Load the CSV into a DataFrame
+    df = pd.read_csv(input_csv)
+
+    # Ensure required columns are present
+    required_cols = {"chrom", "start_pos", "end_pos", "effect_size"}
+    if not required_cols.issubset(df.columns):
+        missing = required_cols - set(df.columns)
+        raise ValueError(f"Missing required columns: {missing}")
+
+    # Group by chromosome and write one bedgraph per group
+    for chrom, group in df.groupby("chrom"):
+        # Select only the start_pos, end_pos, and effect_size columns
+        bedgraph_df = group[["start_pos", "end_pos", "effect_size"]].copy()
+
+        # Sort by start_pos (BEDGraph files should be sorted)
+        bedgraph_df = bedgraph_df.sort_values("start_pos")
+
+        # Construct output filename
+        filename = f"{output_prefix}{chrom}.bedgraph"
+
+        # Write to file (no header, tab‐separated)
+        bedgraph_df.to_csv(filename, sep="\t", header=False, index=False)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def diff_structure(request):
+    print("Received request for differential structure analysis")
+    print("Request data:", request.POST, request.FILES)
+
+    # 1) parse condition names
+    conds = []
+    for key, value in request.POST.items():
+        if key.startswith("condition_") and key.endswith("_name"):
+            idx = int(key.split("_")[1])
+            while len(conds) <= idx:
+                conds.append({"name": None, "files": []})
+            conds[idx]["name"] = value
+
+    # 2) collect uploaded files
+    for key, f in request.FILES.items():
+        parts = key.split("_")
+        idx = int(parts[1])
+        if idx >= len(conds) or conds[idx]["name"] is None:
+            return JsonResponse(
+                {"error": f"Missing name for condition index {idx}"}, status=400
+            )
+        conds[idx]["files"].append(f)
+
+    # 3) write uploads to a temporary work directory
+    workdir = Path(tempfile.mkdtemp())
+    cond1_paths, cond2_paths = [], []
+    for idx, cond in enumerate(conds):
+        target_list = cond1_paths if idx == 0 else cond2_paths
+        for j, upload in enumerate(cond["files"]):
+            # sanitize filename
+            safe_name = "".join(c for c in cond["name"] if c.isalnum() or c in "-_")
+            fn = workdir / f"{safe_name}_rep{j}.txt"
+            with fn.open("wb") as out:
+                for chunk in upload.chunks():
+                    out.write(chunk)
+            target_list.append(str(fn))
+
+    # 4) run the HMM-based differential peak caller
+    out_csv = workdir / "diff_peaks.csv"
+    try:
+        run_differential(
+            cond1_paths,
+            cond2_paths,
+            str(out_csv),
+            n_states=2,
+            cov_type="diag",
+            pvalue_cutoff=0.05,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": "Differential analysis failed", "details": str(e)}, status=500
+        )
+
+    # 5) generate one BEDGraph per chromosome from diff_peaks.csv
+    #    Each bedgraph has columns: chrom, start_pos, end_pos, effect_size
+    df = pd.read_csv(out_csv)
+    required_cols = {"chrom", "start_pos", "end_pos", "adj_pval"}
+    missing = required_cols - set(df.columns)
+    if missing:
+        return JsonResponse(
+            {"error": f"diff_peaks.csv is missing required columns: {missing}"},
+            status=500,
+        )
+
+    bedgraph_paths = []
+    for chrom, group in df.groupby("chrom"):
+        bg_df = group[["chrom", "start_pos", "end_pos", "adj_pval"]].sort_values(
+            "start_pos"
+        )
+        bedgraph_file = workdir / f"{chrom}.bedgraph"
+        bg_df.to_csv(bedgraph_file, sep="\t", header=False, index=False)
+        bedgraph_paths.append(bedgraph_file)
+
+    # 6) zip results (both diff_peaks.csv and all BEDGraphs)
+    zip_path = workdir / "results.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.write(out_csv, arcname="diff_peaks.csv")
+        for bg in bedgraph_paths:
+            zf.write(bg, arcname=bg.name)
+
+    # 7) return the ZIP as the HTTP response
+    with zip_path.open("rb") as fh:
+        response = HttpResponse(fh.read(), content_type="application/zip")
+        response["Content-Disposition"] = (
+            'attachment; filename="diff_peaks_and_bedgraphs.zip"'
+        )
+        return response
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def diff_structure_test(request):
+    """
+    Test endpoint for differential structure analysis.
+    This is a mock implementation that simulates the process.
+    """
+    conds = []
+    for key, value in request.POST.items():
+        if key.startswith("condition_") and key.endswith("_name"):
+            idx = int(key.split("_")[1])
+            while len(conds) <= idx:
+                conds.append({"name": None, "files": []})
+            conds[idx]["name"] = value
+
+    # 2) collect uploaded files
+    for key, f in request.FILES.items():
+        parts = key.split("_")
+        idx = int(parts[1])
+        if idx >= len(conds) or conds[idx]["name"] is None:
+            return JsonResponse(
+                {"error": f"Missing name for condition index {idx}"}, status=400
+            )
+        conds[idx]["files"].append(f)
+
+    # 3) write uploads to a temporary work directory
+    workdir = Path(tempfile.mkdtemp())
+    cond1_paths, cond2_paths = [], []
+    for idx, cond in enumerate(conds):
+        target_list = cond1_paths if idx == 0 else cond2_paths
+        for j, upload in enumerate(cond["files"]):
+            # sanitize filename
+            safe_name = "".join(c for c in cond["name"] if c.isalnum() or c in "-_")
+            fn = workdir / f"{safe_name}_rep{j}.txt"
+            with fn.open("wb") as out:
+                for chunk in upload.chunks():
+                    out.write(chunk)
+            target_list.append(str(fn))
+
+    # 4) run the HMM-based differential peak caller
+    out_csv = workdir / "diff_peaks.csv"
+    try:
+        run_differential(
+            cond1_paths,
+            cond2_paths,
+            str(out_csv),
+            n_states=2,
+            cov_type="diag",
+            pvalue_cutoff=0.05,
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": "Differential analysis failed", "details": str(e)}, status=500
+        )
+
+    # 5) generate one BEDGraph per chromosome from diff_peaks.csv
+    #    Each bedgraph has columns: chrom, start_pos, end_pos, effect_size
+    df = pd.read_csv(out_csv)
+    required_cols = {"chrom", "start_pos", "end_pos", "adj_pval"}
+    missing = required_cols - set(df.columns)
+    if missing:
+        return JsonResponse(
+            {"error": f"diff_peaks.csv is missing required columns: {missing}"},
+            status=500,
+        )
+
+    bedgraph_paths = []
+    for chrom, group in df.groupby("chrom"):
+        bg_df = group[["chrom", "start_pos", "end_pos", "adj_pval"]].sort_values(
+            "start_pos"
+        )
+        bedgraph_file = workdir / f"{chrom}.bedgraph"
+        bg_df.to_csv(bedgraph_file, sep="\t", header=False, index=False)
+        bedgraph_paths.append(bedgraph_file)
+
+    # 6) zip results (both diff_peaks.csv and all BEDGraphs)
+    zip_path = workdir / "results.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.write(out_csv, arcname="diff_peaks.csv")
+        for bg in bedgraph_paths:
+            zf.write(bg, arcname=bg.name)
+
+    # 7) return the ZIP as the HTTP response
+    with zip_path.open("rb") as fh:
+        response = HttpResponse(fh.read(), content_type="application/zip")
+        response["Content-Disposition"] = (
+            'attachment; filename="diff_peaks_and_bedgraphs.zip"'
+        )
+        return response
+
+
+def get_fasta_file(path: str):
+    """
+    Reads a FASTA file and returns the first sequence record.
+    Args:
+        path (str): The file path to the FASTA file.
+    Returns:
+        SeqIO.SeqRecord: The first sequence record from the FASTA file.
+    """
+    with open(path, "r") as fasta_file:
+        for record in SeqIO.parse(fasta_file, "fasta"):
+            return record
+    return None
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def predict_rna_folds(request):
+    uuid = request.POST.get("uuid")
+    fasta1_path = os.path.join(TRACK_ROOT_DIR, uuid, request.POST.get("fasta1"))
+    fasta2_path = os.path.join(TRACK_ROOT_DIR, uuid, request.POST.get("fasta2"))
+    segment1_coords = request.POST.get("segment1_coords")
+    segment2_coords = request.POST.get("segment2_coords")
+
+    if not fasta1_path or not fasta2_path:
+        return JsonResponse(
+            {"error": "Both fasta1 and fasta2 must be provided."}, status=400
+        )
+
+    fasta1 = get_fasta_file(fasta1_path)
+    fasta2 = get_fasta_file(fasta2_path)
+
+    if not fasta1 or not fasta2 or not fasta1.seq or not fasta2.seq:
+        return JsonResponse({"error": "Invalid or empty FASTA sequences."}, status=400)
+
+    try:
+        # Extract subsegments if specified
+        if segment1_coords:
+            start1, end1 = map(int, segment1_coords.split(","))
+            fasta1.seq = fasta1.seq[start1:end1]
+        if segment2_coords:
+            start2, end2 = map(int, segment2_coords.split(","))
+            fasta2.seq = fasta2.seq[start2:end2]
+
+        seq1 = str(fasta1.seq)
+        seq2 = str(fasta2.seq)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmpdir_path = Path(tmpdir)
+
+            # Write seq1 and seq2 to separate files
+            seq1_file = tmpdir_path / "seq1.seq"
+            seq2_file = tmpdir_path / "seq2.seq"
+            seq1_file.write_text(seq1 + "\n")
+            seq2_file.write_text(seq2 + "\n")
+
+            duplex_input_path = tmpdir_path / "duplex_input.txt"
+            with open(duplex_input_path, "w") as f:
+                f.write(seq1 + "\n")
+                f.write(seq2 + "\n")
+                f.write("@\n")
+
+            # Run RNAduplex with input redirected from file
+            duplex_output_path = tmpdir_path / "duplex_output.txt"
+            with (
+                open(duplex_input_path, "r") as infile,
+                open(duplex_output_path, "w") as outfile,
+            ):
+                subprocess.run(
+                    ["RNAduplex"],
+                    stdin=infile,
+                    stdout=outfile,
+                    stderr=subprocess.PIPE,
+                    cwd=tmpdir_path,
+                    check=True,
+                    text=True,
+                )
+
+            if not duplex_output_path.exists():
+                return JsonResponse(
+                    {"error": "RNAduplex output file not found."}, status=500
+                )
+            print("RNAduplex output:", duplex_output_path.read_text())
+
+            # Prepare input for RNAplot
+            duplex_output_lines = duplex_output_path.read_text().strip().splitlines()
+            if not duplex_output_lines:
+                return JsonResponse(
+                    {"error": "RNAduplex returned no output."}, status=500
+                )
+
+            # Extract only structure and sequence line
+            structure_line = duplex_output_lines[0].split()[0]
+            # pad left and right with dots to match the length of seq1 and seq2
+            struct_sizes = structure_line.split("&")
+            structure_line = (
+                "." * (len(seq1) - len(struct_sizes[0]))
+                + structure_line
+                + "." * (len(seq2) - len(struct_sizes[1]))
+            )
+            rnaplot_input_path = tmpdir_path / "rnaplot_input.txt"
+            rnaplot_input_path.write_text(f"{seq1}&{seq2}\n{structure_line}\n")
+
+            # Run RNAplot using the input file
+            subprocess.run(
+                ["RNAplot", "-i", str(rnaplot_input_path)],
+                cwd=tmpdir_path,
+                check=True,
+                text=True,
+            )
+
+            zip_bytes_io = BytesIO()
+            with zipfile.ZipFile(zip_bytes_io, "w", zipfile.ZIP_DEFLATED) as zipf:
+                for file_path in tmpdir_path.iterdir():
+                    zipf.write(file_path, arcname=f"{file_path.name}")
+
+            zip_bytes_io.seek(0)
+            response = HttpResponse(zip_bytes_io.read(), content_type="application/zip")
+            response["Content-Disposition"] = (
+                'attachment; filename="rnafold_outputs.zip"'
+            )
+            return response
+
+    except subprocess.CalledProcessError as e:
+        return JsonResponse(
+            {"error": "RNAduplex or RNAplot failed", "stderr": e.stderr}, status=500
+        )
+    except Exception as e:
+        return JsonResponse(
+            {"error": "Unexpected error", "details": str(e)}, status=500
+        )

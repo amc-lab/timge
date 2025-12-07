@@ -16,6 +16,7 @@ export const getDefaultState = (): State => ({
   dataFiles: [], // Array of file paths or URLs
   config: {
     "expanded_sidebar": true,
+    "diff_structure_form_open": false,
     "multilift_form_open": false,
     "working_directory": [],
   },
@@ -58,6 +59,8 @@ const spaceSlice = createSlice({
     setConnection: (state, action: PayloadAction<{ key: string, value: any }>) => {
       const { key, value } = action.payload;
       state.connections[key] = value;
+      console.log("Connection set:", key, value);
+      console.log("Current connections:", state.connections);
     },
     deleteConnection: (state, action: PayloadAction<string>) => {
       delete state.connections[action.payload];
@@ -78,6 +81,12 @@ const spaceSlice = createSlice({
         expanded_sidebar: action.payload,
       };
     },
+    setDiffStructureFormOpen: (state, action: PayloadAction<boolean>) => {
+      state.config = {
+        ...state.config,
+        diff_structure_form_open: action.payload,
+      };
+    },
     setMultiliftFormOpen: (state, action: PayloadAction<boolean>) => {
       state.config = {
         ...state.config,
@@ -89,7 +98,35 @@ const spaceSlice = createSlice({
         ...state.config,
         working_directory: action.payload,
       };
-    }
+    },
+    updateViewConfig: (state, action: PayloadAction<{ uuid: string, config: any }>) => {
+      const { uuid, config } = action.payload;
+      const view = state.views.find(v => v.uuid === uuid);
+      if (view) {
+        view.config = {
+          ...view.config,
+          ...config,
+        };
+      }
+    },
+    updateViewProps: (state, action: PayloadAction<{ uuid: string, updatedView: any }>) => {
+      const { uuid, updatedView } = action.payload;
+      const index = state.views.index(v => v.uuid == uuid);
+      if (index) {
+        state.views[index] = {
+          ...state.views[index],
+          ...updatedView,
+        };
+      }
+    },
+    getViewConfig: (state, action: PayloadAction<{uuid: string}>) => {
+      const { uuid } = action.payload;
+      const view = state.views.find(v => v.uuid === uuid);
+      if (view) {
+        return view.config;
+      }
+      return null;
+    },
   },
 });
 
@@ -110,6 +147,10 @@ export const {
   setSidebarExpanded,
   setMultiliftFormOpen,
   setWorkingDirectory,
+  setDiffStructureFormOpen,
+  updateViewConfig,
+  getViewConfig,
+  updateViewProps
 } = spaceSlice.actions;
 
 export const selectSpace = (state: { space: State }) => state.space;
