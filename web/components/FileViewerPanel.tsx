@@ -11,6 +11,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setSidebarExpanded, setWorkingDirectory } from '@/store/features/space/spaceSlice';
 import { fetchFiles } from '@/store/features/files/fileSlice';
 import { uploadTrackFiles } from '@/app/utils/fileUtils';
+import { API_BASE_URL } from "@/app/config/env";
 
 import ContextMenu, { ContextMenuOption } from './FileViewerPanelContextMenu';
 
@@ -98,8 +99,7 @@ const FileViewerPanel: React.FC<{
     setMenuState((ms) => ({ ...ms, visible: false }));
 
 const handleDownload = async (file: FileEntry) => {
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    const url = new URL(`${host}/api/timge/download/`);
+    const url = new URL(`${API_BASE_URL}/api/timge/download/`);
     url.searchParams.append("uuid", space.uuid);
     url.searchParams.append("path", file.path);
 

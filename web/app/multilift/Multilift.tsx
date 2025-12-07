@@ -33,6 +33,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setMultiliftFormOpen } from '@/store/features/space/spaceSlice';
 import { setLoading } from "@/store/features/site/siteSlice";
 import { fetchFiles } from "@/store/features/files/fileSlice";
+import { API_BASE_URL } from "@/app/config/env";
 
 interface MultiliftProps {
   triggerFileRefresh: () => void;
@@ -67,9 +68,7 @@ const Multilift: React.FC<MultiliftProps> = ({triggerFileRefresh}) => {
     formData.append("genome", genome);
     formData.append("genome_file", file);
 
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-
-    fetch(`${host}/api/multilift/multilift_sequences/`, {
+    fetch(`${API_BASE_URL}/api/multilift/multilift_sequences/`, {
       method: "POST",
       body: formData,
     })
@@ -169,8 +168,7 @@ const Multilift: React.FC<MultiliftProps> = ({triggerFileRefresh}) => {
     }
     formData.append("multilift_genomes", JSON.stringify(uploadGenomes));
 
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/multilift/temp/`, {
+    fetch(`${API_BASE_URL}/api/multilift/temp/`, {
       method: "POST",
       body: formData,
     })
@@ -231,8 +229,7 @@ const Multilift: React.FC<MultiliftProps> = ({triggerFileRefresh}) => {
     }
     formData.append("multilift_genomes", JSON.stringify(uploadGenomes));
 
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/multilift/temp/`, {
+    fetch(`${API_BASE_URL}/api/multilift/temp/`, {
       method: "POST",
       body: formData,
     })

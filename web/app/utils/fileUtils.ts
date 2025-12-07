@@ -1,5 +1,6 @@
+import { buildApiUrl } from "@/app/config/env";
+
   export const uploadTrackFiles = async (space, files: File[]) => {
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
     const formData = new FormData();
 
     files.forEach((track) => {
@@ -9,7 +10,7 @@
     formData.append("path", space.config.working_directory);
 
 
-    const response = await fetch(`${host}/api/timge/upload_tracks/`, {
+    const response = await fetch(buildApiUrl("/api/timge/upload_tracks/"), {
       method: "POST",
       body: formData,
     });
@@ -34,8 +35,7 @@
 
   export const getTrackFiles = async (space: any, useWorkingDirectory: boolean): Promise<any[]> => {
     try {
-      const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-      const response = await fetch(`${host}/api/timge/get_files_in_path/`, {
+      const response = await fetch(buildApiUrl("/api/timge/get_files_in_path/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

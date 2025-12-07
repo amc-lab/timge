@@ -3,6 +3,7 @@ import { Card } from "@mui/joy";
 import Button from "@mui/joy/Button";
 import Select from "@mui/joy/Select";
 import Option from "@mui/joy/Option";
+import { API_BASE_URL } from "@/app/config/env";
 
 interface FileEntry {
   name: string;
@@ -107,9 +108,7 @@ const FileUploadForm: React.FC<FileUploadFormProps> = ({ onSubmit }) => {
     //   onSubmit(circosFiles);
     // }
 
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-
-    fetch(`${host}/api/multilift/circos/`, {
+    fetch(`${API_BASE_URL}/api/multilift/circos/`, {
       method: "POST",
       body: formData,
     })

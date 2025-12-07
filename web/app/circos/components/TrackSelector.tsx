@@ -1,12 +1,8 @@
 import React, { useEffect, useState } from "react";
 import {
   Box,
-  Checkbox,
   Typography,
   IconButton,
-  Sheet,
-  Button,
-  Divider,
 } from "@mui/joy";
 import { Collapse } from "@mui/material";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
@@ -18,6 +14,8 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { Track, TrackType } from "../config/track";
 import { defaultAssemblyConfig, defaultChordConfig, defaultGlobalConfig, defaultLineConfig } from "../config/defaultConfigs";
 import { useAppSelector } from "@/store/hooks";
+import TrackSelectorModal from "@/components/TrackSelectorModal";
+import { API_BASE_URL } from "@/app/config/env";
 
 interface FileEntry {
   name: string;
@@ -51,8 +49,7 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({
 
     const fetchFiles = async () => {
       try {
-        const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-        const res = await fetch(`${host}/api/timge/get_files_hierarchical/`, {
+        const res = await fetch(`${API_BASE_URL}/api/timge/get_files_hierarchical/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -176,7 +173,6 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({
   };
 
   const renderTree = (entries: FileEntry[], parentPath = "") => {
-    console.log("Rendering tree with entries:", entries);
     return entries.map((entry) => {
       const fullPath = parentPath ? `${parentPath}/${entry.name}` : entry.name;
 
@@ -200,17 +196,31 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({
         );
       }
 
+      const track = trackMap.get(entry.name);
+      const isSelected = selectedTracks.some((t) => t.name === entry.name);
+      const isSelectable = Boolean(track);
+
       return (
-        <Box key={fullPath} sx={{ display: "flex", alignItems: "center", ml: 4 }}>
-        <Checkbox
-          checked={selectedTracks.some((track) => track.name === entry.name)}
-          disabled={!trackMap.has(entry.name)}
-          onChange={() => {
-            const track = trackMap.get(entry.name);
-            if (track) toggleTrack(track);
+        <Box
+          key={fullPath}
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            ml: 4,
+            cursor: isSelectable ? "pointer" : "not-allowed",
+            backgroundColor: isSelected ? "#e0f7fa" : "transparent",
+            p: 1,
+            borderRadius: 1,
+            border: isSelected ? "1px solid #0097a7" : "1px solid transparent",
+            opacity: isSelectable ? 1 : 0.6,
+            transition: "background-color 0.2s ease, border 0.2s ease",
           }}
-        />
-          <DescriptionIcon sx={{ml: 1}}/>
+          onClick={() => {
+            if (!isSelectable || !track) return;
+            toggleTrack(track);
+          }}
+        >
+          <DescriptionIcon sx={{ ml: 1 }} />
           <Typography sx={{ ml: 1 }}>{entry.name}</Typography>
         </Box>
       );
@@ -231,96 +241,69 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({
   };
 
   return (
-    <Box
-      sx={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 1300,
-      }}
+    <TrackSelectorModal
+      title="Track Selector"
+      description="Select and order tracks for the Circos view."
+      onClose={onClose}
+      onConfirm={handleConfirm}
+      confirmDisabled={selectedTracks.length === 0}
     >
-      <Sheet
+      <Box
         sx={{
-          width: "80vw",
-          maxHeight: "80vh",
-          backgroundColor: "white",
-          borderRadius: "12px",
-          padding: 4,
-          overflowY: "auto",
+          border: "1px solid #ccc",
+          borderRadius: "8px",
+          backgroundColor: "#f9f9f9",
+          p: 2,
+          mb: 3,
         }}
       >
-        <Typography level="h4" mb={2}>
-          Track Selector
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
+        {renderTree(files)}
+      </Box>
 
-        <Box
-          sx={{
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            backgroundColor: "#f9f9f9",
-            p: 2,
-            mb: 3,
-          }}
-        >
-          {renderTree(files)}
-        </Box>
-
-        <Typography mb={1}>Selected Tracks (Reorderable)</Typography>
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 1,
-            p: 2,
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            backgroundColor: "#eef3ff",
-          }}
-        >
-          {selectedTracks.map((track, index) => (
-            <Box
-              key={index}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 2,
-                padding: 1,
-                backgroundColor: "#fff",
-                borderRadius: "6px",
-                boxShadow: "sm",
-              }}
-            >
-              <Typography>{track.name}</Typography>
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <IconButton onClick={() => handleMove(index, -1)}>
-                  <ArrowForwardIcon />
-                </IconButton>
-                <IconButton onClick={() => handleMove(index, 1)}>
-                  <ArrowDownwardIcon />
-                </IconButton>
-              </Box>
+      <Typography mb={1}>Selected Tracks (Reorderable)</Typography>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 1,
+          p: 2,
+          border: "1px solid #ccc",
+          borderRadius: "8px",
+          backgroundColor: "#eef3ff",
+        }}
+      >
+        {selectedTracks.length === 0 && (
+          <Typography color="neutral">
+            No tracks selected yet.
+          </Typography>
+        )}
+        {selectedTracks.map((track, index) => (
+          <Box
+            key={`${track.name}-${index}`}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 2,
+              padding: 1,
+              backgroundColor: "#fff",
+              borderRadius: "6px",
+              boxShadow: "sm",
+            }}
+          >
+            <Typography>{track.name}</Typography>
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <IconButton onClick={() => handleMove(index, -1)}>
+                <ArrowForwardIcon />
+              </IconButton>
+              <IconButton onClick={() => handleMove(index, 1)}>
+                <ArrowDownwardIcon />
+              </IconButton>
             </Box>
-          ))}
-        </Box>
-
-        <Box mt={4} display="flex" justifyContent="flex-end" gap={2}>
-          <Button variant="outlined" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button variant="solid" onClick={handleConfirm}>
-            Confirm Selection
-          </Button>
-        </Box>
-      </Sheet>
-    </Box>
+          </Box>
+        ))}
+      </Box>
+    </TrackSelectorModal>
   );
 };
 

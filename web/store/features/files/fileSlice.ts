@@ -1,10 +1,9 @@
-import {createSlice, PayloadAction} from '@reduxjs/toolkit';
-import {File} from './types';
-import { createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction, createAsyncThunk } from "@reduxjs/toolkit";
+import { File } from "./types";
+import { API_BASE_URL } from "@/app/config/env";
 
 const queryFiles = async (uuid: string, path: string[]): Promise<File[]> => {
-    const HOST = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    const res = await fetch(`${HOST}/api/timge/get_files_hierarchical/`, {
+    const res = await fetch(`${API_BASE_URL}/api/timge/get_files_hierarchical/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

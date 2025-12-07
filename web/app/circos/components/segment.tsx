@@ -329,12 +329,19 @@ const disabledStyle = {
         return;
       }
       console.log(selectedSegments);
+      const segmentInfo = selectedSegments
+        .map((chrom) => {
+          const seg = segments.find((s) => s.chromosome === chrom);
+          if (!seg) return null;
+          return {
+            id: seg.chromosome,
+            length: seg.end - seg.start,
+          };
+        })
+        .filter(Boolean);
+
       onCustomAction("generate_heatmap", {
-        reference: "WSN.fodor.fasta",
-        track: "SRR6388155_SPLASH_WSN_ligase_2.bedpe",
-        segmentA: selectedSegments[0],
-        segmentB: selectedSegments[1],
-        resolution: 25,
+        segments: segmentInfo,
       });
     }}
   >

@@ -12,15 +12,13 @@ import TrackSelector from "./components/TrackSelector";
 import { View } from "@/store/features/views/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { setConnection, setDependency } from "@/store/features/space/spaceSlice";
+import { buildApiUrl, buildFileUrl } from "@/app/config/env";
 
 interface CircosViewProps {
     viewConfig: View;
     handleViewUpdate: (index, viewState: View) => void;
-    crossViewActionHandler?: any;
     index: number;
     dependencies?: any;
-    addConnection?: any;
-    removeConnection?: any;
     connections?: string[];
     files: any[];
 }
@@ -65,15 +63,16 @@ const CircosView = (props: CircosViewProps) => {
 
   const generate_circos_files = (files: any) => {
     console.log("Generating circos files", files);
-    const FILE_HOST = process.env.NEXT_PUBLIC_FILE_HOST;
     let circosFiles = [];
 
     const formData = new FormData();
     formData.append("track_types", JSON.stringify(files.map((file) => fileFormatMapping[file.split(".").pop()])));
-    formData.append("track_paths", JSON.stringify(files.map((file) => FILE_HOST + space.uuid + "/" + file)));
+    formData.append(
+      "track_paths",
+      JSON.stringify(files.map((file) => buildFileUrl(`${space.uuid}/${file}`))),
+    );
     
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/multilift/circos/`, {
+    fetch(buildApiUrl("/api/multilift/circos/"), {
       method: "POST",
       body: formData,
     })
@@ -624,7 +623,6 @@ const CircosView = (props: CircosViewProps) => {
                 <Tracks 
                   id={props.viewConfig.uuid} 
                   tracks={selectedTracks} 
-                  crossViewActionHandler={props.crossViewActionHandler} 
                   globalConfig={globalConfig} 
                   dependencies={props.dependencies}
                   />

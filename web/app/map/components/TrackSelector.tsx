@@ -3,9 +3,6 @@ import {
   Box,
   Typography,
   IconButton,
-  Sheet,
-  Button,
-  Divider,
 } from "@mui/joy";
 import { Collapse } from "@mui/material";
 import FolderIcon from "@mui/icons-material/Folder";
@@ -13,6 +10,8 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { useAppSelector } from "@/store/hooks";
+import TrackSelectorModal from "@/components/TrackSelectorModal";
+import { API_BASE_URL } from "@/app/config/env";
 
 interface FileEntry {
   name: string;
@@ -36,8 +35,7 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({ onClose, onConfirm }) => 
   useEffect(() => {
     const fetchFiles = async () => {
       try {
-        const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-        const res = await fetch(`${host}/api/timge/get_files_hierarchical/`, {
+        const res = await fetch(`${API_BASE_URL}/api/timge/get_files_hierarchical/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ uuid: space.uuid, path: false }),
@@ -126,63 +124,30 @@ const TrackSelector: React.FC<TrackSelectorProps> = ({ onClose, onConfirm }) => 
     });
 
   return (
-    <Box
-      sx={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100vw",
-        height: "100vh",
-        backgroundColor: "rgba(0, 0, 0, 0.6)",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 1300,
-      }}
+    <TrackSelectorModal
+      title="Select Reference and Track File"
+      description="Choose a reference FASTA and corresponding track file."
+      onClose={onClose}
+      onConfirm={() => onConfirm(referencePath, trackPath)}
+      confirmDisabled={!referencePath || !trackPath}
     >
-      <Sheet
+      <Box
         sx={{
-          width: "80vw",
-          maxHeight: "80vh",
-          backgroundColor: "white",
-          borderRadius: "12px",
-          padding: 4,
-          overflowY: "auto",
+          border: "1px solid #ccc",
+          borderRadius: "8px",
+          backgroundColor: "#f9f9f9",
+          p: 2,
+          mb: 3,
         }}
       >
-        <Typography level="h4" mb={2}>
-          Select Reference and Track File
-        </Typography>
-        <Divider sx={{ mb: 2 }} />
-        <Box
-          sx={{
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            backgroundColor: "#f9f9f9",
-            p: 2,
-            mb: 3,
-          }}
-        >
-          {renderTree(files)}
-        </Box>
+        {renderTree(files)}
+      </Box>
 
-        <Typography>Reference File: {referencePath || "None selected"}</Typography>
-        <Typography>Track File: {trackPath || "None selected"}</Typography>
-
-        <Box mt={4} display="flex" justifyContent="flex-end" gap={2}>
-          <Button variant="outlined" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button
-            variant="solid"
-            onClick={() => onConfirm(referencePath, trackPath)}
-            disabled={!referencePath || !trackPath}
-          >
-            Confirm Selection
-          </Button>
-        </Box>
-      </Sheet>
-    </Box>
+      <Typography>
+        Reference File: {referencePath || "None selected"}
+      </Typography>
+      <Typography>Track File: {trackPath || "None selected"}</Typography>
+    </TrackSelectorModal>
   );
 };
 

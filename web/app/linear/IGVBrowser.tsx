@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { useAppSelector } from "@/store/hooks";
+import { publishCrossViewEvent } from "@/app/utils/crossViewEvents";
+import { FILE_BASE_URL } from "@/app/config/env";
 
 declare global {
     interface Window {
@@ -9,25 +11,20 @@ declare global {
     }
   }
 
-const IGVBrowser = ({ reference, trackFiles, viewConfig, crossViewActionHandler }) => {
+const IGVBrowser = ({ reference, trackFiles, viewConfig }) => {
   const space = useAppSelector((state) => state.space);
   const igvContainerRef = useRef(null);
 
-  const HOST =
-    process.env.NEXT_PUBLIC_DJANGO_HOST !== "http://127.0.0.1:8000"
-      ? "https://vrise.doc.ic.ac.uk/uploads/" + space.uuid + "/"
-      : "http://localhost:3000/";
+  const uploadsBase = `${FILE_BASE_URL}/${space.uuid}`;
+  const HOST = `${uploadsBase}/`;
 
   const propagateLociUpdate = (loci) => {
     const viewId = viewConfig.uuid;
     console.log("Propagating loci update:", loci, "for viewId:", viewId);
-    crossViewActionHandler(
-      "propagate_loci",
-      {
-        viewId: viewId,
-        loci
-      }
-    );
+    publishCrossViewEvent("PROPAGATE_LOCI", {
+      viewId,
+      loci,
+    });
   };
 
   useEffect(() => {

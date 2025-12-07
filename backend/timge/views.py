@@ -309,6 +309,316 @@ def generate_heatmap(request):
     )
 
 
+TILE_SIZE = 256  # standard tile size
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def generate_heatmap_tiles(request):
+    """
+    Generate contact map tiles for efficient rendering.
+    Expects a list of tiles with their coordinates and returns matrices for each tile.
+
+    Request body format:
+    {
+        "uuid": "user_uuid",
+        "file_name": "reads.bam",
+        "genome_path": "reference.fasta",
+        "resolution": 1000,  # bp per bin
+        "segment_1": "chr1",
+        "segment_2": "chr1",  # can be same or different
+        "normalise": false,
+        "tiles": [
+            {"x": 0, "y": 0},  # tile coordinates
+            {"x": 1, "y": 0},
+            {"x": 0, "y": 1}
+        ]
+    }
+
+    Returns:
+    {
+        "status": "success",
+        "tiles": [
+            {
+                "x": 0,
+                "y": 0,
+                "matrix": [[...], [...], ...],  # 256x256 matrix
+                "x_range": [0, 256000],  # genomic coordinates covered
+                "y_range": [0, 256000]
+            },
+            ...
+        ]
+    }
+    """
+    from timge.utils.heatmap import generate_contact_map_tile_bedpe
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"status": "error", "message": "Invalid JSON."})
+
+    uuid = data.get("uuid")
+    reads_path = data.get("file_name")
+    resolution = int(data.get("resolution", 1000))
+    segment_1 = data.get("segment_1")
+    segment_2 = data.get("segment_2")
+    genome_path = data.get("genome_path")
+    normalise = data.get("normalise", False)
+    tiles = data.get("tiles", [])
+
+    if not tiles:
+        return JsonResponse({"status": "error", "message": "No tiles specified."})
+
+    directory = os.path.join(TRACK_ROOT_DIR, uuid)
+    reads_path = os.path.join(directory, reads_path)
+    reference_path = os.path.join(directory, genome_path)
+    fai_path = os.path.join(directory, genome_path + ".fai")
+
+    if not os.path.exists(reads_path):
+        return JsonResponse({"status": "error", "message": "File not found."})
+    if not os.path.exists(reference_path):
+        return JsonResponse({"status": "error", "message": "Reference file not found."})
+    if not os.path.exists(fai_path):
+        os.system(f'samtools faidx "{reference_path}"')
+        print("FAI file created.")
+
+    # Get segment lengths from FAI
+    segment_lengths = {}
+    with open(fai_path, "r") as fai:
+        for line in fai:
+            parts = line.strip().split("\t")
+            segment_lengths[parts[0]] = int(parts[1])
+
+    seg1_length = segment_lengths.get(segment_1)
+    seg2_length = segment_lengths.get(segment_2)
+
+    if seg1_length is None or seg2_length is None:
+        return JsonResponse(
+            {"status": "error", "message": "Segment not found in reference."}
+        )
+
+    # Generate tiles
+    tile_results = []
+    for tile in tiles:
+        tile_x = tile.get("x")
+        tile_y = tile.get("y")
+
+        if tile_x is None or tile_y is None:
+            continue
+
+        # Calculate genomic coordinates for this tile
+        x_start = tile_x * TILE_SIZE * resolution
+        x_end = (tile_x + 1) * TILE_SIZE * resolution
+        y_start = tile_y * TILE_SIZE * resolution
+        y_end = (tile_y + 1) * TILE_SIZE * resolution
+
+        # Clamp to segment boundaries
+        x_start = max(0, x_start)
+        x_end = min(seg1_length, x_end)
+        y_start = max(0, y_start)
+        y_end = min(seg2_length, y_end)
+
+        # Generate the contact map for this region
+        # if reads_path.endswith(".bedpe"):
+        #     matrix = generate_contact_map_tile_bedpe(
+        #         reads_path, segment_1, segment_2, fai_path,
+        #         x_start, x_end, y_start, y_end,
+        #         resolution, normalise
+        #     )
+        # else:
+        matrix = generate_contact_map_tile_bedpe(
+            reads_path,
+            segment_1,
+            segment_2,
+            fai_path,
+            x_start,
+            x_end,
+            y_start,
+            y_end,
+            resolution,
+            normalise,
+        )
+
+        # Pad matrix to TILE_SIZE x TILE_SIZE if needed
+        if matrix is not None:
+            padded_matrix = pad_matrix_to_tile_size(matrix, TILE_SIZE)
+            tile_results.append(
+                {
+                    "x": tile_x,
+                    "y": tile_y,
+                    "matrix": padded_matrix.tolist(),
+                    "x_range": [x_start, x_end],
+                    "y_range": [y_start, y_end],
+                }
+            )
+        else:
+            tile_results.append(
+                {
+                    "x": tile_x,
+                    "y": tile_y,
+                    "matrix": None,
+                    "x_range": [x_start, x_end],
+                    "y_range": [y_start, y_end],
+                }
+            )
+
+    return JsonResponse({"status": "success", "tiles": tile_results})
+
+
+# def generate_contact_map_tile_bedpe(reads_path, segment_1, segment_2, fai_path,
+#                                      x_start, x_end, y_start, y_end, resolution, normalise):
+#     """
+#     Generate a contact map tile from BEDPE format.
+
+#     Args:
+#         reads_path: Path to BEDPE file
+#         segment_1: First segment/chromosome name
+#         segment_2: Second segment/chromosome name
+#         fai_path: Path to FAI index
+#         x_start: Start position on segment_1 (bp)
+#         x_end: End position on segment_1 (bp)
+#         y_start: Start position on segment_2 (bp)
+#         y_end: End position on segment_2 (bp)
+#         resolution: Bin size in base pairs
+#         normalise: Whether to normalize the matrix
+
+#     Returns:
+#         numpy array of contact counts
+#     """
+#     from timge.utils.heatmap import generate_contact_map_tile_bedpe
+
+#     region_1 = f"{segment_1}:{x_start}-{x_end}"
+#     region_2 = f"{segment_2}:{y_start}-{y_end}"
+
+#     try:
+#         matrix = generate_contact_map_tile_bedpe(
+#                 reads_path, segment_1, segment_2, fai_path,
+#                 x_start, x_end, y_start, y_end,
+#                 resolution, normalise
+#             )
+#         return matrix
+#     except Exception as e:
+#         print(f"Error generating BEDPE tile: {e}")
+#         return None
+
+
+def pad_matrix_to_tile_size(matrix, tile_size):
+    """
+    Pad a matrix to the standard tile size with zeros.
+
+    Args:
+        matrix: Input numpy array
+        tile_size: Target size (e.g., 256)
+
+    Returns:
+        Padded numpy array of shape (tile_size, tile_size)
+    """
+    if matrix is None:
+        return np.zeros((tile_size, tile_size))
+
+    current_height, current_width = matrix.shape
+
+    # If already the right size, return as-is
+    if current_height == tile_size and current_width == tile_size:
+        return matrix
+
+    # Create padded matrix
+    padded = np.zeros((tile_size, tile_size))
+
+    # Copy the actual data
+    h = min(current_height, tile_size)
+    w = min(current_width, tile_size)
+    padded[:h, :w] = matrix[:h, :w]
+
+    return padded
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_tile_metadata(request):
+    """
+    Get metadata about the tile grid for a given segment pair and resolution.
+
+    Query parameters:
+        - uuid: User UUID
+        - genome_path: Path to reference genome
+        - segment_1: First segment name
+        - segment_2: Second segment name
+        - resolution: Bin size in base pairs
+
+    Returns:
+    {
+        "status": "success",
+        "metadata": {
+            "segment_1_length": 248956422,
+            "segment_2_length": 248956422,
+            "resolution": 1000,
+            "tile_size": 256,
+            "tiles_x": 972,  # number of tiles needed for x-axis
+            "tiles_y": 972,  # number of tiles needed for y-axis
+            "bp_per_tile": 256000  # base pairs covered per tile
+        }
+    }
+    """
+    uuid = request.GET.get("uuid")
+    genome_path = request.GET.get("genome_path")
+    segment_1 = request.GET.get("segment_1")
+    segment_2 = request.GET.get("segment_2")
+    resolution = int(request.GET.get("resolution", 1000))
+
+    if not all([uuid, genome_path, segment_1, segment_2]):
+        return JsonResponse(
+            {"status": "error", "message": "Missing required parameters."}
+        )
+
+    directory = os.path.join(TRACK_ROOT_DIR, uuid)
+    reference_path = os.path.join(directory, genome_path)
+    fai_path = os.path.join(directory, genome_path + ".fai")
+
+    if not os.path.exists(reference_path):
+        return JsonResponse({"status": "error", "message": "Reference file not found."})
+
+    if not os.path.exists(fai_path):
+        os.system(f'samtools faidx "{reference_path}"')
+
+    # Read segment lengths from FAI
+    segment_lengths = {}
+    with open(fai_path, "r") as fai:
+        for line in fai:
+            parts = line.strip().split("\t")
+            segment_lengths[parts[0]] = int(parts[1])
+
+    seg1_length = segment_lengths.get(segment_1)
+    seg2_length = segment_lengths.get(segment_2)
+
+    if seg1_length is None or seg2_length is None:
+        return JsonResponse(
+            {"status": "error", "message": "Segment not found in reference."}
+        )
+
+    # Calculate tile grid dimensions
+    bp_per_tile = TILE_SIZE * resolution
+    tiles_x = int(np.ceil(seg1_length / bp_per_tile))
+    tiles_y = int(np.ceil(seg2_length / bp_per_tile))
+
+    return JsonResponse(
+        {
+            "status": "success",
+            "metadata": {
+                "segment_1": segment_1,
+                "segment_2": segment_2,
+                "segment_1_length": seg1_length,
+                "segment_2_length": seg2_length,
+                "resolution": resolution,
+                "tile_size": TILE_SIZE,
+                "tiles_x": tiles_x,
+                "tiles_y": tiles_y,
+                "bp_per_tile": bp_per_tile,
+            },
+        }
+    )
+
+
 @csrf_exempt
 @require_http_methods(["GET"])
 def generate_fai(request):
@@ -392,13 +702,22 @@ def get_segments(request):
         return JsonResponse({"status": "error", "message": "Reference file not found."})
 
     try:
-        segments = [record.id for record in SeqIO.parse(reference_path, "fasta")]
+        # record.id for record in SeqIO.parse(reference_path, "fasta")
+        segments = {
+            record.id: len(record.seq)
+            for record in SeqIO.parse(reference_path, "fasta")
+        }
     except Exception as e:
         return JsonResponse(
             {"status": "error", "message": f"Error parsing FASTA: {str(e)}"}
         )
 
-    return JsonResponse({"status": "success", "segments": segments})
+    return JsonResponse(
+        {
+            "status": "success",
+            "segments": segments,
+        }
+    )
 
 
 @csrf_exempt

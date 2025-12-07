@@ -28,6 +28,7 @@ import GenomeFileUploadBox from "./components/GenomeFileUpload";
 import DataTrackFileUploadBox from "./components/DataTrackFileUpload";
 import ChipDelete from '@mui/joy/ChipDelete';
 import DataTrackSelect from "./components/DataTrackSelect";
+import { API_BASE_URL } from "@/app/config/env";
 
 const Multilift: React.FC = () => {
   const [alertOpen, setAlertOpen] = useState(false);
@@ -63,9 +64,7 @@ const Multilift: React.FC = () => {
     formData.append("genome", genome);
     formData.append("genome_file", file);
 
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-
-    fetch(`${host}/api/multilift/multilift_sequences/`, {
+    fetch(`${API_BASE_URL}/api/multilift/multilift_sequences/`, {
       method: "POST",
       body: formData,
     })
@@ -179,8 +178,7 @@ const Multilift: React.FC = () => {
     }
     formData.append("multilift_genomes", JSON.stringify(uploadGenomes));
 
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/multilift/temp/`, {
+    fetch(`${API_BASE_URL}/api/multilift/temp/`, {
       method: "POST",
       body: formData,
     })

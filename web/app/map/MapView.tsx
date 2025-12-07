@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import * as d3 from "d3";
 import ParentView from "@/components/ParentView";
 import { Box, Button, Card, Checkbox, CircularProgress, Dropdown, LinearProgress, Option, Select, Typography } from "@mui/joy";
@@ -8,53 +8,132 @@ import { View } from "@/store/features/views/types";
 import TrackSelector from "./components/TrackSelector";
 import CanvasHeatmap from "./components/CanvasHeatmap";
 import { getViewConfig, updateViewConfig } from "@/store/features/space/spaceSlice";
+import { buildTileCacheKey, TILE_SIZE_BINS, tileCache } from "../map/TileCache";
+import { buildApiUrl } from "@/app/config/env";
+
+const RESOLUTION_PRESETS = [1, 5, 10, 25, 50, 100, 200, 500, 1000];
+const AUTO_TILE_CEILING = 10;
+const DEFAULT_MANUAL_RESOLUTION = 100;
 
 interface MapViewProps {
   trackFiles: any[];
   viewConfig: View;
   handleViewUpdate: (index, viewState: View) => void;
   index: number;
-  crossViewActionHandler?: any;
   dependencies: any;
-  addConnection?: any;
-  removeConnection?: any;
+}
+
+export interface Segment {
+  id: string;
+  length: number;
 }
 
 const MapView = (props: MapViewProps) => {
   const [reference, setReference] = useState(props.viewConfig.config.reference);
   const [track, setTrack] = useState(props.viewConfig.config.track);
-  // const [segmentA, setSegmentA] = useState(props.viewConfig.config.segmentA);
-  // const [segmentB, setSegmentB] = useState(props.viewConfig.config.segmentB);
-  const [resolution, setResolution] = useState(props.viewConfig.config.resolution);
-  const [availableSegments, setAvailableSegments] = useState([]);
-  const [showGridlines, setShowGridlines] = useState(false);
+  const resolutionConfigValue = props.viewConfig.config.resolution;
+  const storedManualResolution = props.viewConfig.config.manualResolution as number | undefined;
+  const storedAutoResolution = props.viewConfig.config.autoResolution as number | undefined;
+  const initialManualResolution =
+    typeof resolutionConfigValue === "number"
+      ? resolutionConfigValue
+      : storedManualResolution ?? DEFAULT_MANUAL_RESOLUTION;
+  const initialResolutionSetting =
+    resolutionConfigValue === "auto" ? "auto" : initialManualResolution;
+  const initialAutoResolution =
+    typeof resolutionConfigValue === "number"
+      ? resolutionConfigValue
+      : storedAutoResolution ?? RESOLUTION_PRESETS[RESOLUTION_PRESETS.length - 1];
+  const [resolutionSetting, setResolutionSetting] = useState<number | "auto">(initialResolutionSetting);
+  const [manualResolution, setManualResolution] = useState<number>(initialManualResolution);
+  const [autoResolution, setAutoResolution] = useState<number>(initialAutoResolution);
+  const [availableSegments, setAvailableSegments] = useState<Segment[]>([]);
   const [toggleColourScheme, setToggleColourScheme] = useState(props.viewConfig.config.toggleColourScheme || false);
   const [normalise, setNormalise] = useState(false);
   const [negativeStrand, setNegativeStrand] = useState(props.viewConfig.config.negativeStrand || false);
   const [loading, setLoading] = useState(false);
   const [matrix, setMatrix] = useState<number[][]>([]);
+  const [tileCacheVersion, setTileCacheVersion] = useState(0);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const heatmapRef = useRef(null);
   const space = useAppSelector((state) => state.space);
   const dispatch = useAppDispatch();
 
-  // const segmentA = space.views[props.index].config.segmentA || props.viewConfig.config.segmentA;
-  // const segmentB = space.views[props.index].config.segmentB || props.viewConfig.config.segmentB;
+  const extractSegmentId = (value: Segment | string | null | undefined) => {
+    if (!value) return null;
+    if (typeof value === "string") return value;
+    return value.id;
+  };
 
-  const [segmentA, setSegmentA] = useState(space.views[props.index].config.segmentA || props.viewConfig.config.segmentA);
-  const [segmentB, setSegmentB] = useState(space.views[props.index].config.segmentB || props.viewConfig.config.segmentB);
+  const initialSegmentAId = extractSegmentId(
+    space.views?.[props.index]?.config.segmentA ?? props.viewConfig.config.segmentA,
+  );
+  const initialSegmentBId = extractSegmentId(
+    space.views?.[props.index]?.config.segmentB ?? props.viewConfig.config.segmentB,
+  );
+  const [segmentAId, setSegmentAId] = useState<string | null>(initialSegmentAId);
+  const [segmentBId, setSegmentBId] = useState<string | null>(initialSegmentBId);
 
+  const segmentA = useMemo(
+    () => availableSegments.find((segment) => segment.id === segmentAId) ?? null,
+    [availableSegments, segmentAId],
+  );
+  const segmentB = useMemo(
+    () => availableSegments.find((segment) => segment.id === segmentBId) ?? null,
+    [availableSegments, segmentBId],
+  );
 
-  const [renderedSegmentA, setRenderedSegmentA] = useState(segmentA);
-  const [renderedSegmentB, setRenderedSegmentB] = useState(segmentB);
-  const [renderedResolution, setRenderedResolution] = useState(resolution);
+  const [renderedSegmentA, setRenderedSegmentA] = useState<Segment | null>(segmentA);
+  const [renderedSegmentB, setRenderedSegmentB] = useState<Segment | null>(segmentB);
+  const [renderedResolution, setRenderedResolution] = useState(
+    resolutionSetting === "auto" ? initialAutoResolution : initialManualResolution,
+  );
 
   const [showTrackPicker, setShowTrackPicker] = useState(false);
 
-  const [xLocus, setXLocus] = useState<[number, number]>([0, 0]);
-  const [yLocus, setYLocus] = useState<[number, number]>([0, 0]);
+  const [xLocus, setXLocus] = useState<[number, number]>([0, segmentA?.length ?? 0]);
+  const [yLocus, setYLocus] = useState<[number, number]>([0, segmentB?.length ?? 0]);
   const zoomToLocusRef = useRef<((x0: number, x1: number, y0: number, y1: number) => void) | null>(null);
+
+  useEffect(() => {
+    setXLocus([0, segmentA?.length ?? 0]);
+  }, [segmentA]);
+
+  useEffect(() => {
+    setYLocus([0, segmentB?.length ?? 0]);
+  }, [segmentB]);
+
+  useEffect(() => {
+    const nextResolutionSetting = props.viewConfig.config.resolution;
+    const nextManualResolution = props.viewConfig.config.manualResolution as number | undefined;
+    const nextAutoResolution = props.viewConfig.config.autoResolution as number | undefined;
+    if (nextResolutionSetting === "auto") {
+      if (resolutionSetting !== "auto") {
+        setResolutionSetting("auto");
+      }
+      if (typeof nextManualResolution === "number" && nextManualResolution !== manualResolution) {
+        setManualResolution(nextManualResolution);
+      }
+      if (typeof nextAutoResolution === "number" && nextAutoResolution !== autoResolution) {
+        setAutoResolution(nextAutoResolution);
+      }
+    } else if (typeof nextResolutionSetting === "number") {
+      if (manualResolution !== nextResolutionSetting) {
+        setManualResolution(nextResolutionSetting);
+      }
+      if (resolutionSetting !== nextResolutionSetting) {
+        setResolutionSetting(nextResolutionSetting);
+      }
+      if (resolutionSetting !== "auto" && autoResolution !== nextResolutionSetting) {
+        setAutoResolution(nextResolutionSetting);
+      }
+    }
+  }, [
+    props.viewConfig.config.resolution,
+    props.viewConfig.config.manualResolution,
+    props.viewConfig.config.autoResolution,
+  ]);
 
 
   const handleTrackConfirm = (ref: string, trk: string) => {
@@ -73,13 +152,14 @@ const MapView = (props: MapViewProps) => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
       const queryParams = new URLSearchParams({
         uuid: space.uuid,
         file_name: track,
         genome_path: reference,
       }).toString();
-        const response = await fetch(`${host}/api/timge/get_segments/?${queryParams}`, {
+        const url = new URL(buildApiUrl("/api/timge/get_segments/"));
+        url.search = queryParams;
+        const response = await fetch(url.toString(), {
             method: "GET",
             headers: {
             "Content-Type": "application/json",
@@ -87,7 +167,11 @@ const MapView = (props: MapViewProps) => {
         });
       const data = await response.json();
       if (data.status === "success" && data.segments) {
-        setAvailableSegments(data.segments);
+        const segments: Segment[] = Object.entries(data.segments).map(([id, length]) => ({
+          id,
+          length: length as number,
+        }));
+        setAvailableSegments(segments);
       } else {
         console.error("Failed to fetch segments", data.message);
       }
@@ -99,74 +183,174 @@ const MapView = (props: MapViewProps) => {
   }, [reference, track]);
 
   useEffect(() => {
+    const currentConfig = props.viewConfig.config || {};
+    const currentSegmentAId = extractSegmentId(currentConfig.segmentA);
+    const currentSegmentBId = extractSegmentId(currentConfig.segmentB);
+    const resolvedConfigResolution =
+      resolutionSetting === "auto" ? "auto" : manualResolution;
+    if (
+      currentConfig.reference === reference &&
+      currentConfig.track === track &&
+      currentSegmentAId === segmentAId &&
+      currentSegmentBId === segmentBId &&
+      currentConfig.resolution === resolvedConfigResolution &&
+      currentConfig.manualResolution === manualResolution &&
+      currentConfig.autoResolution === autoResolution &&
+      currentConfig.toggleColourScheme === toggleColourScheme
+    ) {
+      return;
+    }
     props.handleViewUpdate(props.index, {
       ...props.viewConfig,
       config: {
-        ...props.viewConfig.config,
-        reference: reference,
-        track: track,
-        segmentA: segmentA,
-        segmentB: segmentB,
-        resolution: resolution,
-        toggleColourScheme: toggleColourScheme,
+        ...currentConfig,
+        reference,
+        track,
+        segmentA: segmentAId,
+        segmentB: segmentBId,
+        resolution: resolvedConfigResolution,
+        manualResolution,
+        autoResolution,
+        toggleColourScheme,
       },
     });
-  }
-  , [reference, track, segmentA, segmentB, resolution, toggleColourScheme]);
+  }, [
+    reference,
+    track,
+    segmentAId,
+    segmentBId,
+    resolutionSetting,
+    manualResolution,
+    autoResolution,
+    toggleColourScheme,
+  ]);
 
   const zoomRef = useRef<d3.ZoomBehavior<Element, unknown> | null>(null);
   const svgElRef = useRef<SVGSVGElement | null>(null);
+  const automaticInitialRenderRef = useRef(false);
 
+  type TileCoord = { x: number; y: number };
+
+  interface RenderOptions {
+    segmentA?: Segment;
+    segmentB?: Segment;
+    resolution?: number;
+    locus?: {
+      x: [number, number];
+      y: [number, number];
+    };
+  }
+
+  const determineAutoResolution = (xRange?: [number, number], yRange?: [number, number]) => {
+    if (!xRange || !yRange) {
+      return autoResolution || RESOLUTION_PRESETS[RESOLUTION_PRESETS.length - 1];
+    }
+    const xSpan = Math.max(1, xRange[1] - xRange[0]);
+    const ySpan = Math.max(1, yRange[1] - yRange[0]);
+    for (const candidate of RESOLUTION_PRESETS) {
+      const tilesX = Math.max(1, Math.ceil(xSpan / (candidate * TILE_SIZE_BINS)));
+      const tilesY = Math.max(1, Math.ceil(ySpan / (candidate * TILE_SIZE_BINS)));
+      if (tilesX * tilesY <= AUTO_TILE_CEILING) {
+        return candidate;
+      }
+    }
+    return RESOLUTION_PRESETS[RESOLUTION_PRESETS.length - 1];
+  };
+
+  const resolveResolutionValue = (override?: number) => {
+    if (typeof override === "number") return override;
+    return resolutionSetting === "auto" ? autoResolution : manualResolution;
+  };
+
+  const ensureAutoResolution = (xRange: [number, number], yRange: [number, number]) => {
+    const nextAuto = determineAutoResolution(xRange, yRange);
+    setAutoResolution((prev) => (prev === nextAuto ? prev : nextAuto));
+    return nextAuto;
+  };
 
   const clearHeatmap = () => {
     const svg = d3.select(heatmapRef.current);
     svg.selectAll("*").remove();
   }
-  
-  const renderHeatmap = (_segmentA?, _segmentB?) => {
+
+  const renderHeatmap = async (options: RenderOptions = {}) => {
+    const targetSegmentA = options.segmentA ?? segmentA;
+    const targetSegmentB = options.segmentB ?? segmentB;
+    const targetResolution = resolveResolutionValue(options.resolution);
+    const targetXLocus = options.locus?.x ?? xLocus;
+    const targetYLocus = options.locus?.y ?? yLocus;
+
+    if (!targetSegmentA || !targetSegmentB || !targetResolution) {
+      console.warn("Missing data required to render heatmap tiles");
+      return;
+    }
+
     setLoading(true);
-    console.log("Rendering heatmap", _segmentA, _segmentB);
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/timge/heatmap/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
+    try {
+      const requiredTiles = getRequiredTiles(
+        targetSegmentA,
+        targetSegmentB,
+        targetResolution,
+        targetXLocus,
+        targetYLocus,
+      );
+      const missingTiles = getMissingTiles(
+        requiredTiles,
+        targetSegmentA,
+        targetSegmentB,
+        targetResolution,
+      );
+      await fetchMissingTiles(
+        missingTiles,
+        targetSegmentA,
+        targetSegmentB,
+        targetResolution,
+      );
+      setRenderedSegmentA(targetSegmentA);
+      setRenderedSegmentB(targetSegmentB);
+      setRenderedResolution(targetResolution);
+    } catch (error) {
+      console.error("Failed to render heatmap tiles", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleZoomComplete = (nextXRange: [number, number], nextYRange: [number, number]) => {
+    setXLocus(nextXRange);
+    setYLocus(nextYRange);
+    if (resolutionSetting !== "auto" || !segmentA || !segmentB) return;
+    const nextResolution = ensureAutoResolution(nextXRange, nextYRange);
+    renderHeatmap({
+      resolution: nextResolution,
+      locus: {
+        x: nextXRange,
+        y: nextYRange,
       },
-      body: JSON.stringify({
-        uuid: space.uuid,
-        file_name: track,
-        genome_path: reference,
-        resolution: resolution,
-        segment_1: _segmentA ? _segmentA : segmentA,
-        segment_2: _segmentB ? _segmentB : segmentB,
-        normalise: normalise,
-      })
-    })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === "success") {
-          if (negativeStrand) {
-            const numRows = data.matrix.length;
-            const numCols = data.matrix[0]?.length || 0;
-            setMatrix(
-              data.matrix.map((row, rowIndex) =>
-                row.map((_, colIndex) =>
-                  data.matrix[numRows - 1 - rowIndex][numCols - 1 - colIndex]
-                )
-              )
-            );
-          } else {
-            setMatrix(data.matrix);
-          }
-          setRenderedSegmentA(_segmentA ? _segmentA : segmentA); 
-          setRenderedSegmentB(_segmentB ? _segmentB : segmentB);
-          setRenderedResolution(resolution);
-        } else {
-          console.error("Failed to generate heatmap", data.message);
-        }
-      }
-    )
-  }
+    }).catch((error) => console.error("Failed to refresh tiles after zoom", error));
+  };
+  useEffect(() => {
+    if (automaticInitialRenderRef.current) return;
+    if (!reference || !track || !segmentA || !segmentB) return;
+    automaticInitialRenderRef.current = true;
+    const defaultXLocus: [number, number] = [0, segmentA.length];
+    const defaultYLocus: [number, number] = [0, segmentB.length];
+    setXLocus(defaultXLocus);
+    setYLocus(defaultYLocus);
+    const initialResolution =
+      resolutionSetting === "auto"
+        ? determineAutoResolution(defaultXLocus, defaultYLocus)
+        : manualResolution;
+    if (resolutionSetting === "auto") {
+      setAutoResolution(initialResolution);
+    }
+    renderHeatmap({
+      segmentA,
+      segmentB,
+      resolution: initialResolution,
+      locus: { x: defaultXLocus, y: defaultYLocus },
+    }).catch((error) => console.error("Failed to render heatmap on load", error));
+  }, [reference, track, segmentA, segmentB, resolutionSetting, manualResolution]);
 
   const downloadPNG = () => {
     const canvas = canvasRef.current;
@@ -212,18 +396,164 @@ const MapView = (props: MapViewProps) => {
   };
 
   useEffect(() => {
-    if (reference && track) {
-      if (props.dependencies) {
-        const _segmentA = props.dependencies.segmentA;
-        const _segmentB = props.dependencies.segmentB;
-        console.log("Dependencies changed", _segmentA, _segmentB);
-        setSegmentA(_segmentA);
-        setSegmentB(_segmentB);
-        renderHeatmap(_segmentA, _segmentB);
+    console.log(availableSegments);
+  }, [availableSegments]);
+
+    // Compute the required tiles based on current viewport
+  const getRequiredTiles = (
+    segA: Segment,
+    segB: Segment,
+    res: number,
+    locusX: [number, number],
+    locusY: [number, number],
+  ): TileCoord[] => {
+    if (!segA || !segB) return [];
+
+    const binsX = Math.ceil(segA.length / res);
+    const binsY = Math.ceil(segB.length / res);
+
+    const tiles: TileCoord[] = [];
+    const [xBpStart, xBpEnd] = locusX;
+    const [yBpStart, yBpEnd] = locusY;
+
+    const xBinStart = Math.floor(xBpStart / res);
+    const xBinEnd = Math.ceil(xBpEnd / res);
+    const yBinStart = Math.floor(yBpStart / res);
+    const yBinEnd = Math.ceil(yBpEnd / res);
+
+    const wx0 = Math.max(0, xBinStart);
+    const wx1 = Math.min(binsX - 1, xBinEnd);
+    const wy0 = Math.max(0, yBinStart);
+    const wy1 = Math.min(binsY - 1, yBinEnd);
+
+    if (wx0 > wx1 || wy0 > wy1) {
+      return tiles;
+    }
+
+    const tileX0 = Math.floor(wx0 / TILE_SIZE_BINS);
+    const tileX1 = Math.floor(wx1 / TILE_SIZE_BINS);
+    const tileY0 = Math.floor(wy0 / TILE_SIZE_BINS);
+    const tileY1 = Math.floor(wy1 / TILE_SIZE_BINS);
+
+    for (let tx = tileX0; tx <= tileX1; tx++) {
+      for (let ty = tileY0; ty <= tileY1; ty++) {
+        tiles.push({ x: tx, y: ty });
       }
     }
-  }
-  , [props.dependencies]);
+
+    return tiles;
+  };
+
+  // Determine which tiles are missing from the cache
+  const getMissingTiles = (
+    requiredTiles: TileCoord[],
+    segA: Segment,
+    segB: Segment,
+    res: number,
+  ): TileCoord[] => {
+    const missingTiles: TileCoord[] = [];
+    if (!tileCache) return requiredTiles;
+    for (const tile of requiredTiles) {
+      const key = buildTileCacheKey({
+        trackName: track,
+        segmentAId: segA.id,
+        segmentBId: segB.id,
+        resolution: res,
+        tileX: tile.x,
+        tileY: tile.y,
+      });
+      if (!tileCache.has(key)) {
+        missingTiles.push(tile);
+      }
+    }
+    return missingTiles;
+  };
+
+  // Fetch missing tiles
+  const fetchMissingTiles = async (
+    missingTiles: TileCoord[],
+    segA: Segment,
+    segB: Segment,
+    res: number,
+  ) => {
+    if (missingTiles.length === 0) return;
+
+    const payload = {
+      uuid: space.uuid,
+      file_name: track,
+      genome_path: reference,
+      resolution: res,
+      segment_1: segA.id,
+      segment_2: segB.id,
+      normalise,
+      tiles: missingTiles,
+    };
+
+    try {
+      const response = await fetch(buildApiUrl("/api/timge/heatmap_tiles/"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Tile request failed (${response.status})`);
+      }
+
+      const data = await response.json();
+      if (data.status === "success" && data.tiles) {
+        let cacheTouched = false;
+        for (const tile of data.tiles as any[]) {
+          const key = buildTileCacheKey({
+            trackName: track,
+            segmentAId: segA.id,
+            segmentBId: segB.id,
+            resolution: res,
+            tileX: tile.x,
+            tileY: tile.y,
+          });
+          tileCache?.set(key, tile.matrix ?? null);
+          cacheTouched = true;
+        }
+        if (cacheTouched) {
+          setTileCacheVersion((prev) => prev + 1);
+        }
+      } else {
+        console.error("Failed to fetch tiles", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching heatmap tiles", error);
+      throw error;
+    }
+  };
+
+  useEffect(() => {
+    if (reference && track && props.dependencies) {
+      const _segmentA = props.dependencies.segmentA as Segment | undefined;
+      const _segmentB = props.dependencies.segmentB as Segment | undefined;
+      if (_segmentA && _segmentB) {
+        console.log("Dependencies changed", _segmentA, _segmentB);
+        const nextXLocus: [number, number] = [0, _segmentA.length];
+        const nextYLocus: [number, number] = [0, _segmentB.length];
+        setSegmentAId(_segmentA.id);
+        setSegmentBId(_segmentB.id);
+        setXLocus(nextXLocus);
+        setYLocus(nextYLocus);
+        const nextResolution =
+          resolutionSetting === "auto"
+            ? ensureAutoResolution(nextXLocus, nextYLocus)
+            : manualResolution;
+        renderHeatmap({
+          segmentA: _segmentA,
+          segmentB: _segmentB,
+          resolution: nextResolution,
+          locus: { x: nextXLocus, y: nextYLocus },
+        }).catch((error) => console.error("Failed to sync dependency tiles", error));
+      }
+    }
+  }, [props.dependencies, reference, track, resolutionSetting, manualResolution]);
 
   return (
     <ParentView 
@@ -333,22 +663,22 @@ const MapView = (props: MapViewProps) => {
                                 segmentA: value,
                             }
                         }))
-                        setSegmentA(value);
+                        setSegmentAId(value ?? null);
                     }}
-                    value={segmentA}
+                    value={segmentAId ?? null}
                     placeholder="Select segment A"
                     sx={{
                       boxShadow: "none",
                       fontSize: "0.8em",
                     }}
                     >
-                    {availableSegments.map((segment, index) => (
-                        <Option key={index} value={segment}
+                    {Array.from(availableSegments).map((segment) => (
+                        <Option key={segment.id} value={segment.id}
                           sx={{
                             fontSize: "0.8em",
                           }}
                         >
-                        {segment}
+                        {segment.id}
                         </Option>
                     ))}
                     </Select>
@@ -378,22 +708,22 @@ const MapView = (props: MapViewProps) => {
                                 segmentB: value,
                             }
                         }))
-                        setSegmentB(value);
+                        setSegmentBId(value ?? null);
                     }}
-                    value={segmentB}
+                    value={segmentBId ?? null}
                     placeholder="Select segment B"
                     sx={{
                       boxShadow: "none",
                       fontSize: "0.8em",
                     }}
                     >
-                    {availableSegments.map((segment, index) => (
-                        <Option key={index} value={segment}
+                    {Array.from(availableSegments).map((segment) => (
+                        <Option key={segment.id} value={segment.id}
                           sx={{
                             fontSize: "0.8em",
                           }}
                           >
-                        {segment}
+                        {segment.id}
                         </Option>
                     ))}
                     </Select>
@@ -415,56 +745,40 @@ const MapView = (props: MapViewProps) => {
                     Resolution (bp):
                     </Typography>
                     <Select
-                    defaultValue={resolution}
-                    placeholder="Select resolution"
-                    onChange={(e, value) => {
-                        setResolution(value)
-                        props.handleViewUpdate(props.index, {
-                            ...props.viewConfig,
-                            config: {
-                                ...props.viewConfig.config,
-                                resolution: value,
-                            },
-                        })
-                    }}
-                    sx={{
-                      boxShadow: "none",
-                      fontSize: "0.8em",
-                    }}
-                    >
-                    <Option value={1} sx={{fontSize: "0.8em"}}>1</Option>
-                    <Option value={5} sx={{fontSize: "0.8em"}}>5</Option>
-                    <Option value={10} sx={{fontSize: "0.8em"}}>10</Option>
-                    <Option value={25} sx={{fontSize: "0.8em"}}>25</Option>
-                    <Option value={50} sx={{fontSize: "0.8em"}}>50</Option>
-                    <Option value={100} sx={{fontSize: "0.8em"}}>100</Option>
-                    <Option value={200} sx={{fontSize: "0.8em"}}>200</Option>
-                    <Option value={500} sx={{fontSize: "0.8em"}}>500</Option>
-                    <Option value={1000} sx={{fontSize: "0.8em"}}>1000</Option>
-                    </Select>
-                  </Box>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "left",
-                      gap: "10px",
-                    }}
-                  >
-                    <Typography
+                      value={resolutionSetting === "auto" ? "auto" : manualResolution}
+                      placeholder="Select resolution"
+                      onChange={(e, value) => {
+                        if (!value) return;
+                        if (value === "auto") {
+                          setResolutionSetting("auto");
+                          if (segmentA && segmentB) {
+                            const nextResolution = ensureAutoResolution(xLocus, yLocus);
+                            renderHeatmap({
+                              resolution: nextResolution,
+                              locus: { x: xLocus, y: yLocus },
+                            }).catch((error) =>
+                              console.error("Failed to render heatmap in auto mode", error),
+                            );
+                          }
+                          return;
+                        }
+                        setResolutionSetting(value);
+                        setManualResolution(value);
+                      }}
                       sx={{
+                        boxShadow: "none",
                         fontSize: "0.8em",
                       }}
                     >
-                    Show gridlines:
-                    </Typography>
-                    <Checkbox
-                    checked={showGridlines}
-                    onChange={(e) => {
-                        setShowGridlines(e.target.checked);
-                    }}
-                    />
+                      <Option value="auto" sx={{ fontSize: "0.8em" }}>
+                        Auto
+                      </Option>
+                      {RESOLUTION_PRESETS.map((resOption) => (
+                        <Option key={resOption} value={resOption} sx={{ fontSize: "0.8em" }}>
+                          {resOption}
+                        </Option>
+                      ))}
+                    </Select>
                   </Box>
                   <Box
                     sx={{
@@ -597,8 +911,19 @@ const MapView = (props: MapViewProps) => {
                     </Box>
                     <Button variant="solid" color="primary" 
                       onClick={() => {
+                        const nextXLocus: [number, number] = [0, segmentA?.length ?? 0];
+                        const nextYLocus: [number, number] = [0, segmentB?.length ?? 0];
+                        setXLocus(nextXLocus);
+                        setYLocus(nextYLocus);
                         clearHeatmap();
-                        renderHeatmap(null, null)
+                        const nextResolution =
+                          resolutionSetting === "auto"
+                            ? ensureAutoResolution(nextXLocus, nextYLocus)
+                            : manualResolution;
+                        renderHeatmap({
+                          resolution: nextResolution,
+                          locus: { x: nextXLocus, y: nextYLocus },
+                        });
                       }}
                       sx={{
                         fontSize: "0.8em",
@@ -630,16 +955,32 @@ const MapView = (props: MapViewProps) => {
             </Card>
             <Box
               sx={{
-                height: '100%',
-                width: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                marginBottom: '20px',
-                padding: '10px',
+                position: "relative",
+                height: "100%",
+                width: "100%",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                marginBottom: "20px",
+                padding: "10px",
               }}
             >
-               {
+              {loading && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "rgba(255, 255, 255, 0.75)",
+                    zIndex: 2,
+                    borderRadius: "8px",
+                  }}
+                >
+                  <CircularProgress size="lg" variant="solid"/>
+                </Box>
+              )}
               <Box
                 sx={{
                   display: "flex",
@@ -647,32 +988,34 @@ const MapView = (props: MapViewProps) => {
                   height: "100%",
                   justifyContent: "center",
                   alignItems: "center",
+                  opacity: loading ? 0.4 : 1,
+                  transition: "opacity 0.2s ease",
                 }}
-                >
-              <CanvasHeatmap
-                setCanvasRef={(el) => {
-                  canvasRef.current = el;
-                }}
-                setZoomRef={(zoom, svgEl) => {
-                  zoomRef.current = zoom;
-                  svgElRef.current = svgEl;
-                }}
-                zoomToLocusRef={zoomToLocusRef}
-                onLocusChange={(xRange, yRange) => {
-                  setXLocus(xRange);
-                  setYLocus(yRange);
-                }}
-                title={`${track.split("/").pop()} (${renderedResolution}nt)`}
-                matrix={matrix}
-                segmentA={renderedSegmentA}
-                segmentB={renderedSegmentB}
-                resolution={renderedResolution}
-                toggleColourScheme={toggleColourScheme}
-                showGridlines={showGridlines}
-                isMinimised={props.viewConfig.config.isMinimised}
-              />
+              >
+                <CanvasHeatmap
+                  setCanvasRef={(el) => {
+                    canvasRef.current = el;
+                  }}
+                  setZoomRef={(zoom, svgEl) => {
+                    zoomRef.current = zoom;
+                    svgElRef.current = svgEl;
+                  }}
+                  zoomToLocusRef={zoomToLocusRef}
+                  onLocusChange={(xRange, yRange) => {
+                    setXLocus(xRange);
+                    setYLocus(yRange);
+                  }}
+                  onZoomEnd={handleZoomComplete}
+                  title={`${track.split("/").pop()} (${renderedResolution}nt)`}
+                  trackName={track}
+                  segmentA={renderedSegmentA}
+                  segmentB={renderedSegmentB}
+                  resolution={renderedResolution}
+                  tileCacheVersion={tileCacheVersion}
+                  toggleColourScheme={toggleColourScheme}
+                  isMinimised={props.viewConfig.config.isMinimised}
+                />
               </Box>
-            }
             </Box>
         </Box>
             )

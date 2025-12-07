@@ -94,16 +94,6 @@ const Header: React.FC<HeaderProps> = ({addLinearGenomeView, addCircosView, addM
             </li>
         </ul>
     </nav>
-    <nav>
-        <ul className="flex items-center space-x-4">
-            <li>
-                <DropdownButton label="Register" link="/register" />
-            </li>
-            <li>
-                <DropdownButton label="Login" link="/login" />
-            </li>
-        </ul>
-    </nav>
 </header>
 
     );

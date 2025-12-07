@@ -9,16 +9,18 @@ import Line from "./components/line";
 import Annotation from "./components/annotation";
 import Highlight from "./components/highlight";
 import { AnnotationData as AnnotationType, Chord, GlobalConfig } from "../types/genomes";
+import { publishCrossViewEvent } from "@/app/utils/crossViewEvents";
 
 interface TracksProps {
   tracks: Array<Track>;
-  crossViewActionHandler?: any;
   id?: string;
   globalConfig?: GlobalConfig;
   dependencies?: any;
 }
 
-const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig, dependencies }: TracksProps) => {
+const DEFAULT_HEATMAP_RESOLUTION = 100;
+
+const Tracks = ({ tracks, id, globalConfig, dependencies }: TracksProps) => {
   const [segmentData, setSegmentData] = useState<any[]>([]);
   const [selectedSegments, setSelectedSegments] = useState<string[]>([]);
   const [trackData, setTrackData] = useState<Array<Track>>([]);
@@ -61,18 +63,15 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig, dependencies
     const segmentBStart = d.target_start;
     const segmentBEnd = d.target_end;
     
-    crossViewActionHandler(
-      "generate_rnafold",
-      {
-        "reference": reference,
-        "segmentA": d.source_chromosome,
-        "segmentB": d.target_chromosome,
-        "segmentAStart": d.source_start,
-        "segmentAEnd": d.source_end,
-        "segmentBStart": d.target_start,
-        "segmentBEnd": d.target_end,
-      }
-    );
+    publishCrossViewEvent("GENERATE_RNAFOLD", {
+      reference,
+      segmentA: d.source_chromosome,
+      segmentB: d.target_chromosome,
+      segmentAStart: d.source_start,
+      segmentAEnd: d.source_end,
+      segmentBStart: d.target_start,
+      segmentBEnd: d.target_end,
+    });
   }
 
   useEffect(() => {
@@ -204,18 +203,46 @@ const Tracks = ({ tracks, crossViewActionHandler, id, globalConfig, dependencies
 
   const onCustomAction = (action: string, data: any) => {
     console.log("Custom action triggered:", action, data);
-    if (action === "generate_heatmap") {
-      crossViewActionHandler(
-        "propagate_dependencies",
-        {
-          viewId: id,
-          dependencies: {
-            segmentA: data.segmentA,
-            segmentB: data.segmentB,
-          }
-        }
-      );
+    if (action !== "generate_heatmap") return;
+
+    const segments = (data?.segments ?? []) as Array<{ id: string; length: number }>;
+    if (segments.length < 2) {
+      console.warn("Generate heatmap requires exactly two segments.");
+      return;
     }
+
+    const [segmentA, segmentB] = segments;
+
+    if (!segmentA || !segmentB) {
+      console.warn("Generate heatmap invoked without both segments.");
+      return;
+    }
+
+    if (id) {
+      publishCrossViewEvent("PROPAGATE_DEPENDENCIES", {
+        viewId: id,
+        dependencies: { segmentA, segmentB },
+      });
+    }
+
+    const referenceTrack = trackData.find((track) => track.trackType === TrackType.Karyotype)
+      ?.name;
+    const contactTrack = trackData.find((track) => track.trackType === TrackType.Chord)?.name;
+
+    if (!referenceTrack || !contactTrack) {
+      console.warn(
+        "Unable to generate heatmap from circos view without both reference and interaction tracks.",
+      );
+      return;
+    }
+
+    publishCrossViewEvent("GENERATE_HEATMAP", {
+      reference: referenceTrack,
+      track: contactTrack,
+      segmentA,
+      segmentB,
+      resolution: DEFAULT_HEATMAP_RESOLUTION,
+    });
   };
 
   return (

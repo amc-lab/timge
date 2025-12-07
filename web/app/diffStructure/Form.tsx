@@ -11,6 +11,7 @@ import Input from '@mui/joy/Input';
 import Add from '@mui/icons-material/Add';
 import Remove from '@mui/icons-material/Remove';
 import { FormControl, FormLabel } from '@mui/joy';
+import { API_BASE_URL } from "@/app/config/env";
 
 export default function ShapeReactivityForm({ open, onClose, onSubmit }) {
   const [conditions, setConditions] = useState([
@@ -42,8 +43,7 @@ export default function ShapeReactivityForm({ open, onClose, onSubmit }) {
         formData.append(`condition_${idx}_file_${fileIdx}`, file);
       });
     });
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-    fetch(`${host}/api/timge/diff_structure/`, {
+    fetch(`${API_BASE_URL}/api/timge/diff_structure/`, {
       method: 'POST',
       body: formData,
     })

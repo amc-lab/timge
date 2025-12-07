@@ -14,16 +14,11 @@ import {
   resetSpace,
   setSpace,
   updateView,
-  deleteView,
   setDataFiles,
   selectSpace,
-  setDependency,
-  setConnection,
-  deleteConnection,
-  deleteDependency,
   setDiffStructureFormOpen,
 } from "@/store/features/space/spaceSlice";
-import { addLinearGenomeView, addCircosView, addMapView, addCustomMapView } from "./utils/viewUtils";
+import { addLinearGenomeView, addCircosView, addMapView } from "./utils/viewUtils";
 import FileViewerPanel from "@/components/FileViewerPanel";
 import Sidebar from "@/components/Sidebar";
 import Multilift from "./multilift/Multilift";
@@ -33,7 +28,11 @@ import { File as FileType } from "@/store/features/files/types";
 import LinearProgress from '@mui/material/LinearProgress';
 import { setLoading } from "@/store/features/site/siteSlice";
 import ShapeReactivityForm from "./diffStructure/Form";
-import { store } from "@/store";
+import {
+  registerCrossViewEventHandlers,
+  unregisterCrossViewEventHandlers,
+} from "./utils/crossViewEventHandlers";
+import { API_BASE_URL } from "@/app/config/env";
 
 interface FileEntry {
   name: string;
@@ -50,6 +49,13 @@ export default function Page() {
   const [genomeFormOpen, setGenomeFormOpen] = useState(false);
   const _files = useAppSelector((state) => state.files);
   const isLoading = useAppSelector((state) => state.site.isLoading);
+
+  useEffect(() => {
+    registerCrossViewEventHandlers();
+    return () => {
+      unregisterCrossViewEventHandlers();
+    };
+  }, []);
 
   useEffect(() => {
     if (space.uuid) {
@@ -86,7 +92,7 @@ export default function Page() {
     setFiles(files.filter((file) => file.name !== trackName));
     dispatch(setDataFiles(space.dataFiles.filter((file) => file !== trackName)));
 
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+    const host = API_BASE_URL;
     fetch(`${host}/api/timge/delete_track/?uuid=${space.uuid}&track_name=${trackName}`, {
       method: "DELETE",
     })
@@ -101,12 +107,30 @@ export default function Page() {
     })
   }
 
-  useEffect(() => {
-    saveToLocalStorage(space);
-  }, [space]);
+  const [hasHydratedState, setHasHydratedState] = useState(false);
 
   useEffect(() => {
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+    if (typeof window === "undefined") return;
+    const savedState = localStorage.getItem(STATE_KEY);
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        dispatch(setSpace(parsedState));
+      } catch (error) {
+        console.error("Failed to parse saved TIMGE state", error);
+      }
+    }
+    setHasHydratedState(true);
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (hasHydratedState) {
+      saveToLocalStorage(space);
+    }
+  }, [space, hasHydratedState]);
+
+  useEffect(() => {
+    const host = API_BASE_URL;
     
     fetch(`${host}/api/timge/get_files_in_path/`, {
       method: "POST",
@@ -137,7 +161,7 @@ export default function Page() {
   }, [space.uuid]);
 
   const uploadTrackFiles = async(files: File[]) => {
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
+    const host = API_BASE_URL;
     let formData = new FormData();
     
     files.forEach((track) => {
@@ -174,145 +198,8 @@ export default function Page() {
     }
   }
 
-  const addConnection = (viewId: string, linkedViewId: string) => {
-    console.log("Adding connection from", viewId, "to", linkedViewId);
-    dispatch(setConnection(
-      { 
-        key: viewId, value: [...(space.connections[viewId] || []), linkedViewId] 
-      }));
-  }
-
-  const removeConnection = (viewId: string) => {
-    const dependents = space.connections[viewId];
-    if (dependents) {
-      dependents.forEach((dependentId) => {
-        dispatch(setDependency(
-          { key: dependentId, value: [] }
-        ));
-      });
-    }
-
-    dispatch(deleteConnection(viewId));
-  }
-
-
   const updateViewState = (index: number, updatedConfig: any) => {
     dispatch(updateView({ index, updated: updatedConfig }));
-  }
-
-  const crossViewActionHandler = (action: string, data: any) => {
-    if (action === "generate_heatmap") {
-      if (!data || !data.track || !data.reference || !data.segmentA || !data.segmentB || !data.resolution) {
-        console.error("Invalid or missing data for generate_heatmap action");
-        return;
-      }
-      console.log("Generating heatmap with data:", data);
-      addCustomMapView(dispatch, space,
-        {
-        reference: data.reference,
-        track: data.track,
-        segmentA: data.segmentA,
-        segmentB: data.segmentB,
-        resolution: data.resolution,
-      });
-    }
-    else if (action === "delete_view") {
-      const viewId = data.viewId;
-      if (viewId) {
-        dispatch(deleteView(viewId));
-        dispatch(deleteConnection(viewId));
-        dispatch(deleteDependency(viewId));
-      }
-    }
-    else if (action === "add_connection") {
-      const { source, target } = data;
-      if (source && target) {
-        addConnection(source, target);
-      }
-    }
-    else if (action === "remove_connection") {
-      const { viewId } = data;
-      if (viewId) {
-        removeConnection(viewId);
-      }
-    }
-    else if (action === "propagate_dependencies") {
-      const { viewId, dependencies } = data;
-      const dependents = space.connections[viewId];
-      if (dependents) {
-        dependents.forEach((dependentId) => {
-          dispatch(setDependency({ key: dependentId, value: dependencies }));
-        });
-      }
-    }
-    else if (action === "propagate_loci") {
-      console.log("Propagating loci update:", data);
-      const currentSpace = store.getState().space;
-      const { viewId, loci } = data;
-      console.log("View ID:", viewId, "Loci:", loci);
-      console.log("Space connections:", currentSpace.connections);
-      const dependents = currentSpace.connections[viewId];
-      console.log(dependents);
-      if (dependents) {
-        dependents.forEach((dependentId) => {
-          dispatch(setDependency({ key: dependentId, value: loci }));
-        });
-      }
-    }
-    else if (action === "update_view") {
-      const { index, updated } = data;
-      updateViewState(index, updated);
-    }
-    else if (action === "set_diff_structure_form_open") {
-      dispatch(setDiffStructureFormOpen(data.open));
-    }
-    else if (action === "generate_rnafold") {
-      const { reference, segmentA, segmentB, segmentAStart, segmentAEnd, segmentBStart, segmentBEnd } = data;
-      if (!reference || !segmentA || !segmentB || !segmentAStart || !segmentAEnd || !segmentBStart || !segmentBEnd) {
-        console.error("Missing segment information for RNAfold generation");
-        return;
-      }
-
-      const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
-      const formData = new URLSearchParams();
-      formData.append("uuid", space.uuid);
-      formData.append("fasta1", reference);
-      formData.append("fasta2", reference);
-      formData.append("segment1", segmentA);
-      formData.append("segment2", segmentB);
-      formData.append("segment1_coords", [segmentAStart, segmentAEnd].join(","));
-      formData.append("segment2_coords", [segmentBStart, segmentBEnd].join(","));
-
-      fetch(`${host}/api/timge/predict_rna_folds/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: formData.toString(),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Network response was not ok");
-          }
-          return response.blob();
-        })
-        .then((blob) => {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = "rnafold_results.gz";
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-          window.URL.revokeObjectURL(url);
-        })
-        .catch((error) => {
-          console.error("Error downloading RNAfold results:", error);
-        });
-    }
-    else {
-      console.warn("Unhandled cross-view action:", action, "with data:", data);
-    }
   }
 
   // When importing a state, set the space state to the imported state and fetch the tracks from the backend
@@ -341,6 +228,10 @@ export default function Page() {
     setGenomeFormOpen(true);
   }
 
+
+  if (!hasHydratedState) {
+    return null;
+  }
 
   return <>
   {isLoading &&
@@ -436,10 +327,7 @@ export default function Page() {
                         viewConfig={view} 
                         handleViewUpdate={updateViewState} 
                         index={index} 
-                        crossViewActionHandler={crossViewActionHandler} 
                         dependencies={space.dependencies[view.uuid]}
-                        addConnection={addConnection}
-                        removeConnection={removeConnection}
                       />  
             }
             else if (view.type === "circos") {
@@ -448,10 +336,7 @@ export default function Page() {
                         viewConfig={view}
                         handleViewUpdate={updateViewState} 
                         index={index} 
-                        crossViewActionHandler={crossViewActionHandler} 
                         dependencies={space.dependencies[view.uuid]}
-                        addConnection={addConnection}
-                        removeConnection={removeConnection}
                         files={files}
                       />
             }
@@ -462,10 +347,7 @@ export default function Page() {
                         viewConfig={view}
                         handleViewUpdate={updateViewState} 
                         index={index} 
-                        crossViewActionHandler={crossViewActionHandler} 
                         dependencies={space.dependencies[view.uuid]}
-                        addConnection={addConnection}
-                        removeConnection={removeConnection}
                       />
             }
           })

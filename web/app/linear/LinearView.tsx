@@ -11,16 +11,14 @@ import { useAppSelector, useAppDispatch} from "@/store/hooks";
 import TrackSelector from "./components/TrackSelector";
 import IGVBrowser from "./IGVBrowser";
 import { updateViewProps, updateViewConfig} from "@/store/features/space/spaceSlice";
+import { FILE_BASE_URL, buildApiUrl } from "@/app/config/env";
 
 interface LinearViewProps {
   trackFiles: any[];
   viewConfig: View;
   handleViewUpdate: (index: number, viewState: View) => void;
   index: number;
-  crossViewActionHandler?: any;
   dependencies?: any;
-  addConnection?: any;
-  removeConnection?: any;
   // createdViews: Set<any>;
 }
 
@@ -39,8 +37,7 @@ const LinearView = (props: LinearViewProps) => {
 
   const dispatch = useAppDispatch();
   
-
-  const HOST = "https://vrise.doc.ic.ac.uk/uploads/" + space.uuid + "/";
+  const HOST = `${FILE_BASE_URL}/${space.uuid}/`;
   
   useEffect(() => {
     console.log("ViewState updated:", viewState);
@@ -169,12 +166,13 @@ const LinearView = (props: LinearViewProps) => {
   }, [reference, selectedTracks]);
 
   const generateFai = async() => {
-    const host = process.env.NEXT_PUBLIC_DJANGO_HOST;
     const queryParams = new URLSearchParams({
       uuid: props.viewConfig.uuid,
       genome_path: reference,
     }).toString();
-    await fetch(`${host}/api/timge/generate_fai/?${queryParams}`, {
+    const url = new URL(buildApiUrl("/api/timge/generate_fai/"));
+    url.search = queryParams;
+    await fetch(url.toString(), {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -284,7 +282,6 @@ const LinearView = (props: LinearViewProps) => {
             reference={reference}
             trackFiles={selectedTracks}
             viewConfig={props.viewConfig}
-            crossViewActionHandler={props.crossViewActionHandler}
           />
         </Box>
       )}
